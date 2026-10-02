@@ -300,7 +300,7 @@ Participant Setup (researcher) → Consent → Instructions → Tutorial (first 
 
 **Withdraw from study** is available on the Main Menu and the Pause menu. It permanently deletes that participant's data.
 
-```
+---
 
 ## 12. Project structure
 
