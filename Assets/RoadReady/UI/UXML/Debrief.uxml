@@ -1,0 +1,14 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label text="DEBRIEF" class="eyebrow" />
+        <ui:Label text="Thank you for taking part" class="title" />
+        <ui:Label name="summary" class="body" />
+        <ui:Label name="ssq-warning" class="insight insight--swap hidden" />
+        <ui:ScrollView name="results" class="card grow" />
+        <ui:Label name="takeaway" class="insight" />
+        <ui:VisualElement class="row row--end">
+            <ui:Button name="done" text="End session" class="btn btn--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

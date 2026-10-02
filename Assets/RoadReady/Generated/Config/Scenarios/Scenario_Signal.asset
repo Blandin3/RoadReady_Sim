@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d180d0621d860bd4087d84360bf62b84, type: 3}
+  m_Name: Scenario_Signal
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.ScenarioDefinition
+  scenarioId: signalized_intersection
+  displayName: Signalised intersection
+  type: 2
+  location: Kimironko, Kigali
+  description: A four-way signalised junction with cars, buses, moto-taxis and pedestrians.
+  thumbnail: {fileID: 0}
+  sceneName: RR_SignalizedIntersection
+  supportedPerspectives: 3
+  isTutorial: 0
+  driverBriefing: Drive straight through the traffic lights. Obey the signals and
+    yield to anyone still on the crossings.
+  pedestrianBriefing: Cross the road at the signalised crossing on the west side
+    of the junction.
+  difficultyLevels:
+  - randomSeed: 1001
+    trafficDensityPerMinute: 6
+    motoTaxiShare: 0.35
+    busShare: 0.1
+    bicycleShare: 0.05
+    npcCruiseSpeedKmh: 35
+    driverYieldCompliance: 0.6
+    signalCompliance: 0.95
+    pedestrianDensityPerMinute: 5
+    pedestrianJaywalkRate: 0.1
+    speedLimitKmh: 40
+    signalCycleScale: 1
+    timeLimitSeconds: 180
+    endAttemptOnCollision: 1
+    hazardLeadTimeScale: 1
+    disabledHazardIds: []
+    timeOfDay: 0
+    weather: 0
+  - randomSeed: 1002
+    trafficDensityPerMinute: 12
+    motoTaxiShare: 0.42
+    busShare: 0.1
+    bicycleShare: 0.05
+    npcCruiseSpeedKmh: 40
+    driverYieldCompliance: 0.45000002
+    signalCompliance: 0.9
+    pedestrianDensityPerMinute: 8
+    pedestrianJaywalkRate: 0.2
+    speedLimitKmh: 40
+    signalCycleScale: 1
+    timeLimitSeconds: 180
+    endAttemptOnCollision: 1
+    hazardLeadTimeScale: 0.85
+    disabledHazardIds: []
+    timeOfDay: 0
+    weather: 0
+  - randomSeed: 1003
+    trafficDensityPerMinute: 18
+    motoTaxiShare: 0.49
+    busShare: 0.1
+    bicycleShare: 0.05
+    npcCruiseSpeedKmh: 45
+    driverYieldCompliance: 0.3
+    signalCompliance: 0.84999996
+    pedestrianDensityPerMinute: 11
+    pedestrianJaywalkRate: 0.3
+    speedLimitKmh: 40
+    signalCycleScale: 1
+    timeLimitSeconds: 180
+    endAttemptOnCollision: 1
+    hazardLeadTimeScale: 0.7
+    disabledHazardIds: []
+    timeOfDay: 1
+    weather: 0
+  unlockNextLevelScore: 80
+  hazards:
+  - {fileID: 11400000, guid: dc924a21edcfe984d885300635cb3fc5, type: 2}
+  - {fileID: 11400000, guid: 05c2da9ba7468c34d9626d032cc27909, type: 2}
+  - {fileID: 11400000, guid: 7c64ac76dc926ce4f97f8e1dda6d3e2e, type: 2}
+  - {fileID: 11400000, guid: 72381d4727558d04e89ae37f0df641d8, type: 2}

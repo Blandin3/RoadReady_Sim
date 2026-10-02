@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a892f28b61c7154785149153064c3cb, type: 3}
+  m_Name: RoadReadyConfig
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.RoadReadyConfig
+  driverTutorial: {fileID: 11400000, guid: 952c216e6fe4e3b4e8843d1854271fd6, type: 2}
+  pedestrianTutorial: {fileID: 11400000, guid: 952c216e6fe4e3b4e8843d1854271fd6, type: 2}
+  scenarios:
+  - {fileID: 11400000, guid: 9913a10b794a6714eb4cfc26a917c42f, type: 2}
+  - {fileID: 11400000, guid: 34925be6864803e458a6b7a6c797c893, type: 2}
+  - {fileID: 11400000, guid: f7eacc87ee6c9f54e90e36c12ada0cf1, type: 2}
+  scoring: {fileID: 11400000, guid: 4a944ed4d1f410f479635ecd6cec2af8, type: 2}
+  defaultComfort:
+    vignetteEnabled: 1
+    vignetteStrength: 0.7
+    turnMode: 0
+    snapTurnDegrees: 45
+    assistedCrossing: 1
+    freeWalking: 1
+    walkSpeed: 1.3
+    seatedMode: 0
+    seatedEyeHeight: 1.6
+    textScale: 1
+    masterVolume: 1
+    voiceInstructions: 1
+  studyName: RoadReady Kimironko Pilot
+  adminPin: 2026
+  askSsqAfterEverySession: 1
+  ssqWarningTotalScore: 40
+  tutorialSkipDelaySeconds: 3
+  remoteBackend: 0
+  remoteBaseUrl: 
+  remoteAuthToken: 
+  telemetrySampleRate: 10
+  voiceLines: []

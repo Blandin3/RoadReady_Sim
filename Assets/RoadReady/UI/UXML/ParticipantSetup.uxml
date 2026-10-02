@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label text="RESEARCHER SETUP" class="eyebrow" />
+        <ui:Label text="RoadReady" class="title" />
+        <ui:Label name="study-name" class="subtitle" />
+        <ui:VisualElement class="row grow" style="align-items: stretch;">
+            <ui:VisualElement class="card grow">
+                <ui:Label text="New participant" class="card__title" />
+                <ui:Label text="Study group" class="field-label" />
+                <ui:VisualElement name="group-chips" class="row row--wrap" />
+                <ui:Label text="Condition" class="field-label" />
+                <ui:VisualElement name="condition-chips" class="row row--wrap" />
+                <ui:Label text="Age band" class="field-label" />
+                <ui:VisualElement name="age-chips" class="row row--wrap" />
+                <ui:Label text="Driving experience" class="field-label" />
+                <ui:VisualElement name="experience-chips" class="row row--wrap" />
+                <ui:Toggle name="guardian" text="Guardian consent form signed (required for 16-17)" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="create" text="Register participant" class="btn btn--primary" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card" style="width: 620px;">
+                <ui:Label text="Returning participant" class="card__title" />
+                <ui:Toggle name="post-test" text="This visit is the POST-TEST session" />
+                <ui:Label name="empty-list" text="No participants registered on this headset yet." class="muted small" />
+                <ui:ScrollView name="participant-list" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="row">
+            <ui:Button name="admin" text="Admin" class="btn btn--ghost btn--small" />
+            <ui:Button name="comfort" text="Comfort settings" class="btn btn--ghost btn--small" />
+            <ui:VisualElement class="spacer" />
+            <ui:Label name="version" class="muted small" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

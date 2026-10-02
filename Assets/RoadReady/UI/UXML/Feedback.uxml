@@ -1,0 +1,29 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:VisualElement class="row">
+            <ui:VisualElement name="score-ring" class="score-ring">
+                <ui:Label name="score-value" text="0" class="score-ring__value" />
+                <ui:Label text="SAFETY SCORE" class="score-ring__label" />
+            </ui:VisualElement>
+            <ui:VisualElement class="col grow">
+                <ui:Label name="eyebrow" class="eyebrow" />
+                <ui:Label name="headline" class="title" />
+                <ui:Label name="grade" class="subtitle" />
+                <ui:VisualElement name="metrics" />
+            </ui:VisualElement>
+            <ui:VisualElement class="col" style="width: 420px; margin-left: 32px;">
+                <ui:Label name="history-title" text="Your attempts" class="field-label" />
+                <ui:VisualElement name="history" class="history" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:ScrollView name="details" class="grow" />
+        <ui:VisualElement class="row">
+            <ui:Button name="menu" text="Menu" class="btn btn--ghost" />
+            <ui:VisualElement class="spacer" />
+            <ui:Button name="switch" text="Try it as a pedestrian" class="btn btn--accent" />
+            <ui:Button name="next-level" text="Next level" class="btn" />
+            <ui:Button name="retry" text="Try again" class="btn btn--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

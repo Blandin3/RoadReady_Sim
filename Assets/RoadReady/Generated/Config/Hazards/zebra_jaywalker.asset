@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: zebra_jaywalker
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: zebra_jaywalker
+  displayName: Pedestrian darts across the road
+  type: 7
+  description: 
+  severity: 3
+  perspective: 0
+  requiredResponse: 0
+  responseWindowSeconds: 4
+  safeReactionSeconds: 1
+  borderlineReactionSeconds: 1.8
+  gazeConeDegrees: 18
+  feedbackSafe: Quick reaction - you braked as soon as the pedestrian moved.
+  feedbackBorderline: You braked, but a little late. Watch people on the pavement,
+    not just the road.
+  feedbackUnsafe: You did not brake for the pedestrian crossing in front of you.
+  otherPerspectiveInsight: Pedestrians far from a crossing often misjudge how fast
+    cars approach - to them you looked far away.

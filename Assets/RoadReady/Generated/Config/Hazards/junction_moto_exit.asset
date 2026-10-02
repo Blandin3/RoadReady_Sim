@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: junction_moto_exit
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: junction_moto_exit
+  displayName: Moto-taxi pulls out of the side road
+  type: 6
+  description: 
+  severity: 3
+  perspective: 1
+  requiredResponse: 4
+  responseWindowSeconds: 5
+  safeReactionSeconds: 1.2
+  borderlineReactionSeconds: 2.2
+  gazeConeDegrees: 18
+  feedbackSafe: You spotted the moto-taxi pulling out and stepped back.
+  feedbackBorderline: You reacted late to the moto-taxi.
+  feedbackUnsafe: You were in the path of the moto-taxi leaving the side road.
+  otherPerspectiveInsight: A rider waiting to join the main road is looking right
+    for a gap - not at pedestrians crossing in front.

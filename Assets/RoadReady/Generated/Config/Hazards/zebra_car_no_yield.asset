@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: zebra_car_no_yield
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: zebra_car_no_yield
+  displayName: Car does not stop at the zebra
+  type: 2
+  description: 
+  severity: 3
+  perspective: 1
+  requiredResponse: 3
+  responseWindowSeconds: 7
+  safeReactionSeconds: 1.5
+  borderlineReactionSeconds: 2.5
+  gazeConeDegrees: 18
+  feedbackSafe: You checked, saw the car was not slowing and waited. Exactly right.
+  feedbackBorderline: You waited, but did not clearly look at the car first. Check
+    every lane before deciding.
+  feedbackUnsafe: You stepped out in front of a car that was not stopping. A zebra
+    gives you priority only once drivers have actually stopped.
+  otherPerspectiveInsight: From the driver's seat, a pedestrian standing back from
+    the kerb is easy to miss at speed. Step to the edge, make eye contact and wait
+    until the car has clearly stopped.

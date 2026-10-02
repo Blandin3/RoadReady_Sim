@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement name="fader" class="fader" picking-mode="Ignore" />
+</ui:UXML>

@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label text="WELCOME" class="eyebrow" />
+        <ui:Label text="How RoadReady works" class="title" />
+        <ui:Label name="welcome" class="body" />
+        <ui:VisualElement class="row grow" style="align-items: stretch;">
+            <ui:VisualElement class="card grow">
+                <ui:Label text="As a driver" class="card__title" />
+                <ui:Label name="driver-controls" class="body" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card grow">
+                <ui:Label text="As a pedestrian" class="card__title" />
+                <ui:Label name="pedestrian-controls" class="body" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="row row--end">
+            <ui:Button name="replay" text="Replay voice" class="btn btn--ghost" />
+            <ui:Button name="continue" text="Continue" class="btn btn--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: signal_turning_car
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: signal_turning_car
+  displayName: Turning car cuts across the crossing
+  type: 9
+  description: 
+  severity: 3
+  perspective: 1
+  requiredResponse: 4
+  responseWindowSeconds: 6
+  safeReactionSeconds: 1.5
+  borderlineReactionSeconds: 2.5
+  gazeConeDegrees: 18
+  feedbackSafe: You saw the turning car and let it pass.
+  feedbackBorderline: You reacted late to the turning car.
+  feedbackUnsafe: You were caught by a car turning across the crossing.
+  otherPerspectiveInsight: Drivers turning left are busy looking for gaps in oncoming
+    traffic and often notice pedestrians last.

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 66f8aec5a9df7db438489d8a1b60b7dc
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 379130
+  packageName: PolyDrive - FREE
+  packageVersion: 1.0
+  assetPath: Assets/PolyDrive - FREE/Shaders/DoubleSidedLit.shader
+  uploadId: 913798

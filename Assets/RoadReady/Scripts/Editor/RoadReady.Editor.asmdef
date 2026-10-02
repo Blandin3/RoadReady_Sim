@@ -1,0 +1,22 @@
+{
+    "name": "RoadReady.Editor",
+    "rootNamespace": "RoadReady.EditorTools",
+    "references": [
+        "RoadReady.Runtime",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.Interaction.Toolkit.Samples.StarterAssets"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: zebra_moto_far_lane
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: zebra_moto_far_lane
+  displayName: Moto-taxi in the far lane
+  type: 10
+  description: 
+  severity: 3
+  perspective: 1
+  requiredResponse: 4
+  responseWindowSeconds: 5
+  safeReactionSeconds: 1.2
+  borderlineReactionSeconds: 2.2
+  gazeConeDegrees: 18
+  feedbackSafe: You checked the second lane and held back. Well done.
+  feedbackBorderline: You reacted, but late. Pause at the centre line and look right
+    before the second lane.
+  feedbackUnsafe: You walked into the path of the moto-taxi in the far lane.
+  otherPerspectiveInsight: A rider in the far lane cannot see a pedestrian stepping
+    out from behind a stopped car. Pause at the centre line and check the second
+    lane.

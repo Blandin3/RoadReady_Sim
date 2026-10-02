@@ -1,0 +1,25 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label text="SAFETY AND COMFORT" class="eyebrow" />
+        <ui:Label text="Comfort and accessibility" class="title" />
+        <ui:ScrollView class="card grow">
+            <ui:Toggle name="vignette" text="Comfort vignette when moving" />
+            <ui:Slider name="vignette-strength" label="Vignette strength" low-value="0.3" high-value="1" />
+            <ui:Toggle name="smooth-turn" text="Smooth turning (off = snap turning)" />
+            <ui:Slider name="snap-degrees" label="Snap turn angle" low-value="15" high-value="90" />
+            <ui:Toggle name="assisted-crossing" text="Assisted crossing: Cross now walks you across" />
+            <ui:Toggle name="free-walking" text="Allow thumbstick walking" />
+            <ui:Slider name="walk-speed" label="Walking speed" low-value="0.5" high-value="2" />
+            <ui:Toggle name="seated" text="Seated mode (fixed eye height)" />
+            <ui:Slider name="eye-height" label="Seated eye height (m)" low-value="1.2" high-value="1.9" />
+            <ui:Slider name="text-scale" label="Text size" low-value="1" high-value="1.5" />
+            <ui:Slider name="volume" label="Volume" low-value="0" high-value="1" />
+            <ui:Toggle name="voice" text="Voice instructions" />
+        </ui:ScrollView>
+        <ui:VisualElement class="row row--end">
+            <ui:Button name="back" text="Back" class="btn btn--ghost" />
+            <ui:Button name="save" text="Save" class="btn btn--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

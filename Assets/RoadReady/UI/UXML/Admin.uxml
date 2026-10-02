@@ -1,0 +1,45 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:VisualElement class="row">
+            <ui:VisualElement class="col grow">
+                <ui:Label text="RESEARCHER" class="eyebrow" />
+                <ui:Label text="Admin" class="title" />
+            </ui:VisualElement>
+            <ui:Button name="close" text="Close" class="btn btn--ghost" />
+        </ui:VisualElement>
+        <ui:VisualElement name="pin-view" class="grow" style="align-items: center;">
+            <ui:Label text="Enter researcher PIN" class="subtitle" />
+            <ui:Label name="pin" class="pin-display" />
+            <ui:VisualElement name="keypad" class="keypad" />
+        </ui:VisualElement>
+        <ui:VisualElement name="admin-view" class="grow hidden">
+            <ui:VisualElement class="row">
+                <ui:Button name="tab-scenarios" text="Scenario parameters" class="chip" />
+                <ui:Button name="tab-data" text="Data and export" class="chip" />
+            </ui:VisualElement>
+            <ui:VisualElement name="scenarios-panel" class="grow">
+                <ui:VisualElement name="scenario-chips" class="row row--wrap" />
+                <ui:VisualElement name="level-chips" class="row" />
+                <ui:ScrollView name="params" class="card grow" />
+                <ui:VisualElement class="row row--end">
+                    <ui:Label name="override-state" class="muted small grow" />
+                    <ui:Button name="reset" text="Reset to defaults" class="btn btn--ghost" />
+                    <ui:Button name="save" text="Save parameters" class="btn btn--primary" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="data-panel" class="grow hidden">
+                <ui:VisualElement class="card">
+                    <ui:Label name="data-stats" class="body" />
+                    <ui:Label name="sync-state" class="body muted" />
+                    <ui:Label name="export-path" class="body small" />
+                </ui:VisualElement>
+                <ui:VisualElement class="row">
+                    <ui:Button name="export" text="Export CSV" class="btn btn--primary" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:Button name="delete-all" text="Delete ALL study data" class="btn btn--danger" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

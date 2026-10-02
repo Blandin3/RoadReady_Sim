@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: signal_red_runner
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: signal_red_runner
+  displayName: Car runs the red light
+  type: 5
+  description: 
+  severity: 3
+  perspective: 0
+  requiredResponse: 0
+  responseWindowSeconds: 6
+  safeReactionSeconds: 1.2
+  borderlineReactionSeconds: 2
+  gazeConeDegrees: 18
+  feedbackSafe: You checked the junction before moving off and avoided the red-light
+    runner.
+  feedbackBorderline: You avoided it, but only just. Scan left and right before you
+    go on green.
+  feedbackUnsafe: You drove into the path of a car running the red light.
+  otherPerspectiveInsight: A green light means you may go - not that it is safe.
+    The other driver was racing the amber and was not looking for you.

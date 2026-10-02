@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:VisualElement class="row">
+            <ui:VisualElement class="col grow">
+                <ui:Label text="PARTICIPANT" class="eyebrow" />
+                <ui:Label name="participant-id" class="title" />
+                <ui:Label name="session-info" class="muted small" />
+            </ui:VisualElement>
+            <ui:Button name="perspective-driver" text="Driver" class="chip" />
+            <ui:Button name="perspective-pedestrian" text="Pedestrian" class="chip" />
+        </ui:VisualElement>
+        <ui:Label name="phase-hint" class="insight" />
+        <ui:ScrollView name="scenario-scroll" mode="Horizontal" class="grow">
+            <ui:VisualElement name="scenario-cards" class="row" style="align-items: stretch;" />
+        </ui:ScrollView>
+        <ui:VisualElement class="row">
+            <ui:Button name="tutorial" text="Tutorial" class="btn btn--ghost btn--small" />
+            <ui:Button name="briefing" text="Safety briefing" class="btn btn--ghost btn--small" />
+            <ui:Button name="comfort" text="Comfort" class="btn btn--ghost btn--small" />
+            <ui:VisualElement class="spacer" />
+            <ui:Button name="withdraw" text="Withdraw from study" class="btn btn--ghost btn--small" />
+            <ui:Button name="finish" text="Finish session" class="btn btn--accent" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

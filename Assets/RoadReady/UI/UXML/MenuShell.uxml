@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement name="shell" class="rr-root">
+        <ui:VisualElement class="brand-bar">
+            <ui:VisualElement class="brand-bar__blue" />
+            <ui:VisualElement class="brand-bar__yellow" />
+            <ui:VisualElement class="brand-bar__green" />
+        </ui:VisualElement>
+        <ui:VisualElement name="content" class="grow" />
+        <ui:VisualElement name="modal-layer" class="modal-scrim hidden">
+            <ui:VisualElement class="modal">
+                <ui:Label name="modal-title" class="h2" />
+                <ui:Label name="modal-body" class="body" />
+                <ui:VisualElement class="row row--end">
+                    <ui:Button name="modal-cancel" text="Cancel" class="btn btn--ghost" />
+                    <ui:Button name="modal-confirm" text="Confirm" class="btn btn--primary" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

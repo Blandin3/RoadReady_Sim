@@ -1,0 +1,303 @@
+fileFormatVersion: 2
+guid: cd9f27a00e5f7a14190931fef4d87398
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Body_Color_#1
+    second: {fileID: 2100000, guid: ccf156d228b14eb48b40e3a683bc7e86, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Body_Color_#2
+    second: {fileID: 2100000, guid: db683ff5338bca7439f13228c1f11ffc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Body_Color_#3
+    second: {fileID: 2100000, guid: cb5608a234f9e8648b5d5712d218beb4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Caliper_Color
+    second: {fileID: 2100000, guid: 53bda0128d6d01440a40bbfe95651d2a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DarkRed
+    second: {fileID: 2100000, guid: 242643d75e00c7f45998626dd1f77a64, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#1
+    second: {fileID: 2100000, guid: d34d98ed5631795448201609c5fb0f3e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#10
+    second: {fileID: 2100000, guid: f81627cb599be6a4fb139e02efaf3d2e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#2
+    second: {fileID: 2100000, guid: f24fc7fe402fdbf469c205aa69a9a4ae, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#3
+    second: {fileID: 2100000, guid: 3aa749921d6058b47a9dcd4b0ed612be, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#4
+    second: {fileID: 2100000, guid: affdf7ee6678ed04abd8e8b0c5eef156, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#5
+    second: {fileID: 2100000, guid: d720c7b362ded1a498b058884fe8f078, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#6
+    second: {fileID: 2100000, guid: fa29dd0da77d88441a3fccf9b2c34659, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#7
+    second: {fileID: 2100000, guid: 67e8b015de5f6014f98580a508065119, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#8
+    second: {fileID: 2100000, guid: 52db1b5bbbadc1143911b463c75d06da, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dashboard_Icon_#9
+    second: {fileID: 2100000, guid: 6acb0b4092b6ae849b98ae6203540e76, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FogLight
+    second: {fileID: 2100000, guid: 25a792900a762e444a07dc76ae4b16ac, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass_#1
+    second: {fileID: 2100000, guid: 3ed88b8411ae4484cb10ad10e2056ffc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass_#2
+    second: {fileID: 2100000, guid: 2efc24d5ee2bc534e80483ed319ed132, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HighBeam
+    second: {fileID: 2100000, guid: 38cf4253f212f4444a8c583204015863, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Interior_Color_#1
+    second: {fileID: 2100000, guid: a7449adc75a50b942a015febfdfa0184, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Interior_Color_#2
+    second: {fileID: 2100000, guid: 7af49fbce63761248abb7bb5a3aae66c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Interior_Color_#3
+    second: {fileID: 2100000, guid: fba9243aa4864674b84c8b3dc74240ea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Left_Indicator
+    second: {fileID: 2100000, guid: 860b8e4872e6f4a4dbfe41a0796855af, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LowBeam
+    second: {fileID: 2100000, guid: 505425d7061e212409c227bbb4ae1ee0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Mirror
+    second: {fileID: 2100000, guid: 37bdbc49939aed14ca871ea22587a710, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Needle_Color_#1
+    second: {fileID: 2100000, guid: 1cec563014992e4498f16785015d4d92, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Needle_Color_#2
+    second: {fileID: 2100000, guid: 4e5fc5ff07118d148b698fdd4d0514e4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Reflector
+    second: {fileID: 2100000, guid: b9c9df0f97b6fc0418599a2e662058ee, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: ReverseLight
+    second: {fileID: 2100000, guid: f43eba85d7c573e4c838f20313f4dd3f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Right_Indicator
+    second: {fileID: 2100000, guid: 6a0eeba6f6be63e4bb3065a5cacb7e92, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Rim_Color
+    second: {fileID: 2100000, guid: 9527189d819b7864f9a098f01b6222cc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Roof_Light
+    second: {fileID: 2100000, guid: 43f2090fc3554f24d8a1f401c2e13e6c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TailLight
+    second: {fileID: 2100000, guid: b98169109fbfd704485c1d984341393b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tire_Color
+    second: {fileID: 2100000, guid: a083ca333542034469c483959074311c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WheelHub_Color_#1
+    second: {fileID: 2100000, guid: 1a21b0d146c099748a6d3aea08341418, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WheelHub_Color_#2
+    second: {fileID: 2100000, guid: 0b168f1ab03930b40ac50b0f0f6bb799, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: _Dashboard
+    second: {fileID: 2100000, guid: 63202d68365b71d4cb5a322048b13349, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages:
+    - 0.25
+    - 0.125
+    - 0.0625
+    - 0.01
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 379130
+  packageName: PolyDrive - FREE
+  packageVersion: 1.0
+  assetPath: Assets/PolyDrive - FREE/Models/03_Bavaria/Bavaria_Sport-3.fbx
+  uploadId: 913798

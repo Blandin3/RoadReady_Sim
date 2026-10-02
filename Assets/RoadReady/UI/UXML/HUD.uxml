@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:Label name="countdown" class="hud__countdown hidden" />
+        <ui:Label name="tutorial" class="hud__tutorial hidden" />
+        <ui:Label name="toast" class="hud__toast hidden" />
+        <ui:Label name="caption" class="hud__caption hidden" />
+        <ui:Label name="prompt" class="hud__prompt hidden" />
+        <ui:VisualElement name="cluster" class="hud__cluster">
+            <ui:Label name="arrow-left" text="&lt;" class="hud__arrow" />
+            <ui:Label name="speed" text="0" class="hud__speed" />
+            <ui:Label text="km/h" class="hud__unit" />
+            <ui:Label name="limit" text="40" class="hud__limit" />
+            <ui:Label name="arrow-right" text="&gt;" class="hud__arrow" />
+            <ui:Label name="timer" class="hud__timer" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

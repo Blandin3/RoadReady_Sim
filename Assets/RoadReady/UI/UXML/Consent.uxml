@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label text="INFORMED CONSENT" class="eyebrow" />
+        <ui:Label text="Before we start" class="title" />
+        <ui:ScrollView class="card" style="max-height: 420px;">
+            <ui:Label name="consent-text" class="body" />
+        </ui:ScrollView>
+        <ui:Toggle name="age-ok" text="I am 16 or older. If I am under 18, my parent or guardian has signed the consent form." />
+        <ui:Toggle name="health-ok" text="I do not have a seizure disorder, severe motion sickness, or uncorrected vision problems." />
+        <ui:Toggle name="understand" text="I understand my data is anonymous and I can stop or withdraw at any time." />
+        <ui:VisualElement class="spacer" />
+        <ui:VisualElement class="row row--end">
+            <ui:Button name="decline" text="I do not agree" class="btn btn--ghost" />
+            <ui:Button name="agree" text="I agree to take part" class="btn btn--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

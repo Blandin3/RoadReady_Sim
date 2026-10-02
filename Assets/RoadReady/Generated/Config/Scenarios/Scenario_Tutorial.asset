@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d180d0621d860bd4087d84360bf62b84, type: 3}
+  m_Name: Scenario_Tutorial
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.ScenarioDefinition
+  scenarioId: tutorial
+  displayName: Tutorial
+  type: 0
+  location: Practice road
+  description: Learn the controls on a quiet road. Not scored.
+  thumbnail: {fileID: 0}
+  sceneName: RR_Tutorial
+  supportedPerspectives: 3
+  isTutorial: 1
+  driverBriefing: Learn to accelerate, brake, steer, indicate and check your blind
+    spot.
+  pedestrianBriefing: Learn to look, walk and cross.
+  difficultyLevels:
+  - randomSeed: 1001
+    trafficDensityPerMinute: 0
+    motoTaxiShare: 0.35
+    busShare: 0.1
+    bicycleShare: 0.05
+    npcCruiseSpeedKmh: 35
+    driverYieldCompliance: 0.6
+    signalCompliance: 0.95
+    pedestrianDensityPerMinute: 0
+    pedestrianJaywalkRate: 0.1
+    speedLimitKmh: 40
+    signalCycleScale: 1
+    timeLimitSeconds: 600
+    endAttemptOnCollision: 1
+    hazardLeadTimeScale: 1
+    disabledHazardIds: []
+    timeOfDay: 0
+    weather: 0
+  unlockNextLevelScore: 80
+  hazards: []

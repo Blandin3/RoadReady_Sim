@@ -1,0 +1,25 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label name="phase" class="eyebrow" />
+        <ui:Label name="scenario-name" class="title" />
+        <ui:Label name="meta" class="subtitle" />
+        <ui:VisualElement class="row grow" style="align-items: stretch;">
+            <ui:VisualElement class="card grow">
+                <ui:Label text="Your task" class="card__title" />
+                <ui:Label name="briefing" class="body" />
+            </ui:VisualElement>
+            <ui:VisualElement class="card" style="width: 560px;">
+                <ui:Label text="Controls" class="card__title" />
+                <ui:Label name="controls" class="body small" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="row">
+            <ui:Label text="Difficulty" class="field-label" />
+            <ui:VisualElement name="level-chips" class="row" />
+            <ui:VisualElement class="spacer" />
+            <ui:Button name="back" text="Back" class="btn btn--ghost" />
+            <ui:Button name="start" text="Start" class="btn btn--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

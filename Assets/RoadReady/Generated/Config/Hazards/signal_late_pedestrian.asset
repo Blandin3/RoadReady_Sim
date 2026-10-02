@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: signal_late_pedestrian
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: signal_late_pedestrian
+  displayName: Pedestrian still crossing on your green
+  type: 1
+  description: 
+  severity: 3
+  perspective: 0
+  requiredResponse: 1
+  responseWindowSeconds: 7
+  safeReactionSeconds: 1.5
+  borderlineReactionSeconds: 2.5
+  gazeConeDegrees: 18
+  feedbackSafe: You gave the slow pedestrian time to finish crossing.
+  feedbackBorderline: You stopped late for the pedestrian on the crossing.
+  feedbackUnsafe: You did not wait for the pedestrian still on the crossing.
+  otherPerspectiveInsight: The pedestrian started while the green figure flashed.
+    From their side, the crossing is long and cars start fast.

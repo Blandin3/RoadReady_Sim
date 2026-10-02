@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: junction_turning_car_ped
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: junction_turning_car_ped
+  displayName: Car turns into the side road without signalling
+  type: 9
+  description: 
+  severity: 3
+  perspective: 1
+  requiredResponse: 3
+  responseWindowSeconds: 7
+  safeReactionSeconds: 1.5
+  borderlineReactionSeconds: 2.5
+  gazeConeDegrees: 18
+  feedbackSafe: You watched the car's movement, not just its indicator, and waited.
+  feedbackBorderline: You waited, but without clearly checking the car. Watch the
+    wheels and speed of turning cars.
+  feedbackUnsafe: You stepped out as a car turned into the side road.
+  otherPerspectiveInsight: The driver was watching main-road traffic and did not
+    signal. Watch the wheels and the car's speed, not just the indicator.

@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="screen">
+        <ui:Label name="eyebrow" class="eyebrow" />
+        <ui:Label name="title" class="title" />
+        <ui:Label name="instructions" class="subtitle" />
+        <ui:VisualElement class="progress">
+            <ui:VisualElement name="progress-fill" class="progress__fill" />
+        </ui:VisualElement>
+        <ui:Label name="counter" class="muted small" />
+        <ui:VisualElement class="grow" style="justify-content: center;">
+            <ui:Label name="item" class="q-item" />
+            <ui:VisualElement name="scale" class="q-scale" />
+        </ui:VisualElement>
+        <ui:VisualElement class="row">
+            <ui:Button name="back" text="Back" class="btn btn--ghost" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
