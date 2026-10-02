@@ -22,7 +22,7 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 2. [Requirements](#2-requirements)
 3. [Setting up the development environment](#3-setting-up-the-development-environment)
 4. [Getting the project](#4-getting-the-project)
-5. [First-time project setup (Build Everything)](#5-first-time-project-setup-build-everything)
+5. [First-time project setup](#5-first-time-project-setup)
 6. [Running in the Unity Editor](#6-running-in-the-unity-editor)
 7. [Building and running on Meta Quest](#7-building-and-running-on-meta-quest)
 8. [Configuration](#8-configuration)
@@ -131,37 +131,46 @@ The first import takes several minutes because Unity rebuilds the `Library/` fol
 
 ---
 
-## 5. First-time project setup (Build Everything)
+## 5. First-time project setup
 
-RoadReady generates its scenes, prefabs, materials, configuration assets and UI panels from code, so you get a consistent project with one click.
+All scenes, prefabs, materials and configuration assets are already in the repository, so you can set the project up the normal Unity way.
 
-1. Wait for the import and script compilation to finish (no spinner bottom-right, no red errors in the Console).
-2. In the top menu choose **`RoadReady → Build Everything`**.
-3. This command:
-   - creates materials, prefabs and the world-space UI panel settings
-   - creates the configuration assets in `Assets/RoadReady/Generated/Config/`: `RoadReadyConfig`, `ScoringConfig`, the scenario definitions and hazard definitions
-   - builds the scenario scenes in `Assets/RoadReady/Generated/Scenes/`: `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection`, `RR_MotoTaxiJunction`
-   - builds the bootstrap scene `RR_Bootstrap` (XR rig, UI, HUD, app controller)
-   - writes the **Build Settings** scene list (bootstrap first, then the scenario scenes)
-   - sets `RR_Bootstrap` as the **Play Mode start scene** and opens it
-4. The Console prints: `[RoadReady] Build complete. Press Play…`
+1. **Wait for the first import to finish.** There should be no spinner in the bottom-right corner and no red errors in the **Console** (*Window → General → Console*).
+2. **Open the start scene.** In the **Project** window go to `Assets/RoadReady/Generated/Scenes/` and double-click **`RR_Bootstrap`**. This scene contains the XR rig, the menus, the HUD and the app controller. The app always has to start from here.
+3. **Check the scene list.** Open **File → Build Profiles** (or *Build Settings*) and make sure these scenes are listed and ticked, in this order:
 
-Other menu commands:
+   | # | Scene | Purpose |
+   |---|---|---|
+   | 0 | `RR_Bootstrap` | Start scene: XR rig, UI, HUD and the session flow |
+   | 1 | `RR_Tutorial` | Unscored tutorial (driver and pedestrian) |
+   | 2 | `RR_ZebraCrossing` | Market zebra crossing |
+   | 3 | `RR_SignalizedIntersection` | Signalised intersection |
+   | 4 | `RR_MotoTaxiJunction` | Moto-taxi junction |
 
-| Menu item | Purpose |
+   If a scene is missing, drag it from `Assets/RoadReady/Generated/Scenes/` into the list. `RR_Bootstrap` must stay at index 0.
+4. **Check XR settings.** Open **Edit → Project Settings → XR Plug-in Management**. On the **Standalone (PC)** tab, tick **OpenXR** if you want to test with a headset over Quest Link. The Android tab is covered in [§7](#7-building-and-running-on-meta-quest).
+5. **Press Play** with `RR_Bootstrap` open.
+
+> ℹ️ The scenario scenes (`RR_ZebraCrossing`, etc.) deliberately have **no camera**. The player rig lives in `RR_Bootstrap`, and scenario scenes are loaded on top of it at runtime. If you press Play inside a scenario scene you will see *"No cameras rendering"*. Open `RR_Bootstrap` and press Play again.
+
+### Where to make changes
+
+| What you want to change | Where |
 |---|---|
-| `RoadReady → Rebuild Scenario Scenes Only` | Regenerate the four scenario scenes after editing the scene builder. |
-| `RoadReady → Open Data Folder` | Open the local study-data folder used in the Editor. |
-| `RoadReady → Export CSV (editor data)` | Export all Editor-recorded data to CSV. |
-| `RoadReady → Play From Current Scene (disable bootstrap redirect)` | Press Play in whatever scene is open. Scenario scenes have **no camera** by design, so only use this when debugging. |
+| Scenario layout (roads, crossings, buildings, traffic paths) | Open the scenario scene in `Assets/RoadReady/Generated/Scenes/` and edit it directly |
+| Scenario settings, briefings, difficulty levels | `Assets/RoadReady/Generated/Config/Scenarios/` |
+| Hazards and their feedback text | `Assets/RoadReady/Generated/Config/Hazards/` |
+| Scoring thresholds and weights | `Assets/RoadReady/Generated/Config/ScoringConfig` |
+| Screen layouts and styles | `Assets/RoadReady/UI/UXML/` and `Assets/RoadReady/UI/USS/RoadReady.uss` |
+| Gameplay and app logic | `Assets/RoadReady/Scripts/Runtime/` |
 
-> ⚠️ Re-running **Build Everything** regenerates the generated assets. Copy hand-tuned values from `RoadReadyConfig` / `ScoringConfig` somewhere safe first, or change them in the generator code.
+Save your scene with **Ctrl+S** after editing it, and commit the changed `.unity`, `.asset` and `.meta` files together.
 
 ---
 
 ## 6. Running in the Unity Editor
 
-Press **Play**. The game always starts from `RR_Bootstrap`, even if another scene is open. There are three ways to test.
+Open `RR_Bootstrap` and press **Play**. There are three ways to test.
 
 ### A. Keyboard and mouse (no headset)
 
@@ -214,7 +223,7 @@ The project includes the XRI *Starter Assets* and XR simulation settings. Turn o
 ## 7. Building and running on Meta Quest
 
 1. **File → Build Profiles** (or *Build Settings*) → select **Android** → **Switch Platform**.
-2. Confirm that the scene list has `RR_Bootstrap` first, followed by `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection` and `RR_MotoTaxiJunction` (Build Everything does this).
+2. Confirm that the scene list has `RR_Bootstrap` first, followed by `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection` and `RR_MotoTaxiJunction` (see [§5](#5-first-time-project-setup)).
 3. **Edit → Project Settings → XR Plug-in Management → Android tab**: tick **OpenXR**, then under **OpenXR → Android** enable the **Meta Quest Support** feature group and the Meta Quest Touch controller profiles. These are already enabled in this repository.
 4. **Player settings (Android)** already set in the project:
    - Scripting backend **IL2CPP**, target architecture **ARM64**
@@ -324,7 +333,7 @@ RoadReady_Sim/
 │   │   ├── UI/
 │   │   │   ├── UXML/              # one layout per screen (MainMenu, Briefing, HUD, Feedback, Pause, ...)
 │   │   │   └── USS/RoadReady.uss  # design tokens and styles
-│   │   └── Generated/             # created by "Build Everything": Config, Scenes, Prefabs, Materials
+│   │   └── Generated/             # project assets: Config, Scenes, Prefabs, Materials
 │   ├── Samples/                   # XR Interaction Toolkit & XR Hands samples
 │   ├── XR/, XRI/                  # XR plug-in management, OpenXR and XRI settings
 │   └── Scenes/                    # template scenes (not used at runtime)
@@ -360,7 +369,8 @@ Supporting design files:
 
 | Problem | Fix |
 |---|---|
-| **"Scenario could not start"** message in the app | The scenario scenes are missing from Build Settings. Run **RoadReady → Build Everything**. |
+| **"No cameras rendering"** when pressing Play | You are playing a scenario scene directly. Open `Assets/RoadReady/Generated/Scenes/RR_Bootstrap` and press Play. |
+| **"Scenario could not start"** message in the app | A scenario scene is missing from the scene list. Add it in **File → Build Profiles** (see [§5](#5-first-time-project-setup)). |
 | UI does not react to the controllers / mouse | Keep the `PanelInputConfiguration` that `RoadReadyApp` creates (input redirection = *Never*). Do not add a second uGUI EventSystem. |
 | Package errors on first open | Make sure you use Unity **6000.3.21f1**. Close Unity, delete `Library/`, then reopen. |
 | Headset not detected in Build And Run | Enable Developer Mode, accept USB debugging in the headset, and check that `adb devices` lists it. Try another USB-C data cable. |
