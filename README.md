@@ -242,8 +242,7 @@ All study and tuning settings live in ScriptableObjects in `Assets/RoadReady/Gen
 
 | Field | Default | Meaning |
 |---|---|---|
-| `studyName` | `RoadReady Kimironko Pilot` | Shown on the researcher setup screen. |
-| `adminPin` | `2026` | PIN for the Admin panel. **Change this before any pilot.** |
+| `studyName` | `RoadReady  Pilot` | Shown on the researcher setup screen. |
 | `askSsqAfterEverySession` | `true` | Show the SSQ at the end of every session. |
 | `ssqWarningTotalScore` | `40` | SSQ score at which the researcher is warned to stop. |
 | `tutorialSkipDelaySeconds` | `3` | How long before the tutorial can be skipped. |
@@ -301,83 +300,7 @@ Participant Setup (researcher) → Consent → Instructions → Tutorial (first 
 
 **Withdraw from study** is available on the Main Menu and the Pause menu. It permanently deletes that participant's data.
 
-**Admin panel:** on the setup screen tap **Admin** and enter the PIN on the on-screen keypad. From there you can edit scenario parameters, **Export CSV** or **Delete all data**.
-
----
-
-## 10. Data storage and export
-
-Data is stored locally under `Application.persistentDataPath/RoadReady/`:
-
 ```
-RoadReady/
-├── participants/{participantId}/
-│   ├── participant.json
-│   ├── sessions/{sessionId}.json
-│   ├── attempts/{attemptId}.json
-│   └── telemetry/{attemptId}.ndjson      # incremental, crash-safe trajectory log
-└── exports/{yyyyMMdd_HHmmss}/
-    ├── participants.csv
-    ├── sessions.csv
-    ├── attempts.csv
-    ├── hazards.csv
-    ├── decisions.csv
-    └── prepost_summary.csv               # baseline vs post-test per participant/scenario/perspective
-```
-
-Locations:
-
-| Platform | Path |
-|---|---|
-| Windows Editor / PC | `%USERPROFILE%\AppData\LocalLow\<CompanyName>\<ProductName>\RoadReady` (use **RoadReady → Open Data Folder**) |
-| Meta Quest | `/sdcard/Android/data/<applicationIdentifier>/files/RoadReady` |
-
-**Getting data off a Quest:** export from the Admin panel, which shows the export path, then run:
-
-```bash
-adb pull /sdcard/Android/data/com.DefaultCompany.VRTemplate/files/RoadReady/exports ./roadready_exports
-```
-
-All JSON files are written with a temp-file-and-replace step, so a crash never leaves half-written records. Only anonymised IDs are stored, never names. If a remote backend is configured, records are also queued in an outbox and synced when the network is available.
-
----
-
-## 11. How the simulation works
-
-```
-AttemptRequest (scenario, perspective, level, phase)
-   ├─ Driver     → DriverController  + dashboard HUD (speed, limit, indicators, timer)
-   └─ Pedestrian → PedestrianController + lazy-follow HUD (prompts, captions)
-        │
-        ├─ HazardMonitor + GazeTracker → response check → Situation-awareness level
-        │      L1 Perception failure  (hazard never looked at)
-        │      L2 Comprehension failure (looked, did not act)
-        │      L3 Projection failure  (acted too late / TTC < 2 s)
-        │
-        └─ RuleEngine
-               Driver rules:     speed limit, red light, zebra yield, give way,
-                                 following distance, turn signal, blind spot, off-road
-               Pedestrian rules: crossing location, pedestrian signal, gap acceptance,
-                                 look both ways, roadway dwell
-               Shared rules:     collision, proximity (time-to-collision)
-        ▼
-ScoreCalculator → FeedbackGenerator → DataService / CSV / telemetry → level unlock
-```
-
-- The **HUD never shows hazard hints**, so it cannot affect the hazard-perception measures.
-- The driver HUD is anchored to the car's dashboard, not to the head, to reduce motion sickness.
-- Traffic is simulated by waypoint-following vehicles (cars, moto-taxis, buses, trucks, bicycles), pedestrian AI, signal controllers and rule zones. Their behaviour comes from the difficulty level.
-
-### Scenarios
-
-| Scenario | Scene | Driver task | Pedestrian task |
-|---|---|---|---|
-| Tutorial | `RR_Tutorial` | Accelerate, brake, steer, indicate, check blind spot | Look, walk to the kerb marker, cross |
-| Market zebra crossing | `RR_ZebraCrossing` | Drive through the 30 km/h market zone past the zebra and stop for pedestrians | Cross at the zebra. Cars do not always stop. |
-| Signalised intersection | `RR_SignalizedIntersection` | Drive straight through, obey signals, yield to people on crossings | Cross at the signalised crossing on the green figure |
-| Moto-taxi junction | `RR_MotoTaxiJunction` | Turn left from the side road, give way, signal | Cross the mouth of the side road with no crossing |
-
----
 
 ## 12. Project structure
 
@@ -437,7 +360,6 @@ Supporting design files:
 
 | Problem | Fix |
 |---|---|
-| **"No cameras rendering"** when pressing Play | You are playing a scenario scene directly. Run **RoadReady → Build Everything** once, or open `RR_Bootstrap`. The Play Mode start scene is restored automatically on editor start. |
 | **"Scenario could not start"** message in the app | The scenario scenes are missing from Build Settings. Run **RoadReady → Build Everything**. |
 | UI does not react to the controllers / mouse | Keep the `PanelInputConfiguration` that `RoadReadyApp` creates (input redirection = *Never*). Do not add a second uGUI EventSystem. |
 | Package errors on first open | Make sure you use Unity **6000.3.21f1**. Close Unity, delete `Library/`, then reopen. |
