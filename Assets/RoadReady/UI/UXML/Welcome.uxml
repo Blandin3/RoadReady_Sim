@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement class="welcome">
+        <ui:VisualElement class="welcome__card">
+            <ui:VisualElement class="row">
+                <ui:VisualElement name="welcome-logo" class="logo-badge">
+                    <ui:Label name="welcome-logo-text" text="RR" class="logo-badge__text" />
+                </ui:VisualElement>
+                <ui:VisualElement class="col grow">
+                    <ui:Label text="RoadReady" class="welcome__title" />
+                    <ui:Label text="Dual-perspective VR road-safety trainer" class="welcome__subtitle" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="divider" />
+            <ui:Label text="Practice real Kigali traffic situations as a driver and as a pedestrian — safely, and as many times as you need." class="welcome__body" />
+            <ui:VisualElement class="row row--wrap">
+                <ui:Button name="voice-toggle" text="Voice guide: ON" class="pill pill--on" />
+                <ui:Label name="subtitles" text="Subtitles: EN" class="pill" />
+            </ui:VisualElement>
+            <ui:VisualElement class="row welcome__actions">
+                <ui:Button name="start" text="Start" class="btn btn--primary grow welcome__start" />
+                <ui:Button name="how-it-works" text="How it works" class="btn grow" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:Label name="hint" text="Point with the controller and pull the trigger to select" class="welcome__hint" />
+    </ui:VisualElement>
+</ui:UXML>

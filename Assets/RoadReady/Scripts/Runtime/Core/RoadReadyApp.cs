@@ -95,9 +95,23 @@ namespace RoadReady
             m_UI.ApplyTextScale(Comfort.textScale);
             m_Hud.Initialize(this, m_Scenarios);
 
+            if (m_Config.lobbyBackdrop != null && m_Scenarios.Lobby != null)
+                LobbyBackdrop.Create(m_Scenarios.Lobby, m_Rig.Head, m_Config.lobbyBackdrop);
+
             m_Rig.ReturnToLobby();
             StartCoroutine(m_Fader.FadeTo(0f, 0.8f));
-            GoToSetup();
+            StartCoroutine(ShowSplashWhenRigReady());
+        }
+
+        /// <summary>
+        /// The XR Origin applies its camera height a few frames after Start (and without a headset it never
+        /// tracks at all), so placing the menu immediately would put it below the learner's eyes.
+        /// </summary>
+        System.Collections.IEnumerator ShowSplashWhenRigReady()
+        {
+            for (var i = 0; i < 3; i++)
+                yield return null;
+            ShowSplash();
         }
 
         void Update()
@@ -119,6 +133,29 @@ namespace RoadReady
             var previous = State;
             State = state;
             RoadReadyEvents.RaiseAppStateChanged(previous, state);
+        }
+
+        // ================================================================ splash & welcome
+
+        public void ShowSplash()
+        {
+            SetState(AppState.Splash);
+            m_UI.Show(new SplashScreen());
+        }
+
+        public void ShowWelcome()
+        {
+            SetState(AppState.Welcome);
+            m_UI.Show(new WelcomeScreen());
+        }
+
+        public void ShowHowItWorks()
+        {
+            ShowMessage(AppState.Welcome, "HOW IT WORKS", "One street, two road users",
+                "Each scenario is a real Kigali street situation - a zebra crossing, traffic lights or a moto-taxi junction.\n\n" +
+                "You play it as a DRIVER, then as a PEDESTRIAN. After every attempt you get a safety score and see what the other road user saw.\n\n" +
+                "Your first attempt is your baseline. Practise as often as you like and watch your score improve.",
+                "Back", ShowWelcome);
         }
 
         // ================================================================ participant & consent

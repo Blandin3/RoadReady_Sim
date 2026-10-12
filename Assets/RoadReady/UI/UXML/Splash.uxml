@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="../USS/RoadReady.uss" />
+    <ui:VisualElement name="splash" class="splash">
+        <ui:VisualElement name="splash-logo" class="splash__logo" />
+        <ui:VisualElement name="splash-fallback" class="splash__fallback">
+            <ui:VisualElement class="logo-badge logo-badge--large">
+                <ui:Label text="RR" class="logo-badge__text" />
+            </ui:VisualElement>
+            <ui:Label text="RoadReady" class="splash__title" />
+        </ui:VisualElement>
+        <ui:Label name="splash-tagline" text="Dual-perspective VR road-safety trainer" class="splash__tagline" />
+    </ui:VisualElement>
+</ui:UXML>
