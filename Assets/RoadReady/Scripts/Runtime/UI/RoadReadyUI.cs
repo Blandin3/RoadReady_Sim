@@ -20,11 +20,12 @@ namespace RoadReady.UI
     {
         [SerializeField] WorldSpacePanel m_MenuPanel;
         [SerializeField] List<NamedTree> m_Screens = new List<NamedTree>();
-        [SerializeField] float m_StandingDistance = 1.7f;
+        [SerializeField] float m_StandingDistance = 1.5f;
         [SerializeField] float m_SeatedDistance = 1.1f;
         [SerializeField] float m_SeatedScale = 0.65f;
 
         RoadReadyApp m_App;
+        VisualElement m_Shell;
         VisualElement m_Content;
         VisualElement m_ModalLayer;
         Action m_ModalConfirm;
@@ -39,10 +40,12 @@ namespace RoadReady.UI
         {
             m_App = app;
             var root = m_MenuPanel.Root;
+            m_Shell = root.Q<VisualElement>("shell");
             m_Content = root.Q<VisualElement>("content") ?? root;
             m_ModalLayer = root.Q<VisualElement>("modal-layer");
             root.Btn("modal-confirm", () => CloseModal(true));
             root.Btn("modal-cancel", () => CloseModal(false));
+            UIX.AddGlassSheen(m_ModalLayer);
         }
 
         public VisualTreeAsset GetTree(string name)
@@ -60,6 +63,7 @@ namespace RoadReady.UI
             m_ModalLayer.SetVisible(false);
             m_Content.Clear();
             m_Current = screen;
+            m_Shell?.EnableInClassList("rr-root--clear", screen.Floating);
             screen.Mount(m_App, this, m_Content, GetTree(screen.TreeName));
             SetMenuVisible(true, reposition);
             return screen;

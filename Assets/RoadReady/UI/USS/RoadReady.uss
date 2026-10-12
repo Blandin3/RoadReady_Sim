@@ -8,7 +8,7 @@
     --rr-surface-2: rgba(40, 52, 66, 1);
     --rr-line: rgba(255, 255, 255, 0.12);
     --rr-text: rgb(245, 247, 250);
-    --rr-muted: rgb(160, 174, 188);
+    --rr-muted: rgb(186, 198, 210);
     --rr-blue: rgb(0, 161, 222);
     --rr-yellow: rgb(250, 210, 1);
     --rr-green: rgb(32, 96, 61);
@@ -29,6 +29,9 @@
     padding: 48px 56px;
     color: var(--rr-text);
     font-size: 30px;
+    /* Advanced Text Generator (enabled in Project Settings > UI Toolkit): crisper glyphs on world-space panels. */
+    -unity-text-generator: advanced;
+    letter-spacing: 0.3px;
 }
 
 .rr-root--clear {
@@ -37,8 +40,24 @@
     padding: 0;
 }
 
+/* Floating screens (splash, welcome) draw their own card over the 3D world. */
+.rr-root--clear .brand-bar {
+    display: none;
+}
+
 .screen {
     flex-grow: 1;
+}
+
+/* Never squash text or chip rows on top of each other when space is tight; only scroll lists give way. */
+.screen > *,
+.card > * {
+    flex-shrink: 0;
+}
+
+.screen > ScrollView,
+.card > ScrollView {
+    flex-shrink: 1;
 }
 
 .row {
@@ -106,6 +125,9 @@
     font-size: 30px;
     white-space: normal;
     margin-bottom: 12px;
+    letter-spacing: 0.4px;
+    word-spacing: 2px;
+    -unity-paragraph-spacing: 18px;
 }
 
 .muted {
@@ -149,26 +171,38 @@
 
 /* ------------------------------------------------------------------ controls */
 
+/* Liquid-glass buttons: translucent fill, bright top edge (light catching the rim), darker bottom edge and a
+   gloss highlight painted by UIX.AddGlassSheen. UI Toolkit cannot blur what is behind an element, so the
+   glass look comes from transparency and edge lighting. */
 .btn {
     min-height: 88px;
-    padding: 12px 36px;
+    min-width: 160px;
+    flex-shrink: 0;
+    padding: 12px 40px;
     margin: 8px;
-    border-radius: 22px;
-    border-width: 0;
-    background-color: var(--rr-surface-2);
-    color: var(--rr-text);
+    border-radius: 32px;
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.22);
+    border-top-color: rgba(255, 255, 255, 0.6);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgb(255, 255, 255);
     font-size: 32px;
     -unity-font-style: bold;
-    transition-property: background-color, scale;
-    transition-duration: 0.12s;
+    letter-spacing: 0.6px;
+    transition-property: background-color, border-color, scale;
+    transition-duration: 0.15s;
 }
 
 .btn:hover {
-    background-color: rgb(58, 74, 92);
+    background-color: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    border-top-color: rgba(255, 255, 255, 0.85);
     scale: 1.03 1.03;
 }
 
 .btn:active {
+    background-color: rgba(255, 255, 255, 0.06);
     scale: 0.97 0.97;
 }
 
@@ -177,30 +211,43 @@
 }
 
 .btn--primary {
-    background-color: var(--rr-blue);
+    background-color: rgba(0, 161, 222, 0.55);
+    border-color: rgba(120, 215, 255, 0.5);
+    border-top-color: rgba(225, 246, 255, 0.9);
+    border-bottom-color: rgba(0, 90, 130, 0.6);
 }
 
 .btn--primary:hover {
-    background-color: rgb(30, 185, 245);
+    background-color: rgba(0, 161, 222, 0.72);
+    border-top-color: rgba(255, 255, 255, 1);
 }
 
 .btn--accent {
-    background-color: var(--rr-yellow);
+    background-color: rgba(250, 210, 1, 0.75);
+    border-color: rgba(255, 236, 140, 0.6);
+    border-top-color: rgba(255, 251, 220, 0.95);
+    border-bottom-color: rgba(150, 120, 0, 0.6);
     color: rgb(20, 24, 30);
 }
 
 .btn--accent:hover {
-    background-color: rgb(255, 225, 60);
+    background-color: rgba(255, 222, 50, 0.88);
 }
 
 .btn--danger {
-    background-color: rgba(229, 72, 77, 0.85);
+    background-color: rgba(229, 72, 77, 0.6);
+    border-color: rgba(255, 160, 160, 0.5);
+    border-top-color: rgba(255, 225, 225, 0.9);
+}
+
+.btn--danger:hover {
+    background-color: rgba(229, 72, 77, 0.78);
 }
 
 .btn--ghost {
-    background-color: rgba(0, 0, 0, 0);
-    border-width: 2px;
-    border-color: var(--rr-line);
+    background-color: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.18);
+    border-top-color: rgba(255, 255, 255, 0.45);
 }
 
 .btn--small {
@@ -334,7 +381,8 @@ ScrollView {
 }
 
 .scenario-card {
-    width: 460px;
+    /* Four cards fit side by side on the 1900 px menu panel without scrolling. */
+    width: 405px;
     min-height: 360px;
 }
 
@@ -537,6 +585,190 @@ ScrollView {
     border-left-color: var(--rr-yellow);
 }
 
+/* ------------------------------------------------------------------ consent */
+
+/* The text box shrinks to leave room for the checkboxes and scrolls instead of spilling over them. */
+.consent__text {
+    min-height: 280px;
+    max-height: 560px;
+    padding: 0;
+    margin: 20px 0 28px 0;
+    overflow: hidden;
+}
+
+.consent__text .unity-scroll-view__content-container {
+    padding: 36px 44px 12px 44px;
+}
+
+.consent__para {
+    font-size: 31px;
+    letter-spacing: 0.5px;
+    word-spacing: 3px;
+    margin-bottom: 26px;
+    color: var(--rr-text);
+}
+
+.consent__checks {
+    padding: 0 8px;
+}
+
+.consent__checks > Toggle {
+    margin: 0 0 22px 0;
+    font-size: 30px;
+    letter-spacing: 0.4px;
+}
+
+.consent__actions {
+    margin-top: 16px;
+}
+
+/* ------------------------------------------------------------------ logo, splash, welcome */
+
+.logo-badge {
+    width: 104px;
+    height: 104px;
+    border-radius: 52px;
+    margin-right: 28px;
+    background-color: var(--rr-blue);
+    align-items: center;
+    justify-content: center;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+/* The logo artwork is black on cream, so it always sits on a matching light tile. */
+.logo-badge--image {
+    background-color: rgb(238, 236, 224);
+}
+
+.logo-badge--large {
+    width: 220px;
+    height: 220px;
+    border-radius: 110px;
+    margin: 0 0 28px 0;
+}
+
+.logo-badge__text {
+    font-size: 40px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+}
+
+.logo-badge--large .logo-badge__text {
+    font-size: 84px;
+}
+
+.splash {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.6s;
+}
+
+.splash--visible {
+    opacity: 1;
+}
+
+.splash__logo {
+    width: 560px;
+    height: 560px;
+    border-radius: 48px;
+    background-color: rgb(238, 236, 224);
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.splash__fallback {
+    align-items: center;
+}
+
+.splash__title {
+    font-size: 96px;
+    -unity-font-style: bold;
+    color: var(--rr-text);
+}
+
+.splash__tagline {
+    font-size: 34px;
+    color: var(--rr-muted);
+    margin-top: 12px;
+}
+
+.welcome {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome__card {
+    width: 1000px;
+    padding: 52px 56px 48px 56px;
+    border-radius: 40px;
+    border-width: 2px;
+    border-color: var(--rr-line);
+    background-color: var(--rr-bg);
+}
+
+.welcome__title {
+    font-size: 72px;
+    -unity-font-style: bold;
+    color: var(--rr-text);
+}
+
+.welcome__subtitle {
+    font-size: 30px;
+    color: var(--rr-muted);
+}
+
+.welcome__body {
+    font-size: 36px;
+    white-space: normal;
+    color: var(--rr-text);
+    margin: 8px 0 24px 0;
+}
+
+.welcome__actions {
+    margin-top: 32px;
+}
+
+.welcome__actions > .btn {
+    flex-basis: 0;
+    margin: 0;
+}
+
+.welcome__actions > .welcome__start {
+    margin-right: 24px;
+}
+
+.welcome__hint {
+    font-size: 30px;
+    color: var(--rr-text);
+    margin-top: 48px;
+    padding: 12px 28px;
+    border-radius: 22px;
+    background-color: rgba(10, 14, 20, 0.6);
+}
+
+.pill {
+    font-size: 26px;
+    -unity-font-style: bold;
+    padding: 10px 24px;
+    margin: 0 16px 0 0;
+    min-height: 0;
+    border-radius: 28px;
+    border-width: 0;
+    background-color: var(--rr-surface-2);
+    color: var(--rr-text);
+}
+
+.pill--on {
+    background-color: var(--rr-safe);
+}
+
+Button.pill:hover {
+    scale: 1.03 1.03;
+}
+
 /* ------------------------------------------------------------------ questionnaire */
 
 .q-item {
@@ -621,6 +853,7 @@ ScrollView {
 
 .hud {
     flex-grow: 1;
+    -unity-text-generator: advanced;
     color: var(--rr-text);
     align-items: center;
     justify-content: flex-end;
@@ -706,6 +939,13 @@ ScrollView {
     color: rgb(80, 220, 110);
 }
 
+.hud__gear {
+    font-size: 30px;
+    -unity-font-style: bold;
+    margin-left: 24px;
+    letter-spacing: 2px;
+}
+
 .hud__timer {
     font-size: 30px;
     color: var(--rr-muted);
@@ -741,4 +981,19 @@ ScrollView {
 .fader {
     flex-grow: 1;
     background-color: rgb(0, 0, 0);
+}
+
+/* Skip button under the tutorial instruction: opens the same pause panel as the left controller's menu button. */
+.hud__skip {
+    background-color: rgba(10, 14, 20, 0.88);
+    border-color: rgba(250, 210, 1, 0.9);
+    border-width: 2px;
+    color: rgb(255, 255, 255);
+    margin: 4px 8px 8px 8px;
+    min-width: 260px;
+}
+
+.hud__skip:hover {
+    background-color: rgba(250, 210, 1, 0.95);
+    color: rgb(15, 20, 26);
 }

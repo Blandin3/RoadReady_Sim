@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using RoadReady.Config;
 using RoadReady.Core;
 using UnityEngine;
@@ -42,14 +43,13 @@ namespace RoadReady.UI
             Btn("admin", App.OpenAdmin);
             Btn("comfort", () => App.OpenComfort(App.GoToSetup));
 
-            var list = Q<ScrollView>("participant-list");
+            // A plain list (not a ScrollView, which swallows VR controller presses): the six most recent participants.
+            var list = Q<VisualElement>("participant-list");
             var postTest = Q<Toggle>("post-test");
-            var participants = App.Data.LoadAllParticipants();
+            var participants = App.Data.LoadAllParticipants().Where(p => p.consentGiven).ToList();
             Q<Label>("empty-list").SetVisible(participants.Count == 0);
-            foreach (var p in participants)
+            foreach (var p in participants.Skip(Mathf.Max(0, participants.Count - 6)))
             {
-                if (!p.consentGiven)
-                    continue;
                 var id = p.participantId;
                 var button = UIX.MakeButton($"{id}   {p.group.Pretty()} | {(p.condition == StudyCondition.BriefingOnly ? "Briefing" : "Training")} | {p.sessionCount} session(s)",
                     () => App.SelectReturningParticipant(id, postTest.value), "btn--ghost", "btn--small");
@@ -91,7 +91,18 @@ namespace RoadReady.UI
 
         protected override void Bind()
         {
-            Text("consent-text", k_Text);
+            // One label per paragraph so each gets its own spacing; the "Lead-in:" of each paragraph is bold.
+            var holder = Q<Label>("consent-text");
+            var container = holder.parent;
+            holder.RemoveFromHierarchy();
+            foreach (var paragraph in k_Text.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var colon = paragraph.IndexOf(": ", StringComparison.Ordinal);
+                var text = colon > 0 && colon < 24
+                    ? $"<b>{paragraph.Substring(0, colon + 1)}</b>{paragraph.Substring(colon + 1)}"
+                    : paragraph;
+                container.Add(UIX.MakeLabel(text, "body", "consent__para"));
+            }
             var agree = Btn("agree", () => App.SubmitConsent(true));
             Btn("decline", () => App.SubmitConsent(false));
 

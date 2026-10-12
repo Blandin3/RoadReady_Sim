@@ -11,9 +11,8 @@
             <ui:Button name="perspective-pedestrian" text="Pedestrian" class="chip" />
         </ui:VisualElement>
         <ui:Label name="phase-hint" class="insight" />
-        <ui:ScrollView name="scenario-scroll" mode="Horizontal" class="grow">
-            <ui:VisualElement name="scenario-cards" class="row" style="align-items: stretch;" />
-        </ui:ScrollView>
+        <!-- A plain row, not a ScrollView: in VR a ScrollView captures the controller press as a scroll and cards never receive the click. -->
+        <ui:VisualElement name="scenario-cards" class="row grow" style="align-items: stretch; justify-content: center;" />
         <ui:VisualElement class="row">
             <ui:Button name="tutorial" text="Tutorial" class="btn btn--ghost btn--small" />
             <ui:Button name="briefing" text="Safety briefing" class="btn btn--ghost btn--small" />
