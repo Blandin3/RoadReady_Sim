@@ -17,7 +17,7 @@ namespace RoadReady.EditorTools
     /// Builds greybox versions of the proposal's scenario set (section 1.5). Coordinates: +x east, +z north,
     /// right-hand traffic (eastbound lane z = -1.75, westbound z = +1.75, northbound x = +1.75, southbound x = -1.75).
     /// </summary>
-    public static class ScenarioSceneBuilder
+    public static partial class ScenarioSceneBuilder
     {
         public const string ScenesFolder = GeneratedRoot + "/Scenes";
         const float HalfRoad = 3.5f;
@@ -60,6 +60,7 @@ namespace RoadReady.EditorTools
             RenderSettings.ambientEquatorColor = new Color(0.55f, 0.52f, 0.48f);
             RenderSettings.ambientGroundColor = new Color(0.3f, 0.22f, 0.18f);
             RenderSettings.sun = light;
+            SkyboxSetup.Apply(sceneName);
 
             var root = new GameObject(sceneName).transform;
             var rig = new Rig
@@ -116,6 +117,10 @@ namespace RoadReady.EditorTools
             spawner.PrewarmCount = prewarm;
             foreach (var kind in new[] { RoadUserKind.Car, RoadUserKind.MotoTaxi, RoadUserKind.Bus, RoadUserKind.Bicycle })
                 spawner.Prefabs.Add(new VehiclePrefabEntry { kind = kind, prefab = VehiclePrefab(kind) });
+            foreach (var variant in ImportedAssetsSetup.CarVariantPrefabs())
+                spawner.Prefabs.Add(new VehiclePrefabEntry { kind = RoadUserKind.Car, prefab = variant });
+            foreach (var variant in ImportedAssetsSetup.MotoVariantPrefabs())
+                spawner.Prefabs.Add(new VehiclePrefabEntry { kind = RoadUserKind.MotoTaxi, prefab = variant });
             rig.ctx.TrafficSpawners.Add(spawner);
             return spawner;
         }
@@ -125,8 +130,8 @@ namespace RoadReady.EditorTools
             var spawner = Group(rig.traffic, "Pedestrian Spawner").gameObject.AddComponent<PedestrianSpawner>();
             spawner.Paths.AddRange(paths);
             spawner.JaywalkPaths.AddRange(jaywalk);
-            spawner.Prefabs.Add(PedestrianPrefab("A"));
-            spawner.Prefabs.Add(PedestrianPrefab("B"));
+            foreach (var variant in ImportedAssetsSetup.PedestrianVariants)
+                spawner.Prefabs.Add(PedestrianPrefab(variant));
             rig.ctx.PedestrianSpawners.Add(spawner);
             return spawner;
         }
@@ -174,6 +179,27 @@ namespace RoadReady.EditorTools
             var h = length * 0.5f;
             RoadRect(rig.env, "Main road", -h, h, -HalfRoad, HalfRoad);
             Zone(rig.zones, "Main carriageway", RoadZoneType.Carriageway, -h, h, -HalfRoad, HalfRoad);
+            if (StreetKit.Available)
+            {
+                if (southGapForSideRoad || northGapForSideRoad)
+                {
+                    // Leave the middle for the junction tile.
+                    var arm = Mathf.CeilToInt((h - StreetKit.HalfTile) / StreetKit.TileLength);
+                    StreetKit.Straight(rig.env, new Vector3(-StreetKit.HalfTile, 0f, 0f), Vector3.left, arm);
+                    StreetKit.Straight(rig.env, new Vector3(StreetKit.HalfTile, 0f, 0f), Vector3.right, arm);
+                }
+                else
+                {
+                    StreetKit.StraightBetween(rig.env, new Vector3(-h, 0f, 0f), new Vector3(h, 0f, 0f));
+                }
+
+                for (var x = -h + 12f; x < h; x += 30f)
+                {
+                    if (Mathf.Abs(x) < 12f) continue;
+                    StreetKit.StreetLight(rig.env, new Vector3(x, SidewalkTop, -7.6f), Vector3.forward);
+                    StreetKit.StreetLight(rig.env, new Vector3(x + 15f, SidewalkTop, 7.6f), Vector3.back);
+                }
+            }
             if (southGapForSideRoad)
             {
                 SidewalkRect(rig.env, rig.zones, "Sidewalk S-W", -h, -HalfRoad, -6.5f, -HalfRoad);
@@ -194,9 +220,9 @@ namespace RoadReady.EditorTools
                 SidewalkRect(rig.env, rig.zones, "Sidewalk N", -h, h, HalfRoad, 6.5f);
             }
 
-            var gap = southGapForSideRoad || northGapForSideRoad ? new[] { new Vector2(-8f, 8f) } : new Vector2[0];
-            Buildings(rig.env, -h, h, 6.8f, +1, 11, northGapForSideRoad ? gap : new Vector2[0]);
-            Buildings(rig.env, -h, h, -6.8f, -1, 17, southGapForSideRoad ? gap : new Vector2[0]);
+            var gap = southGapForSideRoad || northGapForSideRoad ? new[] { new Vector2(-BuildingSetback - 1f, BuildingSetback + 1f) } : new Vector2[0];
+            Buildings(rig.env, -h, h, BuildingSetback, +1, 11, northGapForSideRoad ? gap : new Vector2[0]);
+            Buildings(rig.env, -h, h, -BuildingSetback, -1, 17, southGapForSideRoad ? gap : new Vector2[0]);
             for (var x = -h + 20f; x < h; x += 35f)
             {
                 if (Mathf.Abs(x) < 15f) continue;
@@ -248,7 +274,6 @@ namespace RoadReady.EditorTools
             const string name = "RR_Tutorial";
             var rig = NewScene(name, defPath);
             MainRoad(rig, 400f);
-            CentreLineX(rig.env, -200f, 200f, 0f, 58f, 62f);
             ZebraAcrossEW(rig.env, rig.zones, "Tutorial zebra", 60f, HalfRoad, 4f);
             PlayerCar(rig, new Vector3(-150f, 0f, -Lane), 90f);
             PedestrianSpawn(rig, new Vector3(54f, SidewalkTop, -5.3f), 90f);
@@ -265,7 +290,6 @@ namespace RoadReady.EditorTools
             const string name = "RR_ZebraCrossing";
             var rig = NewScene(name, defPath);
             MainRoad(rig, 320f);
-            CentreLineX(rig.env, -160f, 160f, 0f, -3f, 3f);
             var zebra = ZebraAcrossEW(rig.env, rig.zones, "Zebra crossing", 0f, HalfRoad, 4f);
             var (eb, wb) = MainLanes(rig, 320f);
 
@@ -339,6 +363,25 @@ namespace RoadReady.EditorTools
             Zone(rig.zones, "E-W carriageway", RoadZoneType.Carriageway, -h, h, -HalfRoad, HalfRoad);
             Zone(rig.zones, "N-S carriageway", RoadZoneType.Carriageway, -HalfRoad, HalfRoad, -h, h);
             Zone(rig.zones, "Junction", RoadZoneType.Junction, -HalfRoad, HalfRoad, -HalfRoad, HalfRoad);
+            JunctionPatch(rig.env, "Junction asphalt", -HalfRoad, HalfRoad, -HalfRoad, HalfRoad);
+            // Crossing positions follow the zebras painted on the crossroads tile when the street pack is used.
+            var tiles = StreetKit.Available;
+            var cx = tiles ? 7.1f : 7.5f;
+            var cw = tiles ? 3.2f : 3f;
+            if (tiles)
+            {
+                StreetKit.Crossroads(rig.env, Vector3.zero);
+                var arm = Mathf.CeilToInt((h - StreetKit.HalfTile) / StreetKit.TileLength);
+                foreach (var dir in new[] { Vector3.left, Vector3.right, Vector3.forward, Vector3.back })
+                    StreetKit.Straight(rig.env, dir * StreetKit.HalfTile, dir, arm);
+                for (var d = 22f; d < h; d += 30f)
+                {
+                    StreetKit.StreetLight(rig.env, new Vector3(-d, SidewalkTop, -7.6f), Vector3.forward);
+                    StreetKit.StreetLight(rig.env, new Vector3(d, SidewalkTop, 7.6f), Vector3.back);
+                    StreetKit.StreetLight(rig.env, new Vector3(7.6f, SidewalkTop, -d), Vector3.left);
+                    StreetKit.StreetLight(rig.env, new Vector3(-7.6f, SidewalkTop, d), Vector3.right);
+                }
+            }
             foreach (var (n, x0, x1, z0, z1) in new[]
                      {
                          ("SW-a", -h, -HalfRoad, -6.5f, -HalfRoad), ("SE-a", HalfRoad, h, -6.5f, -HalfRoad),
@@ -347,14 +390,10 @@ namespace RoadReady.EditorTools
                          ("NW-b", -6.5f, -HalfRoad, 6.5f, h), ("NE-b", HalfRoad, 6.5f, 6.5f, h),
                      })
                 SidewalkRect(rig.env, rig.zones, "Sidewalk " + n, x0, x1, z0, z1);
-            CentreLineX(rig.env, -h, -11f);
-            CentreLineX(rig.env, 11f, h);
-            CentreLineZ(rig.env, -h, -11f);
-            CentreLineZ(rig.env, 11f, h);
-            Buildings(rig.env, -h, -8f, 6.8f, +1, 21);
-            Buildings(rig.env, 8f, h, 6.8f, +1, 22);
-            Buildings(rig.env, -h, -8f, -6.8f, -1, 23);
-            Buildings(rig.env, 8f, h, -6.8f, -1, 24);
+            Buildings(rig.env, -h, -BuildingSetback, BuildingSetback, +1, 21);
+            Buildings(rig.env, BuildingSetback, h, BuildingSetback, +1, 22);
+            Buildings(rig.env, -h, -BuildingSetback, -BuildingSetback, -1, 23);
+            Buildings(rig.env, BuildingSetback, h, -BuildingSetback, -1, 24);
 
             // Signals: groups ew / ns vehicles, ped = pedestrians crossing the E-W road.
             var signal = Group(rig.rules, "Signal controller").gameObject.AddComponent<TrafficSignalController>();
@@ -381,8 +420,8 @@ namespace RoadReady.EditorTools
             rig.ctx.SignalOffsetDriver = 20.5f;
             rig.ctx.SignalOffsetPedestrian = 7.5f;
 
-            var west = ZebraAcrossEW(rig.env, rig.zones, "West crossing", -7.5f, HalfRoad, 3f, RoadZoneType.SignalizedCrossing);
-            var east = ZebraAcrossEW(rig.env, rig.zones, "East crossing", 7.5f, HalfRoad, 3f, RoadZoneType.SignalizedCrossing);
+            var west = ZebraAcrossEW(rig.env, rig.zones, "West crossing", -cx, HalfRoad, cw, RoadZoneType.SignalizedCrossing, markings: !tiles);
+            var east = ZebraAcrossEW(rig.env, rig.zones, "East crossing", cx, HalfRoad, cw, RoadZoneType.SignalizedCrossing, markings: !tiles);
             foreach (var c in new[] { west, east })
             {
                 c.Signal = signal;
@@ -393,17 +432,17 @@ namespace RoadReady.EditorTools
             StopLine(rig.rules, rig.env, "Stop WB", new Vector3(10f, 0f, Lane), Vector3.left, StopLineType.Signal, signal: signal, group: "ew");
             StopLine(rig.rules, rig.env, "Stop SB", new Vector3(-Lane, 0f, 10f), Vector3.back, StopLineType.Signal, signal: signal, group: "ns");
             StopLine(rig.rules, rig.env, "Stop NB", new Vector3(Lane, 0f, -10f), Vector3.forward, StopLineType.Signal, signal: signal, group: "ns");
-            var eastYield = StopLine(rig.rules, rig.env, "Yield to crossing peds EB", new Vector3(5.6f, 0f, -Lane), Vector3.right, StopLineType.ZebraYield, crossing: east);
-            StopLine(rig.rules, rig.env, "Yield to crossing peds WB", new Vector3(-5.6f, 0f, Lane), Vector3.left, StopLineType.ZebraYield, crossing: west);
+            var eastYield = StopLine(rig.rules, rig.env, "Yield to crossing peds EB", new Vector3(cx - cw * 0.5f - 0.4f, 0f, -Lane), Vector3.right, StopLineType.ZebraYield, crossing: east);
+            StopLine(rig.rules, rig.env, "Yield to crossing peds WB", new Vector3(-(cx - cw * 0.5f - 0.4f), 0f, Lane), Vector3.left, StopLineType.ZebraYield, crossing: west);
 
             SignalHead(rig.env, "Signal EB", new Vector3(-10.5f, 0f, -4.2f), Vector3.left, signal, "ew", false);
             SignalHead(rig.env, "Signal WB", new Vector3(10.5f, 0f, 4.2f), Vector3.right, signal, "ew", false);
             SignalHead(rig.env, "Signal SB", new Vector3(-4.2f, 0f, 10.5f), Vector3.forward, signal, "ns", false);
             SignalHead(rig.env, "Signal NB", new Vector3(4.2f, 0f, -10.5f), Vector3.back, signal, "ns", false);
-            SignalHead(rig.env, "Ped signal W-S", new Vector3(-9.3f, SidewalkTop, -4.3f), Vector3.forward, signal, "ped", true);
-            SignalHead(rig.env, "Ped signal W-N", new Vector3(-5.7f, SidewalkTop, 4.3f), Vector3.back, signal, "ped", true);
-            SignalHead(rig.env, "Ped signal E-S", new Vector3(5.7f, SidewalkTop, -4.3f), Vector3.forward, signal, "ped", true);
-            SignalHead(rig.env, "Ped signal E-N", new Vector3(9.3f, SidewalkTop, 4.3f), Vector3.back, signal, "ped", true);
+            SignalHead(rig.env, "Ped signal W-S", new Vector3(-cx - 1.9f, SidewalkTop, -4.3f), Vector3.forward, signal, "ped", true);
+            SignalHead(rig.env, "Ped signal W-N", new Vector3(tiles ? -cx - 1.9f : -cx + 1.8f, SidewalkTop, 4.3f), Vector3.back, signal, "ped", true);
+            SignalHead(rig.env, "Ped signal E-S", new Vector3(tiles ? cx + 1.9f : cx - 1.8f, SidewalkTop, -4.3f), Vector3.forward, signal, "ped", true);
+            SignalHead(rig.env, "Ped signal E-N", new Vector3(cx + 1.9f, SidewalkTop, 4.3f), Vector3.back, signal, "ped", true);
 
             var (eb, wb) = MainLanes(rig, 2f * h);
             var sb = Path(rig.paths, "Lane SB", new Vector3(-Lane, 0f, h), new Vector3(-Lane, 0f, -h));
@@ -415,15 +454,15 @@ namespace RoadReady.EditorTools
             Spawner(rig, "Traffic WB", wb, 1f, 2);
             Spawner(rig, "Traffic SB", sb, 0.7f, 2);
             Spawner(rig, "Traffic NB", nb, 0.7f, 2);
-            var pW = Path(rig.paths, "Ped west S->N", new Vector3(-30f, 0f, -5f), new Vector3(-7.9f, 0f, -5f), new Vector3(-7.9f, 0f, 5f), new Vector3(-30f, 0f, 5f));
-            var pE = Path(rig.paths, "Ped east N->S", new Vector3(30f, 0f, 5f), new Vector3(7.1f, 0f, 5f), new Vector3(7.1f, 0f, -5f), new Vector3(30f, 0f, -5f));
+            var pW = Path(rig.paths, "Ped west S->N", new Vector3(-30f, 0f, -5f), new Vector3(-cx - 0.4f, 0f, -5f), new Vector3(-cx - 0.4f, 0f, 5f), new Vector3(-30f, 0f, 5f));
+            var pE = Path(rig.paths, "Ped east N->S", new Vector3(30f, 0f, 5f), new Vector3(cx - 0.4f, 0f, 5f), new Vector3(cx - 0.4f, 0f, -5f), new Vector3(30f, 0f, -5f));
             var jay = Path(rig.paths, "Ped jaywalk", new Vector3(-40f, 0f, -5f), new Vector3(-25f, 0f, -5f), new Vector3(-25f, 0f, 5f), new Vector3(-50f, 0f, 5f));
             PedSpawner(rig, new[] { pW, pE }, new[] { jay });
 
             PlayerCar(rig, new Vector3(-120f, 0f, -Lane), 90f);
             Goal(rig, "Driver goal", new Vector3(60f, 0f, -Lane), new Vector3(6f, 3f, 7f), PerspectiveMask.Driver, false);
             PedestrianSpawn(rig, new Vector3(-12f, SidewalkTop, -5.2f), 90f);
-            Goal(rig, "Pedestrian goal", new Vector3(-7.5f, 0f, 6.5f), new Vector3(8f, 3f, 3f), PerspectiveMask.Pedestrian);
+            Goal(rig, "Pedestrian goal", new Vector3(-cx, 0f, 6.5f), new Vector3(8f, 3f, 3f), PerspectiveMask.Pedestrian);
 
             // DRIVER: red-light runner from the north when your light turns green.
             var runner = ScriptedVehicle(rig, RoadUserKind.Car, "Counterpart - red-light runner", sb, 100f, 50f, true, true, Perspective.Driver, obeys: false);
@@ -436,7 +475,7 @@ namespace RoadReady.EditorTools
 
             // DRIVER: slow pedestrian still on the east crossing when your light turns green.
             var latePed = ScriptedPedestrian(rig, "Counterpart - late pedestrian", Path(rig.paths, "Scripted late ped",
-                new Vector3(7.5f, 0f, 4.4f), new Vector3(7.5f, 0f, -4.4f), new Vector3(7.5f, 0f, -8f), new Vector3(7.5f, 0f, -30f)), Perspective.Driver, "B");
+                new Vector3(cx, 0f, 4.4f), new Vector3(cx, 0f, -4.4f), new Vector3(cx, 0f, -8f), new Vector3(cx, 0f, -30f)), Perspective.Driver, "B");
             var h6 = Hazard(rig, HZ("signal_late_pedestrian"), HazardTriggerMode.PlayerWithinDistance, Vector3.zero);
             h6.DistancePoint = h6.transform;
             h6.Distance = 25f;
@@ -473,12 +512,27 @@ namespace RoadReady.EditorTools
             RoadRect(rig.env, "Side road", -HalfRoad, HalfRoad, -h, -HalfRoad);
             Zone(rig.zones, "Side carriageway", RoadZoneType.Carriageway, -HalfRoad, HalfRoad, -h, -HalfRoad);
             Zone(rig.zones, "Junction", RoadZoneType.Junction, -HalfRoad, HalfRoad, -HalfRoad, HalfRoad);
+            JunctionPatch(rig.env, "Junction asphalt", -HalfRoad, HalfRoad, -HalfRoad, HalfRoad);
+            if (StreetKit.Available)
+            {
+                // T-junction tile: through road along x, branch to the south. The tile has zebras painted on all three
+                // arms, but this scenario is deliberately an unmarked junction, so they are covered with plain asphalt.
+                StreetKit.TJunction(rig.env, Vector3.zero, 90f);
+                var zebraOffset = 2.035f * 3.5f;
+                StreetKit.PlainAsphalt(rig.env, "Cover zebra W", new Vector3(-zebraOffset, 0f, 0f), 3.8f, 7.4f, 90f);
+                StreetKit.PlainAsphalt(rig.env, "Cover zebra E", new Vector3(zebraOffset, 0f, 0f), 3.8f, 7.4f, 90f);
+                StreetKit.PlainAsphalt(rig.env, "Cover zebra S", new Vector3(0f, 0f, -zebraOffset), 3.8f, 7.4f, 0f);
+                StreetKit.Straight(rig.env, new Vector3(0f, 0f, -StreetKit.HalfTile), Vector3.back, Mathf.CeilToInt((h - StreetKit.HalfTile) / StreetKit.TileLength));
+                for (var z = -22f; z > -h; z -= 30f)
+                {
+                    StreetKit.StreetLight(rig.env, new Vector3(-7.6f, SidewalkTop, z), Vector3.right);
+                    StreetKit.StreetLight(rig.env, new Vector3(7.6f, SidewalkTop, z - 15f), Vector3.left);
+                }
+            }
             SidewalkRect(rig.env, rig.zones, "Side sidewalk W", -6.5f, -HalfRoad, -h, -6.5f);
             SidewalkRect(rig.env, rig.zones, "Side sidewalk E", HalfRoad, 6.5f, -h, -6.5f);
-            CentreLineX(rig.env, -h, h, 0f, -5f, 5f);
-            CentreLineZ(rig.env, -h, -6f);
-            BuildingsZ(rig.env, -h, -12f, -6.8f, -1, 31);
-            BuildingsZ(rig.env, -h, -12f, 6.8f, +1, 32);
+            BuildingsZ(rig.env, -h, -BuildingSetback - 3f, -BuildingSetback, -1, 31);
+            BuildingsZ(rig.env, -h, -BuildingSetback - 3f, BuildingSetback, +1, 32);
 
             var conflict = Point(rig.rules, "Conflict point", Vector3.zero);
             var giveWay = StopLine(rig.rules, rig.env, "Give way NB", new Vector3(Lane, 0f, -4.5f), Vector3.forward, StopLineType.GiveWay, conflict: conflict);
