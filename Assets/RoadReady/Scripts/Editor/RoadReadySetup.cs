@@ -27,7 +27,7 @@ namespace RoadReady.EditorTools
         static readonly string[] k_Screens =
         {
             "ParticipantSetup", "Consent", "Message", "Instructions", "MainMenu", "Briefing", "Feedback",
-            "Questionnaire", "Comfort", "Pause", "Debrief", "Admin", "SafetyBriefing",
+            "Questionnaire", "Comfort", "Pause", "Debrief", "Admin", "SafetyBriefing", "Splash", "Welcome",
         };
 
         [MenuItem("RoadReady/Build Everything", priority = 0)]
@@ -78,6 +78,8 @@ namespace RoadReady.EditorTools
             EditorUtility.DisplayProgressBar("RoadReady", "Creating configuration assets...", 0.25f);
             WorldPanelSettings();
             BuildConfigAssets();
+            VehicleAudioSetup.Run();
+            ImportedAssetsSetup.Run();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         }
@@ -227,6 +229,28 @@ namespace RoadReady.EditorTools
                 "You were in the path of the moto-taxi leaving the side road.",
                 "A rider waiting to join the main road is looking right for a gap - not at pedestrians crossing in front.");
 
+            // Open road (endless loop, driver only). These recur, so each lap can score them again.
+            H("open_ped_steps_out", "Pedestrian steps onto the zebra", HazardType.PedestrianStepsOut, Perspective.Driver, RequiredResponse.StopBeforePoint, 6f, 1.5f, 2.5f, 3,
+                "You slowed early and stopped - the pedestrian could cross safely.",
+                "You stopped, but late. Start slowing as soon as you see anyone near a zebra.",
+                "You did not stop for the pedestrian on the zebra crossing.",
+                "From the kerb, the pedestrian could not tell whether you would stop. Slowing early is how a driver says 'go ahead'.");
+            H("open_jaywalker", "Pedestrian darts across the road", HazardType.JaywalkingPedestrian, Perspective.Driver, RequiredResponse.Brake, 4f, 1.0f, 1.8f, 3,
+                "Quick reaction - you braked as soon as the pedestrian moved.",
+                "You braked, but a little late. Watch people on the far pavement too, not just your side.",
+                "You did not brake for the pedestrian crossing in front of you.",
+                "Pedestrians far from a crossing often misjudge how fast cars approach - to them you looked far away.");
+            H("open_moto_sudden_stop", "Moto-taxi stops suddenly for a passenger", HazardType.MotoTaxiSuddenStop, Perspective.Driver, RequiredResponse.Brake, 4f, 1.0f, 1.8f, 2,
+                "You kept your distance and braked in time.",
+                "You braked late. Keep two seconds behind moto-taxis - they stop wherever a passenger waves.",
+                "You did not stop in time for the moto-taxi picking up a passenger.",
+                "Moto-taxi riders stop wherever a passenger waves. Their customer is at the roadside - not behind them.");
+            H("open_car_pulls_out", "Car pulls out of a driveway", HazardType.VehicleFailsToYield, Perspective.Driver, RequiredResponse.Brake, 5f, 1.2f, 2.0f, 3,
+                "You saw the car edging out of the driveway and slowed in time.",
+                "You braked, but late. Watch driveways and gaps between buildings - cars pull out without looking.",
+                "You did not react to the car pulling out of the driveway.",
+                "The driver was looking for a gap through a narrow view between buildings and judged you to be further away than you were.");
+
             ScenarioDefinition S(string file, string id, string name, ScenarioType type, string scene, string description, string driver, string pedestrian, params string[] hazardIds)
             {
                 var s = LoadOrCreate<ScenarioDefinition>($"{ScenarioFolder}/{file}.asset");
@@ -265,17 +289,25 @@ namespace RoadReady.EditorTools
                 "Walk along the pavement and cross the mouth of the side road. There is no crossing - judge the traffic yourself.",
                 "junction_moto_sudden_stop", "junction_hidden_moto", "junction_turning_car_ped", "junction_moto_exit");
 
+            var openRoad = S("Scenario_OpenRoad", "open_road", "Open road (endless loop)", ScenarioType.OpenRoad, "RR_OpenRoad",
+                "An endless loop through Kimironko streets. Hazards appear at random as you drive - stay alert for the whole drive.",
+                "Drive round the loop until the time is up. Keep to 40 km/h (30 at the zebra crossings), give way to pedestrians and react to whatever happens ahead.",
+                "",
+                "open_ped_steps_out", "open_jaywalker", "open_moto_sudden_stop", "open_car_pulls_out");
+            openRoad.supportedPerspectives = PerspectiveMask.Driver;
+
             // Difficulty levels (admin-editable at runtime via overrides).
             ScenarioSceneBuilder.Params(tutorial, 600f, traffic: false);
             ScenarioSceneBuilder.Params(zebra, 150f);
             ScenarioSceneBuilder.Params(signal, 180f);
             ScenarioSceneBuilder.Params(junction, 180f);
+            ScenarioSceneBuilder.Params(openRoad, 300f);
 
             var config = LoadOrCreate<RoadReadyConfig>(ConfigPath);
             config.scoring = scoring;
             config.driverTutorial = tutorial;
             config.pedestrianTutorial = tutorial;
-            config.scenarios = new List<ScenarioDefinition> { zebra, signal, junction };
+            config.scenarios = new List<ScenarioDefinition> { zebra, signal, junction, openRoad };
             EditorUtility.SetDirty(config);
         }
 
@@ -290,6 +322,8 @@ namespace RoadReady.EditorTools
             ScenarioSceneBuilder.BuildSignalized(P("Scenario_Signal"));
             EditorUtility.DisplayProgressBar("RoadReady", "Building moto-taxi junction scene...", 0.7f);
             ScenarioSceneBuilder.BuildJunction(P("Scenario_Junction"));
+            EditorUtility.DisplayProgressBar("RoadReady", "Building open road (endless loop) scene...", 0.8f);
+            ScenarioSceneBuilder.BuildOpenRoad(P("Scenario_OpenRoad"));
             AssetDatabase.SaveAssets();
         }
 
@@ -300,6 +334,12 @@ namespace RoadReady.EditorTools
             var path = ConfigFolder + "/RoadReadyWorldPanel.asset";
             var settings = LoadOrCreate<PanelSettings>(path);
             settings.renderMode = PanelRenderMode.WorldSpace;
+            // 1 UI pixel = 1 local unit; WorldSpacePanel then scales the transform to 1 mm per pixel.
+            // The default (100) would shrink every panel a hundredfold.
+            // pixelsPerUnit is not public in Unity 6.3, so set the serialized field.
+            var serialized = new SerializedObject(settings);
+            serialized.FindProperty("m_PixelsPerUnit").floatValue = 1f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
             var theme = AssetDatabase.LoadAssetAtPath<ThemeStyleSheet>(UiFolder + "/Theme/RoadReadyTheme.tss");
             if (theme == null)
                 Debug.LogWarning("[RoadReady] RoadReadyTheme.tss not imported yet - UI will use no theme.");
@@ -329,6 +369,7 @@ namespace RoadReady.EditorTools
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             EditorUtility.DisplayProgressBar("RoadReady", "Building bootstrap scene...", 0.85f);
+            SkyboxSetup.Apply("RR_Bootstrap");
             var panelSettings = Load<PanelSettings>(ConfigFolder + "/RoadReadyWorldPanel.asset");
             var config = Load<RoadReadyConfig>(ConfigPath);
 
@@ -373,6 +414,7 @@ namespace RoadReady.EditorTools
             var rig = app.AddComponent<PlayerRig>();
             SetRef(rig, "m_Origin", origin);
             rig.LobbySpawn = lobbySpawn;
+            ImportedAssetsSetup.ApplyHands(rig);
             var scenarios = app.AddComponent<ScenarioManager>();
             var remote = app.AddComponent<RemoteSync>();
             app.AddComponent<AudioSource>();
@@ -380,7 +422,7 @@ namespace RoadReady.EditorTools
             var ui = app.AddComponent<RoadReadyUI>();
             var appComponent = app.AddComponent<RoadReadyApp>();
 
-            var menu = Panel(null, "Menu Panel", "MenuShell", panelSettings, new Vector2(1600f, 1000f), 0.001f, true);
+            var menu = Panel(null, "Menu Panel", "MenuShell", panelSettings, new Vector2(1900f, 1250f), 0.001f, true);
             menu.transform.position = new Vector3(0f, 1.4f, 1.7f);
             var hud = Panel(null, "HUD Panel", "HUD", panelSettings, new Vector2(1300f, 800f), 0.001f, false);
             var hudController = hud.gameObject.AddComponent<HudController>();
