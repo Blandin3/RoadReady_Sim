@@ -58,10 +58,12 @@ namespace RoadReady.Scoring
                 isTutorial = attempt.phase == AttemptPhase.Tutorial,
             };
 
+            // On the open road the time limit is the normal end of the drive, not a failure.
+            var timedDrive = scenario != null && scenario.type == ScenarioType.OpenRoad;
             report.headline = attempt.endReason switch
             {
                 AttemptEndReason.Collision => "Collision - this would have hurt someone",
-                AttemptEndReason.TimeLimit => "Time ran out",
+                AttemptEndReason.TimeLimit when !timedDrive => "Time ran out",
                 AttemptEndReason.TutorialComplete => "Tutorial complete",
                 AttemptEndReason.Aborted => "Attempt stopped",
                 _ => s.total >= 85 ? "Excellent, safe decisions" : s.total >= 70 ? "Good - a few things to tighten up" : "Let's practise this again",

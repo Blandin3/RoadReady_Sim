@@ -44,6 +44,9 @@ namespace RoadReady.Rules
             {
                 if (other == player || m_Hit.Contains(other))
                     continue;
+                // Brushing past another pedestrian on the pavement is not a road crash.
+                if (ctx.perspective == Perspective.Pedestrian && other.Kind == RoadUserKind.Pedestrian)
+                    continue;
                 if (!RoadAgentRegistry.Overlaps(player, other, 0.05f))
                     continue;
                 m_Hit.Add(other);
@@ -103,6 +106,15 @@ namespace RoadReady.Rules
                     continue;
                 if (ctx.perspective == Perspective.Pedestrian && !other.Kind.IsVehicle())
                     continue;
+                // Traffic closing in from behind (e.g. a bus queuing behind you at a red light) is the follower's
+                // responsibility, unless you are reversing towards it.
+                if (ctx.perspective == Perspective.Driver && ctx.driver != null && ctx.driver.SignedSpeed > -0.5f &&
+                    Vector3.Dot(other.Position - player.Position, player.Forward) < 0f)
+                    continue;
+                // Vehicles moving parallel to you in another lane (oncoming or overtaking) are not on a collision
+                // course; the circle-based TTC would otherwise flag long buses passing in the next lane.
+                if (ctx.perspective == Perspective.Driver && IsParallelInOtherLane(player, other))
+                    continue;
                 if (m_LastReport.TryGetValue(other, out var last) && ctx.Now - last < k_Cooldown)
                     continue;
 
@@ -125,6 +137,23 @@ namespace RoadReady.Rules
                     m_MinTtc[other] = m_MinTtc.TryGetValue(other, out var current) ? Mathf.Min(current, ttc) : ttc;
                 }
             }
+        }
+
+        static bool IsParallelInOtherLane(IRoadAgent player, IRoadAgent other)
+        {
+            var forward = player.Forward;
+            forward.y = 0f;
+            var otherForward = other.Forward;
+            otherForward.y = 0f;
+            if (forward.sqrMagnitude < 1e-4f || otherForward.sqrMagnitude < 1e-4f)
+                return false;
+            forward.Normalize();
+            if (Mathf.Abs(Vector3.Dot(forward, otherForward.normalized)) < 0.9f)
+                return false;
+            var offset = other.Position - player.Position;
+            offset.y = 0f;
+            var lateral = Vector3.Cross(forward, offset).magnitude;
+            return lateral > (player.Width + other.Width) * 0.5f + 0.4f;
         }
 
         void ReportEncounter(RuleContext ctx, IRoadAgent other, float minTtc)

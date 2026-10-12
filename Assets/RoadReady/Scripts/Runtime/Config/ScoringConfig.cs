@@ -26,6 +26,8 @@ namespace RoadReady.Config
         public float criticalViolationPenalty = 60f;
         [Tooltip("A collision caps the composite score at this value.")]
         public float collisionScoreCap = 40f;
+        [Tooltip("Not finishing a goal-based scenario before the time limit caps the composite score at this value.")]
+        public float incompleteScoreCap = 50f;
 
         [Header("Grade bands")]
         public int roadReadyGrade = 85;
