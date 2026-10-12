@@ -28,6 +28,14 @@ namespace RoadReady.Config
         [Header("Comfort defaults")]
         public ComfortSettings defaultComfort = new ComfortSettings();
 
+        [Header("Branding")]
+        [Tooltip("RoadReady logo shown on the splash and welcome screens. Leave empty to show the 'RR' badge instead.")]
+        public Texture2D logo;
+        [Tooltip("How long the logo splash stays on screen before the welcome page (seconds).")]
+        [Range(1f, 10f)] public float splashSeconds = 3f;
+        [Tooltip("Unlit material with the lobby background picture; it fills the whole view behind the menus. Leave empty for the plain lobby.")]
+        public Material lobbyBackdrop;
+
         [Header("Study")]
         public string studyName = "RoadReady Kimironko Pilot";
         [Tooltip("Researcher PIN for the admin panel. Change before the pilot.")]

@@ -24,7 +24,9 @@ namespace RoadReady.Core
         Tutorial,
         UnsignalizedZebraCrossing,
         SignalizedIntersection,
-        UnsignalizedJunction
+        UnsignalizedJunction,
+        /// <summary>Endless loop road with recurring random hazards; ends on the time limit (driver only).</summary>
+        OpenRoad
     }
 
     public enum RoadUserKind
@@ -159,7 +161,18 @@ namespace RoadReady.Core
         Feedback,
         Questionnaire,
         Debrief,
-        Admin
+        Admin,
+        Splash,
+        Welcome
+    }
+
+    /// <summary>Automatic gearbox positions, front to back on the shifter.</summary>
+    public enum Gear
+    {
+        Park,
+        Reverse,
+        Neutral,
+        Drive
     }
 
     public enum TurnSide
