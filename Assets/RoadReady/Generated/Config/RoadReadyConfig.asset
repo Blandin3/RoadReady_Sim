@@ -18,6 +18,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9913a10b794a6714eb4cfc26a917c42f, type: 2}
   - {fileID: 11400000, guid: 34925be6864803e458a6b7a6c797c893, type: 2}
   - {fileID: 11400000, guid: f7eacc87ee6c9f54e90e36c12ada0cf1, type: 2}
+  - {fileID: 11400000, guid: 489cabb76e369b1479d4a7aef76e18e8, type: 2}
   scoring: {fileID: 11400000, guid: 4a944ed4d1f410f479635ecd6cec2af8, type: 2}
   defaultComfort:
     vignetteEnabled: 1
@@ -32,6 +33,9 @@ MonoBehaviour:
     textScale: 1
     masterVolume: 1
     voiceInstructions: 1
+  logo: {fileID: 2800000, guid: 9c53402479ca218409e50ba9656f08d9, type: 3}
+  splashSeconds: 3
+  lobbyBackdrop: {fileID: 2100000, guid: e5b0db9b94ae49dab6106ba1681976e4, type: 2}
   studyName: RoadReady Kimironko Pilot
   adminPin: 2026
   askSsqAfterEverySession: 1
