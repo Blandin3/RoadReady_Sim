@@ -26,6 +26,8 @@ namespace RoadReady.Player
         public readonly InputAction IndicatorLeft;
         public readonly InputAction IndicatorRight;
         public readonly InputAction Horn;
+        public readonly InputAction ShiftGear;
+        public readonly InputAction Handbrake;
 
         public readonly InputAction CrossNow;
         public readonly InputAction StopRetreat;
@@ -58,16 +60,22 @@ namespace RoadReady.Player
             Steer.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/leftArrow").With("Positive", "<Keyboard>/rightArrow");
 
             IndicatorLeft = Driving.AddAction("IndicatorLeft", InputActionType.Button);
-            IndicatorLeft.AddBinding(k_Left + "/{GripButton}");
+            // Grips grab the steering wheel and gear shifter, so the indicators live on Y (left) and A (right).
+            IndicatorLeft.AddBinding(k_Left + "/{SecondaryButton}");
             IndicatorLeft.AddBinding("<Keyboard>/q");
 
             IndicatorRight = Driving.AddAction("IndicatorRight", InputActionType.Button);
-            IndicatorRight.AddBinding(k_Right + "/{GripButton}");
+            IndicatorRight.AddBinding(k_Right + "/{PrimaryButton}");
             IndicatorRight.AddBinding("<Keyboard>/e");
 
             Horn = Driving.AddAction("Horn", InputActionType.Button);
             Horn.AddBinding(k_Right + "/{SecondaryButton}");
             Horn.AddBinding("<Keyboard>/h");
+
+            ShiftGear = Driving.AddAction("ShiftGear", InputActionType.Button);
+            ShiftGear.AddBinding("<Keyboard>/g");
+            Handbrake = Driving.AddAction("Handbrake", InputActionType.Button);
+            Handbrake.AddBinding("<Keyboard>/h");
 
             CrossNow = Walking.AddAction("CrossNow", InputActionType.Button);
             CrossNow.AddBinding(k_Right + "/{PrimaryButton}");

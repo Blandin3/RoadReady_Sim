@@ -25,6 +25,8 @@ namespace RoadReady.Player
         [SerializeField] float m_MaxSpeedKmh = 70f;
         [SerializeField] float m_Acceleration = 3.2f;
         [SerializeField] float m_BrakeDeceleration = 7.5f;
+        [Tooltip("Extra deceleration while the handbrake is applied (it holds the car; driving against it is very slow).")]
+        [SerializeField] float m_HandbrakeDeceleration = 6f;
         [SerializeField] float m_CoastDeceleration = 0.6f;
         [SerializeField] float m_MaxSteerDegrees = 32f;
         [Tooltip("Steering authority at max speed relative to standstill.")]
@@ -41,18 +43,29 @@ namespace RoadReady.Player
         [Header("Visuals (optional)")]
         [SerializeField] Transform m_SteeringWheel;
         [SerializeField] float m_SteeringWheelRatio = 14f;
+        [Tooltip("Local axis the steering wheel spins around (its column). The wheel's rest rotation is kept.")]
+        [SerializeField] Vector3 m_SteeringAxis = Vector3.forward;
         [SerializeField] Transform[] m_FrontWheels = Array.Empty<Transform>();
         [SerializeField] Transform[] m_AllWheels = Array.Empty<Transform>();
         [SerializeField] float m_WheelRadius = 0.32f;
         [SerializeField] Renderer[] m_BrakeLights = Array.Empty<Renderer>();
         [SerializeField] Renderer[] m_LeftIndicators = Array.Empty<Renderer>();
         [SerializeField] Renderer[] m_RightIndicators = Array.Empty<Renderer>();
+        [Tooltip("Lamps that are one material slot of a larger mesh (imported car models): only that slot glows.")]
+        [SerializeField] LampSlot[] m_BrakeLampSlots = Array.Empty<LampSlot>();
+        [SerializeField] LampSlot[] m_LeftIndicatorSlots = Array.Empty<LampSlot>();
+        [SerializeField] LampSlot[] m_RightIndicatorSlots = Array.Empty<LampSlot>();
+        [SerializeField] SteeringWheelGrab m_Wheel;
+        [Tooltip("Top speed in reverse (km/h).")]
+        [SerializeField] float m_MaxReverseKmh = 12f;
         [SerializeField] AudioSource m_EngineAudio;
         [SerializeField] AudioSource m_HornAudio;
         [SerializeField] AudioSource m_IndicatorAudio;
         [SerializeField] AudioSource m_CrashAudio;
 
         MaterialPropertyBlock m_Block;
+        Quaternion m_SteeringRest = Quaternion.identity;
+        bool m_HasSteeringRest;
         float m_Speed;
         float m_SteerAngle;
         float m_Heading;
@@ -69,8 +82,51 @@ namespace RoadReady.Player
         public Vector3 Position => transform.position;
         public Vector3 Velocity => m_Velocity;
         public Vector3 Forward => transform.forward;
-        public float Speed => m_Speed;
-        public float SpeedKmh => m_Speed * Units.MsToKmh;
+        /// <summary>Speed magnitude in m/s (also while reversing; use <see cref="SignedSpeed"/> for direction).</summary>
+        public float Speed => Mathf.Abs(m_Speed);
+        public float SpeedKmh => Mathf.Abs(m_Speed) * Units.MsToKmh;
+        /// <summary>Negative while reversing.</summary>
+        public float SignedSpeed => m_Speed;
+
+        /// <summary>Automatic gearbox position, set by the gear shifter (or the G key).</summary>
+        public Gear Gear { get; private set; } = Gear.Drive;
+        public event Action<Gear> GearChanged;
+
+        /// <summary>Handbrake applied (set by the handbrake lever or the H key).</summary>
+        public bool Handbrake { get; private set; }
+        public event Action<bool> HandbrakeChanged;
+
+        public void SetHandbrake(bool applied)
+        {
+            if (applied == Handbrake)
+                return;
+            Handbrake = applied;
+            HandbrakeChanged?.Invoke(applied);
+        }
+
+        /// <summary>Hand-held steering wheel; when held it overrides the thumbstick.</summary>
+        public SteeringWheelGrab Wheel { get => m_Wheel; set => m_Wheel = value; }
+
+        public void SetGear(Gear gear)
+        {
+            if (gear == Gear)
+                return;
+            Gear = gear;
+            GearChanged?.Invoke(gear);
+        }
+
+        /// <summary>Simulated engine speed for the rev counter (the model has no gearbox): idle plus a sawtooth through 5 gears.</summary>
+        public float Rpm
+        {
+            get
+            {
+                const float idle = 850f, gearTopKmh = 18f;
+                var kmh = SpeedKmh;
+                var inGear = kmh < 1f ? 0f : Mathf.Repeat(kmh, gearTopKmh) / gearTopKmh;
+                var gear = Mathf.Min(5f, Mathf.Floor(kmh / gearTopKmh));
+                return idle + (inGear * (3200f - 400f * gear) + gear * 300f) + Throttle * 600f;
+            }
+        }
         public float Length => m_Length;
         public float Width => m_Width;
         public bool IsPlayer => true;
@@ -122,6 +178,8 @@ namespace RoadReady.Player
             m_SteerAngle = 0f;
             m_Velocity = Vector3.zero;
             SetIndicator(TurnSide.None);
+            SetGear(Gear.Drive);
+            SetHandbrake(false);
         }
 
         public void Stop()
@@ -137,12 +195,16 @@ namespace RoadReady.Player
                 return;
             ReadInput();
 
-            // Longitudinal.
-            var accel = Throttle * m_Acceleration - Brake * m_BrakeDeceleration - (Throttle < 0.05f ? m_CoastDeceleration : 0f);
-            m_Speed = Mathf.Clamp(m_Speed + accel * dt, 0f, m_MaxSpeedKmh * Units.KmhToMs);
+            // Longitudinal: the gear sets which way the throttle drives; brakes, coasting and Park always oppose motion.
+            var drive = Gear switch { Gear.Drive => 1f, Gear.Reverse => -1f, _ => 0f } * Throttle * m_Acceleration;
+            var resist = Brake * m_BrakeDeceleration + (Throttle < 0.05f || drive == 0f ? m_CoastDeceleration : 0f) + (Gear == Gear.Park ? m_BrakeDeceleration : 0f) + (Handbrake ? m_HandbrakeDeceleration : 0f);
+            var speed = m_Speed + drive * dt;
+            var slow = resist * dt;
+            speed = Mathf.Abs(speed) <= slow ? 0f : speed - Mathf.Sign(speed) * slow;
+            m_Speed = Mathf.Clamp(speed, -m_MaxReverseKmh * Units.KmhToMs, m_MaxSpeedKmh * Units.KmhToMs);
 
             // Lateral: steering authority drops with speed for stability.
-            var speedFactor = Mathf.Lerp(1f, m_HighSpeedSteerFactor, m_Speed / (m_MaxSpeedKmh * Units.KmhToMs));
+            var speedFactor = Mathf.Lerp(1f, m_HighSpeedSteerFactor, Mathf.Abs(m_Speed) / (m_MaxSpeedKmh * Units.KmhToMs));
             var targetSteer = Steer * m_MaxSteerDegrees * speedFactor;
             m_SteerAngle = Mathf.MoveTowards(m_SteerAngle, targetSteer, m_MaxSteerDegrees * m_SteerResponse * dt);
             var yawRate = m_Speed / m_Wheelbase * Mathf.Tan(m_SteerAngle * Mathf.Deg2Rad) * Mathf.Rad2Deg;
@@ -153,7 +215,7 @@ namespace RoadReady.Player
             var forward = rotation * Vector3.forward;
             var step = forward * (m_Speed * dt);
 
-            if (m_Speed > 0.05f && CheckObstacle(forward, step.magnitude, out var hit))
+            if (Mathf.Abs(m_Speed) > 0.05f && CheckObstacle(m_Speed >= 0f ? forward : -forward, step.magnitude, out var hit))
             {
                 step = Vector3.zero;
                 m_Speed = 0f;
@@ -188,7 +250,22 @@ namespace RoadReady.Player
             var input = RoadReadyInput.Instance;
             Throttle = DeadZone(input.Throttle.ReadValue<float>());
             Brake = DeadZone(input.Brake.ReadValue<float>());
-            Steer = Mathf.Clamp(DeadZone(input.Steer.ReadValue<float>()), -1f, 1f);
+            var stick = Mathf.Clamp(DeadZone(input.Steer.ReadValue<float>()), -1f, 1f);
+            if (m_Wheel != null && m_Wheel.IsHeld)
+            {
+                Steer = m_Wheel.SteerInput;
+            }
+            else
+            {
+                Steer = stick;
+                // Keep the wheel in step so grabbing it does not make the steering jump.
+                if (m_Wheel != null) m_Wheel.FollowSteering(stick);
+            }
+
+            if (input.Handbrake.WasPressedThisFrame())
+                SetHandbrake(!Handbrake);
+            if (input.ShiftGear.WasPressedThisFrame())
+                SetGear(Gear switch { Gear.Drive => Gear.Neutral, Gear.Neutral => Gear.Reverse, Gear.Reverse => Gear.Park, _ => Gear.Drive });
 
             if (input.IndicatorLeft.WasPressedThisFrame())
                 SetIndicator(Indicator == TurnSide.Left ? TurnSide.None : TurnSide.Left);
@@ -269,7 +346,17 @@ namespace RoadReady.Player
         void UpdateVisuals(float dt)
         {
             if (m_SteeringWheel != null)
-                m_SteeringWheel.localRotation = Quaternion.Euler(0f, 0f, -m_SteerAngle * m_SteeringWheelRatio);
+            {
+                if (!m_HasSteeringRest)
+                {
+                    m_SteeringRest = m_SteeringWheel.localRotation;
+                    m_HasSteeringRest = true;
+                }
+
+                // While held, the rim follows the hands exactly; otherwise it shows the road-wheel angle.
+                var wheelDegrees = m_Wheel != null && m_Wheel.IsHeld ? m_Wheel.WheelAngle : m_SteerAngle * m_SteeringWheelRatio;
+                m_SteeringWheel.localRotation = m_SteeringRest * Quaternion.AngleAxis(-wheelDegrees, m_SteeringAxis);
+            }
             foreach (var wheel in m_FrontWheels)
                 if (wheel != null) wheel.localRotation = Quaternion.Euler(wheel.localEulerAngles.x, m_SteerAngle, 0f);
             if (m_WheelRadius > 0f)
@@ -283,9 +370,26 @@ namespace RoadReady.Player
             SetEmission(m_BrakeLights, Brake > 0.1f, Color.red);
             SetEmission(m_LeftIndicators, Indicator == TurnSide.Left && blinkOn, new Color(1f, 0.55f, 0f));
             SetEmission(m_RightIndicators, Indicator == TurnSide.Right && blinkOn, new Color(1f, 0.55f, 0f));
+            SetEmission(m_BrakeLampSlots, Brake > 0.1f, Color.red * 4f);
+            SetEmission(m_LeftIndicatorSlots, Indicator == TurnSide.Left && blinkOn, new Color(1f, 0.55f, 0f) * 4f);
+            SetEmission(m_RightIndicatorSlots, Indicator == TurnSide.Right && blinkOn, new Color(1f, 0.55f, 0f) * 4f);
 
             if (m_EngineAudio != null)
-                m_EngineAudio.pitch = 0.7f + m_Speed / 12f + Throttle * 0.15f;
+                m_EngineAudio.pitch = 0.7f + Mathf.Abs(m_Speed) / 12f + Throttle * 0.15f;
+        }
+
+        void SetEmission(LampSlot[] slots, bool on, Color onEmission)
+        {
+            if (slots.Length == 0)
+                return;
+            m_Block ??= new MaterialPropertyBlock();
+            foreach (var slot in slots)
+            {
+                if (slot.renderer == null) continue;
+                slot.renderer.GetPropertyBlock(m_Block, slot.materialIndex);
+                m_Block.SetColor("_EmissionColor", on ? onEmission : slot.offEmission);
+                slot.renderer.SetPropertyBlock(m_Block, slot.materialIndex);
+            }
         }
 
         void SetEmission(Renderer[] renderers, bool on, Color color)
@@ -302,5 +406,14 @@ namespace RoadReady.Player
                 r.SetPropertyBlock(m_Block);
             }
         }
+    }
+
+    /// <summary>One material slot of a renderer that acts as a lamp, and the emission it shows when off.</summary>
+    [Serializable]
+    public struct LampSlot
+    {
+        public Renderer renderer;
+        public int materialIndex;
+        public Color offEmission;
     }
 }
