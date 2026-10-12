@@ -26,6 +26,8 @@ namespace RoadReady.Traffic
         [Tooltip("Vehicles placed along the path when the attempt starts so the road is not empty.")]
         [SerializeField] int m_PrewarmCount = 3;
         [SerializeField] float m_SpawnClearance = 12f;
+        [Tooltip("Upper limit of vehicles on this path at once. Needed on looped paths, where vehicles never reach an end and despawn.")]
+        [SerializeField] int m_MaxActive = 1000;
 
         readonly List<TrafficVehicleAI> m_Pool = new List<TrafficVehicleAI>();
         ScenarioParameters m_Parameters;
@@ -36,6 +38,18 @@ namespace RoadReady.Traffic
         public List<VehiclePrefabEntry> Prefabs => m_Prefabs;
         public float DensityScale { get => m_DensityScale; set => m_DensityScale = value; }
         public int PrewarmCount { get => m_PrewarmCount; set => m_PrewarmCount = value; }
+        public int MaxActive { get => m_MaxActive; set => m_MaxActive = value; }
+
+        int ActiveCount
+        {
+            get
+            {
+                var n = 0;
+                foreach (var v in m_Pool)
+                    if (v != null && v.gameObject.activeSelf) n++;
+                return n;
+            }
+        }
 
         public void Configure(ScenarioParameters parameters)
         {
@@ -53,12 +67,26 @@ namespace RoadReady.Traffic
             if (float.IsInfinity(interval))
                 return;
             var spacing = Mathf.Max(m_SpawnClearance * 1.5f, m_Parameters.npcCruiseSpeedKmh * Units.KmhToMs * interval);
-            for (var i = 0; i < m_PrewarmCount; i++)
+            if (m_Path.Loop)
             {
-                var d = m_Path.Length * 0.15f + i * spacing;
-                if (d > m_Path.Length * 0.85f)
-                    break;
-                Spawn(d);
+                // Spread evenly around the loop; nothing ever drives off the end, so the loop starts full.
+                var count = Mathf.Min(m_PrewarmCount, m_MaxActive);
+                for (var i = 0; i < count; i++)
+                {
+                    var d = m_Path.Length * (i + 0.5f) / Mathf.Max(1, count);
+                    if (IsClear(m_Path.GetPoint(d), 20f))
+                        Spawn(d);
+                }
+            }
+            else
+            {
+                for (var i = 0; i < m_PrewarmCount; i++)
+                {
+                    var d = m_Path.Length * 0.15f + i * spacing;
+                    if (d > m_Path.Length * 0.85f)
+                        break;
+                    Spawn(d);
+                }
             }
 
             m_NextSpawn = Time.time + interval * RoadReadyRandom.Range(0.3f, 1f);
@@ -82,16 +110,17 @@ namespace RoadReady.Traffic
         {
             if (!m_Running || Time.time < m_NextSpawn)
                 return;
-            if (IsSpawnPointClear())
+            if (ActiveCount < m_MaxActive && IsSpawnPointClear())
                 Spawn(0f);
             m_NextSpawn = Time.time + Interval() * RoadReadyRandom.Range(0.6f, 1.4f);
         }
 
-        bool IsSpawnPointClear()
+        bool IsSpawnPointClear() => IsClear(m_Path.GetPoint(0f), m_SpawnClearance);
+
+        static bool IsClear(Vector3 point, float clearance)
         {
-            var start = m_Path.GetPoint(0f);
             foreach (var agent in RoadAgentRegistry.All)
-                if ((agent.Position - start).sqrMagnitude < m_SpawnClearance * m_SpawnClearance)
+                if ((agent.Position - point).sqrMagnitude < clearance * clearance)
                     return false;
             return true;
         }
@@ -103,11 +132,11 @@ namespace RoadReady.Traffic
             if (prefab == null)
                 return;
 
-            var vehicle = m_Pool.Find(v => v != null && !v.gameObject.activeSelf && v.Kind == kind && v.name.StartsWith(prefab.name));
+            var vehicle = m_Pool.Find(v => v != null && !v.gameObject.activeSelf && v.Kind == kind && v.name.StartsWith(prefab.name + "#"));
             if (vehicle == null)
             {
                 vehicle = Instantiate(prefab, transform);
-                vehicle.name = prefab.name + "_" + m_Pool.Count;
+                vehicle.name = prefab.name + "#" + m_Pool.Count;
                 m_Pool.Add(vehicle);
             }
 
@@ -135,84 +164,12 @@ namespace RoadReady.Traffic
 
         TrafficVehicleAI FindPrefab(RoadUserKind kind)
         {
-            var entry = m_Prefabs.Find(e => e.kind == kind && e.prefab != null) ?? m_Prefabs.Find(e => e.prefab != null);
-            return entry?.prefab;
+            // Several models can share a kind (e.g. sedan, hatchback and jeep cars): pick one at random.
+            var matches = m_Prefabs.FindAll(e => e.kind == kind && e.prefab != null);
+            if (matches.Count > 0)
+                return matches[RoadReadyRandom.Range(0, matches.Count)].prefab;
+            return m_Prefabs.Find(e => e.prefab != null)?.prefab;
         }
     }
 
-    /// <summary>Seeded background pedestrians. A share of them use "jaywalk" paths that cross away from crossings.</summary>
-    public class PedestrianSpawner : MonoBehaviour
-    {
-        [SerializeField] List<WaypointPath> m_Paths = new List<WaypointPath>();
-        [SerializeField] List<WaypointPath> m_JaywalkPaths = new List<WaypointPath>();
-        [SerializeField] List<PedestrianAI> m_Prefabs = new List<PedestrianAI>();
-        [SerializeField] float m_DensityScale = 1f;
-        [SerializeField] int m_PrewarmCount = 2;
-
-        readonly List<PedestrianAI> m_Pool = new List<PedestrianAI>();
-        ScenarioParameters m_Parameters;
-        float m_NextSpawn = float.PositiveInfinity;
-        bool m_Running;
-
-        public List<WaypointPath> Paths => m_Paths;
-        public List<WaypointPath> JaywalkPaths => m_JaywalkPaths;
-        public List<PedestrianAI> Prefabs => m_Prefabs;
-
-        public void Configure(ScenarioParameters parameters) => m_Parameters = parameters;
-
-        public void StartSpawning()
-        {
-            StopSpawning();
-            if (m_Parameters == null || m_Paths.Count == 0 || m_Prefabs.Count == 0)
-                return;
-            m_Running = true;
-            for (var i = 0; i < m_PrewarmCount; i++)
-                Spawn(RoadReadyRandom.Range(0.1f, 0.5f));
-            m_NextSpawn = Time.time + Interval() * RoadReadyRandom.Range(0.3f, 1f);
-        }
-
-        public void StopSpawning()
-        {
-            m_Running = false;
-            m_NextSpawn = float.PositiveInfinity;
-            foreach (var p in m_Pool)
-                if (p != null) p.gameObject.SetActive(false);
-        }
-
-        float Interval()
-        {
-            var perMinute = m_Parameters.pedestrianDensityPerMinute * m_DensityScale;
-            return perMinute <= 0.01f ? float.PositiveInfinity : 60f / perMinute;
-        }
-
-        void Update()
-        {
-            if (!m_Running || Time.time < m_NextSpawn)
-                return;
-            Spawn(0f);
-            m_NextSpawn = Time.time + Interval() * RoadReadyRandom.Range(0.6f, 1.4f);
-        }
-
-        void Spawn(float normalizedStart)
-        {
-            var jaywalk = m_JaywalkPaths.Count > 0 && RoadReadyRandom.Chance(m_Parameters.pedestrianJaywalkRate);
-            var paths = jaywalk ? m_JaywalkPaths : m_Paths;
-            var path = paths[RoadReadyRandom.Range(0, paths.Count)];
-            var prefab = m_Prefabs[RoadReadyRandom.Range(0, m_Prefabs.Count)];
-            if (path == null || prefab == null)
-                return;
-
-            var ped = m_Pool.Find(p => p != null && !p.gameObject.activeSelf);
-            if (ped == null)
-            {
-                ped = Instantiate(prefab, transform);
-                ped.name = prefab.name + "_" + m_Pool.Count;
-                m_Pool.Add(ped);
-            }
-
-            ped.SetDormant(false, false);
-            ped.gameObject.SetActive(true);
-            ped.Configure(path, path.Length * normalizedStart, RoadReadyRandom.Range(1.1f, 1.5f), jaywalk && RoadReadyRandom.Chance(0.5f), !jaywalk);
-        }
-    }
 }

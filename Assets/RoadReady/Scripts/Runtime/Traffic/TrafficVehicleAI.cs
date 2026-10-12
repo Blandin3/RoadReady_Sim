@@ -106,6 +106,8 @@ namespace RoadReady.Traffic
         public Transform FocusPoint => m_FocusPoint != null ? m_FocusPoint : transform;
         public IRoadAgent Agent => this;
         public bool IsScripted => m_Scripted;
+        /// <summary>False = stop and stay at the end of the path (e.g. parked in a driveway) instead of disappearing.</summary>
+        public bool DisableAtPathEnd { get => m_DisableAtPathEnd; set => m_DisableAtPathEnd = value; }
         public bool IsDormant => m_Dormant;
         public WaypointPath Path => m_Path;
         public float DistanceAlongPath => m_Distance;
