@@ -22,6 +22,10 @@ namespace RoadReady.Player
         [SerializeField] XROrigin m_Origin;
         [Tooltip("Where the rig waits while menus are shown between scenarios.")]
         [SerializeField] Transform m_LobbySpawn;
+        [Header("Driving hands (XR Hands sample models)")]
+        [SerializeField] GameObject m_LeftHandModel;
+        [SerializeField] GameObject m_RightHandModel;
+        [SerializeField] Material m_HandMaterial;
 
         readonly List<LocomotionProvider> m_Providers = new List<LocomotionProvider>();
         readonly List<GameObject> m_PointerObjects = new List<GameObject>();
@@ -32,8 +36,19 @@ namespace RoadReady.Player
         float m_DefaultCameraYOffset;
         XROrigin.TrackingOriginMode m_DefaultTrackingMode;
         Scene m_HomeScene;
+        readonly List<NearFarInteractor> m_NearFar = new List<NearFarInteractor>();
+        DriverHands m_Hands;
+        bool m_PointersVisible = true;
+        bool m_Driving;
 
         public XROrigin Origin => m_Origin;
+
+        public void SetHandModels(GameObject left, GameObject right, Material material)
+        {
+            m_LeftHandModel = left;
+            m_RightHandModel = right;
+            m_HandMaterial = material;
+        }
         public Camera Head => m_Origin != null ? m_Origin.Camera : Camera.main;
         public Transform HeadTransform => Head != null ? Head.transform : transform;
         public TunnelingVignetteController Vignette { get; private set; }
@@ -54,7 +69,14 @@ namespace RoadReady.Player
             m_InputManagers = m_Origin.GetComponentsInChildren<ControllerInputActionManager>(true);
             m_Providers.AddRange(m_Origin.GetComponentsInChildren<LocomotionProvider>(true));
             foreach (var interactor in m_Origin.GetComponentsInChildren<NearFarInteractor>(true))
+            {
                 m_PointerObjects.Add(interactor.gameObject);
+                m_NearFar.Add(interactor);
+            }
+
+            m_Hands = m_Origin.gameObject.AddComponent<DriverHands>();
+            m_Hands.Setup(FindChild(m_Origin.transform, "Left Controller"), FindChild(m_Origin.transform, "Right Controller"),
+                m_LeftHandModel, m_RightHandModel, m_HandMaterial);
             foreach (var interactor in m_Origin.GetComponentsInChildren<XRRayInteractor>(true))
                 m_PointerObjects.Add(interactor.gameObject);
             Vignette = m_Origin.GetComponentInChildren<TunnelingVignetteController>(true);
@@ -102,11 +124,34 @@ namespace RoadReady.Player
             }
         }
 
-        /// <summary>Show controller rays only while a menu needs pointing.</summary>
+        /// <summary>
+        /// Show controller rays only while a menu needs pointing. While driving the grab interactors stay on (near
+        /// grabbing only) so the hands can hold the steering wheel and gear lever.
+        /// </summary>
+        public bool PointersVisible => m_PointersVisible;
+
         public void SetPointers(bool visible)
         {
+            m_PointersVisible = visible;
             foreach (var go in m_PointerObjects)
-                if (go != null) go.SetActive(visible);
+                if (go != null) go.SetActive(visible || m_Driving);
+            foreach (var interactor in m_NearFar)
+                if (interactor != null) interactor.enableFarCasting = visible;
+        }
+
+        /// <summary>Driving hands on/off: hands replace the controller models and near grabbing stays active.</summary>
+        void SetDriving(bool driving)
+        {
+            m_Driving = driving;
+            if (m_Hands != null) m_Hands.Show(driving);
+            SetPointers(m_PointersVisible);
+        }
+
+        static Transform FindChild(Transform root, string name)
+        {
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                if (t.name == name) return t;
+            return null;
         }
 
         /// <summary>Driver module: parent the rig to the car and put the head at the seat eye point.</summary>
@@ -119,6 +164,7 @@ namespace RoadReady.Player
             SetStandingMode(false);
             m_Origin.transform.SetParent(vehicle, true);
             Recenter();
+            SetDriving(true);
         }
 
         /// <summary>Pedestrian module / lobby: stand the rig at a world position, keeping real head height.</summary>
@@ -126,6 +172,7 @@ namespace RoadReady.Player
         {
             if (m_Origin == null || spawn == null)
                 return;
+            SetDriving(false);
             m_Seat = null;
             SetCharacterController(false);
             Detach();
@@ -142,6 +189,7 @@ namespace RoadReady.Player
 
         public void ReturnToLobby()
         {
+            SetDriving(false);
             if (m_LobbySpawn != null)
             {
                 PlaceStanding(m_LobbySpawn);
