@@ -138,6 +138,13 @@ namespace RoadReady.Hazards
 
         public void Disarm() => m_Armed = false;
 
+        /// <summary>Lets an armed trigger fire again (recurring hazards on the open road). No effect if disarmed.</summary>
+        public void Rearm()
+        {
+            StopAllCoroutines();
+            m_Fired = false;
+        }
+
         /// <summary>Evaluates the trigger condition. Returns true on the frame it fires.</summary>
         public bool Tick(IRoadAgent player, float attemptTime)
         {

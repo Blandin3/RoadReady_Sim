@@ -16,6 +16,9 @@ namespace RoadReady.Scoring
     /// </summary>
     public static class ScoreCalculator
     {
+        /// <summary>Decision added when a goal-based attempt runs out of time; caps the score like a collision does.</summary>
+        public const string IncompleteRuleId = "task_incomplete";
+
         public static SafetyScore Compute(IReadOnlyList<PerformanceRecord> hazards, IReadOnlyList<DecisionRecord> decisions, ScoringConfig config)
         {
             var score = new SafetyScore { hazardsTotal = hazards.Count };
@@ -99,6 +102,9 @@ namespace RoadReady.Scoring
             score.total = weights > 0f ? weighted / weights : 0f;
             if (score.collision)
                 score.total = Mathf.Min(score.total, config.collisionScoreCap);
+            foreach (var d in decisions)
+                if (d.ruleId == IncompleteRuleId)
+                    score.total = Mathf.Min(score.total, config.incompleteScoreCap);
             score.total = Mathf.Round(Mathf.Clamp(score.total, 0f, 100f));
             score.grade = config.GetGrade(score.total);
             return score;

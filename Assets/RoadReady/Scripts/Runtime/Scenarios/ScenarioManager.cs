@@ -50,9 +50,14 @@ namespace RoadReady.Scenarios
         [Tooltip("Lobby geometry and lighting, hidden while a scenario scene is loaded.")]
         [SerializeField] GameObject m_Lobby;
 
+        public GameObject Lobby => m_Lobby;
+
         readonly HazardMonitor m_Hazards = new HazardMonitor();
         readonly RuleEngine m_Rules = new RuleEngine();
         readonly List<DecisionRecord> m_Decisions = new List<DecisionRecord>();
+        /// <summary>Metres driven this attempt (the open road has no finish line, so distance shows the drive was done).</summary>
+        float m_Odometer;
+        const float k_OpenRoadMinimumMetres = 800f;
 
         RoadReadyConfig m_Config;
         DataService m_Data;
@@ -257,6 +262,7 @@ namespace RoadReady.Scenarios
             var previous = participant != null ? m_Data.GetScoredAttempts(participant.participantId, m_Request.scenario.scenarioId, m_Request.perspective) : new List<AttemptRecord>();
 
             m_Decisions.Clear();
+            m_Odometer = 0f;
             m_DecisionCounter = 0;
             m_PendingEnd = null;
             m_SampleTimer = 0f;
@@ -346,6 +352,8 @@ namespace RoadReady.Scenarios
             m_Hazards.Tick(dt);
             m_Rules.Tick(dt);
             SampleTelemetry(dt);
+            if (m_Driver != null && m_Request.perspective == Perspective.Driver)
+                m_Odometer += m_Driver.Speed * dt;
 
             if (m_PendingEnd == null)
             {
@@ -378,6 +386,17 @@ namespace RoadReady.Scenarios
             decision.decisionId = $"D{++m_DecisionCounter:000}";
             m_Decisions.Add(decision);
             m_Telemetry?.WriteEvent("decision", decision.time, decision.ruleId, $"{decision.decision}|{decision.severity}|{decision.title}");
+        }
+
+        /// <summary>True when the scenario has a finish goal for this perspective (the open road and tutorials do not).</summary>
+        bool HasGoalFor(Perspective perspective)
+        {
+            if (m_Request.phase == AttemptPhase.Tutorial || m_Context == null)
+                return false;
+            foreach (var goal in m_Context.Goals)
+                if (goal != null && goal.Perspectives.Includes(perspective))
+                    return true;
+            return false;
         }
 
         void AddDecisionTelemetry(string kind) => m_Telemetry?.WriteEvent(kind, SimClock.Now, null);
@@ -434,6 +453,25 @@ namespace RoadReady.Scenarios
             m_Attempt.endReason = reason;
             m_Attempt.completed = reason == AttemptEndReason.GoalReached || reason == AttemptEndReason.TutorialComplete;
             m_Attempt.hazardRecords = new List<PerformanceRecord>(m_Hazards.Records);
+            var openRoadTooShort = reason == AttemptEndReason.TimeLimit && m_Request.scenario != null && m_Request.scenario.type == ScenarioType.OpenRoad
+                && m_Request.perspective == Perspective.Driver && m_Odometer < k_OpenRoadMinimumMetres;
+            if (reason == AttemptEndReason.TimeLimit && (HasGoalFor(m_Request.perspective) || openRoadTooShort))
+            {
+                // Running out of time without finishing must not look like a perfect, risk-free attempt.
+                var driving = m_Request.perspective == Perspective.Driver;
+                AddDecision(new DecisionRecord
+                {
+                    source = DecisionSource.Rule,
+                    ruleId = ScoreCalculator.IncompleteRuleId,
+                    title = openRoadTooShort ? "Drove less than one lap of the loop" : driving ? "Did not reach the end of the route in time" : "Did not finish crossing in time",
+                    detail = openRoadTooShort ? $"{m_Odometer:0} m driven in {m_Parameters.timeLimitSeconds:0} s." : $"Time limit of {m_Parameters.timeLimitSeconds:0} s reached.",
+                    decision = DecisionClass.Borderline,
+                    severity = ViolationSeverity.Major,
+                    time = duration,
+                    tip = driving ? "Keep moving with the traffic - waiting too long also causes problems for other road users." : "Find a safe moment and complete your crossing.",
+                });
+            }
+
             m_Attempt.decisions = new List<DecisionRecord>(m_Decisions);
             m_Attempt.score = ScoreCalculator.Compute(m_Attempt.hazardRecords, m_Attempt.decisions, m_Config.scoring);
             m_Telemetry?.WriteEvent("attempt_end", duration, reason.ToString(), $"score={m_Attempt.score.total}");

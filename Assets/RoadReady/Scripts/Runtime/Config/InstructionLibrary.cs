@@ -30,7 +30,7 @@ namespace RoadReady.Config
         static readonly Dictionary<string, string> s_Text = new Dictionary<string, string>
         {
             { Welcome, "Welcome to RoadReady. You will practise road-safety decisions as a driver and as a pedestrian in streets modelled on Kimironko. Nothing here can hurt you - mistakes are how you learn." },
-            { ControlsDriver, "Right trigger: accelerate.  Left trigger: brake.  Left thumbstick: steer.  Grip buttons: indicators.  X: I see a hazard.  B: horn.  Menu: pause." },
+            { ControlsDriver, "Grab the steering wheel with the grip buttons and turn it (or use the left thumbstick).  Right trigger: accelerate.  Left trigger: brake.  Grab the gear lever to shift P-R-N-D.  Grab the handbrake between the seats to pull it up or push it down.  Y: left indicator.  A: right indicator.  X: I see a hazard.  B: horn.  Menu: pause." },
             { ControlsPedestrian, "Left thumbstick: walk.  Right thumbstick: turn.  A: cross now.  B: stop / step back.  X: I see a hazard.  Look around by turning your head.  Menu: pause." },
             { AttemptStart, "Get ready. Drive or walk as you would in real life." },
             { AttemptComplete, "Scenario complete. Let's look at how you did." },
@@ -38,8 +38,8 @@ namespace RoadReady.Config
             { TimeUp, "Time is up for this attempt." },
             { TutDriverThrottle, "Gently pull the RIGHT trigger to move forward." },
             { TutDriverBrake, "Now pull the LEFT trigger to brake to a stop." },
-            { TutDriverSteer, "Use the LEFT thumbstick to steer left and right." },
-            { TutDriverIndicator, "Squeeze a GRIP button to switch on the indicator on that side." },
+            { TutDriverSteer, "Grab the steering wheel with both grip buttons and turn it - or use the LEFT thumbstick." },
+            { TutDriverIndicator, "Press Y for the left indicator or A for the right indicator." },
             { TutDriverMirror, "Turn your head over your shoulder to check your blind spot." },
             { TutPedLook, "Look LEFT, then RIGHT, then LEFT again. In Rwanda traffic drives on the right, so the nearest lane comes from your left." },
             { TutPedWalk, "Use the LEFT thumbstick to walk to the kerb marker." },
