@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e26f7354461ba6244825f5a6ce753ab0, type: 3}
+  m_Name: open_car_pulls_out
+  m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Config.HazardDefinition
+  hazardId: open_car_pulls_out
+  displayName: Car pulls out of a driveway
+  type: 2
+  description: 
+  severity: 3
+  perspective: 0
+  requiredResponse: 0
+  responseWindowSeconds: 5
+  safeReactionSeconds: 1.2
+  borderlineReactionSeconds: 2
+  gazeConeDegrees: 18
+  feedbackSafe: You saw the car edging out of the driveway and slowed in time.
+  feedbackBorderline: You braked, but late. Watch driveways and gaps between buildings
+    - cars pull out without looking.
+  feedbackUnsafe: You did not react to the car pulling out of the driveway.
+  otherPerspectiveInsight: The driver was looking for a gap through a narrow view
+    between buildings and judged you to be further away than you were.
