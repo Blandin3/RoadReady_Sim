@@ -3,6 +3,7 @@
     <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
         <ui:Label name="countdown" class="hud__countdown hidden" />
         <ui:Label name="tutorial" class="hud__tutorial hidden" />
+        <ui:Button name="skip-tutorial" text="Skip tutorial" class="btn btn--small hud__skip hidden" />
         <ui:Label name="toast" class="hud__toast hidden" />
         <ui:Label name="caption" class="hud__caption hidden" />
         <ui:Label name="prompt" class="hud__prompt hidden" />
@@ -12,6 +13,7 @@
             <ui:Label text="km/h" class="hud__unit" />
             <ui:Label name="limit" text="40" class="hud__limit" />
             <ui:Label name="arrow-right" text="&gt;" class="hud__arrow" />
+            <ui:Label name="gear" class="hud__gear" />
             <ui:Label name="timer" class="hud__timer" />
         </ui:VisualElement>
     </ui:VisualElement>

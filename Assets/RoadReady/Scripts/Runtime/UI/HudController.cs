@@ -24,8 +24,11 @@ namespace RoadReady.UI
         WorldSpacePanel m_Panel;
         ScenarioManager m_Scenarios;
         RoadReadyApp m_App;
-        Label m_Speed, m_Limit, m_Timer, m_Countdown, m_Caption, m_Prompt, m_Toast, m_Tutorial, m_ArrowLeft, m_ArrowRight;
+        Label m_Speed, m_Limit, m_Timer, m_Gear, m_Countdown, m_Caption, m_Prompt, m_Toast, m_Tutorial, m_ArrowLeft, m_ArrowRight;
         VisualElement m_Cluster;
+        Button m_Skip;
+        bool m_SkipShown;
+        float m_HandbrakeHintAt = -100f;
         float m_CaptionUntil, m_ToastUntil, m_CountdownUntil;
         Vector3 m_FollowPosition;
         bool m_HasFollowPosition;
@@ -40,6 +43,7 @@ namespace RoadReady.UI
             m_Speed = root.Q<Label>("speed");
             m_Limit = root.Q<Label>("limit");
             m_Timer = root.Q<Label>("timer");
+            m_Gear = root.Q<Label>("gear");
             m_Countdown = root.Q<Label>("countdown");
             m_Caption = root.Q<Label>("caption");
             m_Prompt = root.Q<Label>("prompt");
@@ -48,6 +52,9 @@ namespace RoadReady.UI
             m_ArrowLeft = root.Q<Label>("arrow-left");
             m_ArrowRight = root.Q<Label>("arrow-right");
             m_Cluster = root.Q<VisualElement>("cluster");
+            m_Skip = root.Q<Button>("skip-tutorial");
+            if (m_Skip != null)
+                m_Skip.clicked += () => m_App.Pause(); // the same pause panel as the left controller's menu button
 
             RoadReadyEvents.InstructionRequested += OnInstruction;
             RoadReadyEvents.ToastRequested += OnToast;
@@ -103,6 +110,7 @@ namespace RoadReady.UI
             var inScenario = state == AttemptState.Countdown || state == AttemptState.Running;
             if (!inScenario || m_Scenarios.Request.phase != AttemptPhase.Tutorial)
                 m_Tutorial.SetVisible(false);
+            UpdateSkipButton(state);
 
             var driver = inScenario ? m_Scenarios.Driver : null;
             m_Cluster.SetVisible(driver != null);
@@ -116,6 +124,14 @@ namespace RoadReady.UI
                 var blink = Mathf.Repeat(Time.time, 0.7f) < 0.35f;
                 m_ArrowLeft.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Left && blink);
                 m_ArrowRight.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Right && blink);
+                if (m_Gear != null)
+                    m_Gear.text = GearText(driver.Gear, driver.Handbrake);
+                // Trying to drive away with the handbrake on: remind the learner (at most every few seconds).
+                if (driver.Handbrake && driver.Throttle > 0.3f && driver.Gear != Gear.Park && driver.Gear != Gear.Neutral && now - m_HandbrakeHintAt > 5f)
+                {
+                    m_HandbrakeHintAt = now;
+                    OnToast("Handbrake is on: push the lever down (or press H) to drive", 3f);
+                }
                 var remaining = m_Scenarios.TimeRemaining;
                 m_Timer.text = state == AttemptState.Running && m_Scenarios.Request.phase != AttemptPhase.Tutorial ? $"{(int)remaining / 60}:{(int)remaining % 60:00}" : "";
             }
@@ -125,6 +141,38 @@ namespace RoadReady.UI
             m_Prompt.SetVisible(!string.IsNullOrEmpty(prompt) && !m_App.UI.MenuVisible);
 
             Place(driver);
+        }
+
+        /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
+        /// <summary>
+        /// During the tutorial a "Skip tutorial" button sits under the instruction. It opens the pause panel (where
+        /// the learner confirms the skip), exactly like the left controller's menu button, which keeps working too.
+        /// The controller ray stays on while the button is shown so it can be pointed at.
+        /// </summary>
+        void UpdateSkipButton(AttemptState state)
+        {
+            if (m_Skip == null)
+                return;
+            var show = state == AttemptState.Running && m_Scenarios.Request.phase == AttemptPhase.Tutorial
+                       && m_App.State == AppState.InScenario && !m_App.UI.MenuVisible;
+            m_Skip.SetVisible(show);
+            if (show != m_SkipShown)
+                m_Panel.SetInteractive(show);
+            if (show && !m_App.Rig.PointersVisible)
+                m_App.Rig.SetPointers(true);
+            else if (!show && m_SkipShown && !m_App.UI.MenuVisible && m_App.State == AppState.InScenario)
+                m_App.Rig.SetPointers(false);
+            m_SkipShown = show;
+        }
+
+        static string GearText(Gear gear, bool handbrake)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (Gear g in System.Enum.GetValues(typeof(Gear)))
+                sb.Append(g == gear ? $"<color=#FAD201>{g.ToString()[0]}</color> " : $"<color=#5A6573>{g.ToString()[0]}</color> ");
+            if (handbrake)
+                sb.Append("  <color=#E5484D>(P) BRAKE</color>");
+            return sb.ToString().TrimEnd();
         }
 
         void Place(Player.DriverController driver)
