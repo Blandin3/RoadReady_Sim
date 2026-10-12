@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/RoadReady/Generated/Scenes/RR_MotoTaxiJunction.unity
     guid: 03eb425cf7a2ec54ca28c6f23c0e56e9
+  - enabled: 1
+    path: Assets/RoadReady/Generated/Scenes/RR_OpenRoad.unity
+    guid: 3f0385c286b01de4ba6510d10ee9b426
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: bfa1182bd221b4ca89619141f66f1260, type: 2}
     Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: dc5a169419fa04987b057f65238cf3ba, type: 2}
