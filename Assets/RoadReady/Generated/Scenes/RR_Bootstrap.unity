@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 0b846be1b116429409a7669cacf2a62e, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -996,7 +996,11 @@ MonoBehaviour:
     tree: {fileID: 9197481963319205126, guid: 554bb9433a55c6444bff8eac7ed4c462, type: 3}
   - name: SafetyBriefing
     tree: {fileID: 9197481963319205126, guid: e4af6d5864d64d34f94ccab8263a7533, type: 3}
-  m_StandingDistance: 1.7
+  - name: Splash
+    tree: {fileID: 9197481963319205126, guid: 3474ae3272784793bcbe5d87aa0c33fd, type: 3}
+  - name: Welcome
+    tree: {fileID: 9197481963319205126, guid: 5d8fa7bd244543928510aefd4487d59c, type: 3}
+  m_StandingDistance: 1.5
   m_SeatedDistance: 1.1
   m_SeatedScale: 0.65
 --- !u!114 &1375940200
@@ -1152,6 +1156,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.Player.PlayerRig
   m_Origin: {fileID: 992965471}
   m_LobbySpawn: {fileID: 1145944796}
+  m_LeftHandModel: {fileID: 919132149155446097, guid: bf7151579c38e2a44be94ba8773876c1, type: 3}
+  m_RightHandModel: {fileID: 919132149155446097, guid: 56186ccf27ad7864681108ed88349071, type: 3}
+  m_HandMaterial: {fileID: 2100000, guid: 613690cd962241049a0ec289a6ff835e, type: 2}
 --- !u!4 &1375940205
 Transform:
   m_ObjectHideFlags: 0
@@ -1197,7 +1204,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 347f643438fdb5b45aab7e4963095807, type: 3}
   m_Name: 
   m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.UI.WorldSpacePanel
-  m_SizePixels: {x: 1600, y: 1000}
+  m_SizePixels: {x: 1900, y: 1250}
   m_MetersPerPixel: 0.001
   m_Interactive: 1
   m_FlipFacing: 0
@@ -1219,8 +1226,8 @@ MonoBehaviour:
   m_SortingOrder: 0
   m_Position: 0
   m_WorldSpaceSizeMode: 1
-  m_WorldSpaceWidth: 1600
-  m_WorldSpaceHeight: 1000
+  m_WorldSpaceWidth: 1900
+  m_WorldSpaceHeight: 1250
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_WorldSpaceCollider: {fileID: 0}
