@@ -5,7 +5,8 @@
         "Unity.InputSystem",
         "Unity.XR.CoreUtils",
         "Unity.XR.Interaction.Toolkit",
-        "Unity.XR.Interaction.Toolkit.Samples.StarterAssets"
+        "Unity.XR.Interaction.Toolkit.Samples.StarterAssets",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
