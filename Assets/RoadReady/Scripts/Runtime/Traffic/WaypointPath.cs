@@ -19,7 +19,15 @@ namespace RoadReady.Traffic
         readonly List<float> m_Cumulative = new List<float>();
         int m_LastChildCount = -1;
 
-        public bool Loop => m_Loop;
+        public bool Loop
+        {
+            get => m_Loop;
+            set
+            {
+                m_Loop = value;
+                MarkDirty();
+            }
+        }
         public float LaneHalfWidth => m_LaneHalfWidth;
         public int PointCount { get { Rebuild(); return m_Points.Count; } }
 
