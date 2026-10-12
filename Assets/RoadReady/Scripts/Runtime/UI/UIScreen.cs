@@ -15,6 +15,9 @@ namespace RoadReady.UI
         /// <summary>Name of the UXML asset (see RoadReadyUI screen library).</summary>
         public abstract string TreeName { get; }
 
+        /// <summary>True for screens that draw their own card over the 3D world instead of the full dark panel.</summary>
+        public virtual bool Floating => false;
+
         public void Mount(RoadReadyApp app, RoadReadyUI ui, VisualElement container, VisualTreeAsset tree)
         {
             App = app;
@@ -24,6 +27,7 @@ namespace RoadReady.UI
             Root.style.flexGrow = 1f;
             container.Add(Root);
             Bind();
+            UIX.AddGlassSheen(Root);
         }
 
         protected abstract void Bind();
@@ -67,7 +71,55 @@ namespace RoadReady.UI
             button.AddToClassList("btn");
             foreach (var c in classes)
                 button.AddToClassList(c);
+            AddGlassSheen(button);
             return button;
+        }
+
+        const string k_SheenClass = "btn--sheen";
+        static readonly UnityEngine.Color k_SheenColor = new UnityEngine.Color(1f, 1f, 1f, 0.1f);
+
+        /// <summary>
+        /// Adds the gloss highlight of the liquid-glass button style to every .btn under root (idempotent).
+        /// Drawn with generateVisualContent rather than a child element: a Button with children stops sizing
+        /// itself to its text and collapses.
+        /// </summary>
+        public static void AddGlassSheen(VisualElement root)
+        {
+            root.Query<Button>(className: "btn").ForEach(button =>
+            {
+                if (button.ClassListContains(k_SheenClass))
+                    return;
+                button.AddToClassList(k_SheenClass);
+                button.generateVisualContent += DrawSheen;
+            });
+        }
+
+        static void DrawSheen(MeshGenerationContext context)
+        {
+            var size = context.visualElement.layout.size;
+            if (size.x < 20f || size.y < 20f)
+                return;
+
+            // Rounded highlight over the top ~40% of the button, inset from the rim.
+            const float inset = 6f;
+            const float top = 4f;
+            var x0 = inset;
+            var x1 = size.x - inset;
+            var y0 = top;
+            var y1 = size.y * 0.42f;
+            var topRadius = UnityEngine.Mathf.Min(26f, (y1 - y0) * 0.9f, (x1 - x0) * 0.5f);
+            var bottomRadius = UnityEngine.Mathf.Min(12f, (y1 - y0) * 0.4f);
+
+            var p = context.painter2D;
+            p.fillColor = k_SheenColor;
+            p.BeginPath();
+            p.MoveTo(new UnityEngine.Vector2(x0 + topRadius, y0));
+            p.ArcTo(new UnityEngine.Vector2(x1, y0), new UnityEngine.Vector2(x1, y1), topRadius);
+            p.ArcTo(new UnityEngine.Vector2(x1, y1), new UnityEngine.Vector2(x0, y1), bottomRadius);
+            p.ArcTo(new UnityEngine.Vector2(x0, y1), new UnityEngine.Vector2(x0, y0), bottomRadius);
+            p.ArcTo(new UnityEngine.Vector2(x0, y0), new UnityEngine.Vector2(x1, y0), topRadius);
+            p.ClosePath();
+            p.Fill();
         }
 
         public static Label MakeLabel(string text, params string[] classes)

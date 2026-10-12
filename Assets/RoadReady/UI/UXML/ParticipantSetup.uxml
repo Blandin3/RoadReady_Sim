@@ -23,7 +23,7 @@
                 <ui:Label text="Returning participant" class="card__title" />
                 <ui:Toggle name="post-test" text="This visit is the POST-TEST session" />
                 <ui:Label name="empty-list" text="No participants registered on this headset yet." class="muted small" />
-                <ui:ScrollView name="participant-list" />
+                <ui:VisualElement name="participant-list" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement class="row">
