@@ -73,6 +73,22 @@ namespace RoadReady.UI
                 col.enabled = visible && m_Interactive;
         }
 
+        /// <summary>Turns ray input on or off at runtime (e.g. the HUD only while it shows a button).</summary>
+        public void SetInteractive(bool interactive)
+        {
+            m_Interactive = interactive;
+            if (!TryGetComponent<Collider>(out var col))
+            {
+                if (!interactive)
+                    return;
+                m_Collider = gameObject.AddComponent<BoxCollider>();
+                m_Collider.size = new Vector3(m_SizePixels.x, m_SizePixels.y, 1f);
+                col = m_Collider;
+            }
+
+            col.enabled = m_Visible && interactive;
+        }
+
         public void SetTextScale(float scale)
         {
             m_TextScale = Mathf.Clamp(scale, 0.8f, 1.6f);
