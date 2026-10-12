@@ -209,17 +209,43 @@ namespace RoadReady.EditorTools
 
         // ------------------------------------------------------------------ road network
 
-        /// <summary>Axis-aligned rectangle of road (xmin..xmax, zmin..zmax).</summary>
+        /// <summary>
+        /// Axis-aligned rectangle of road (xmin..xmax, zmin..zmax): an invisible box collider to drive on, plus the
+        /// EasyRoads3D-textured surface (lane edge lines and centre dashes) running along the long side.
+        /// </summary>
         public static void RoadRect(Transform parent, string name, float xmin, float xmax, float zmin, float zmax)
         {
-            Box(parent, name, new Vector3((xmin + xmax) * 0.5f, RoadTop - 0.05f, (zmin + zmax) * 0.5f), new Vector3(xmax - xmin, 0.1f, zmax - zmin), "asphalt", collider: true);
+            var box = Box(parent, name, new Vector3((xmin + xmax) * 0.5f, RoadTop - 0.05f, (zmin + zmax) * 0.5f), new Vector3(xmax - xmin, 0.1f, zmax - zmin), "asphalt", collider: true);
+            box.GetComponent<MeshRenderer>().enabled = false;
+            // With the street tile pack the scenario builders lay the visible road; this box is only the collider.
+            if (StreetKit.Available)
+                return;
+            var alongX = xmax - xmin >= zmax - zmin;
+            var mid = alongX ? (zmin + zmax) * 0.5f : (xmin + xmax) * 0.5f;
+            var ends = alongX
+                ? new[] { new Vector3(xmin, 0f, mid), new Vector3(xmax, 0f, mid) }
+                : new[] { new Vector3(mid, 0f, zmin), new Vector3(mid, 0f, zmax) };
+            RoadMeshKit.Ribbon(box.transform.parent, name + " Surface", ends, alongX ? zmax - zmin : xmax - xmin, false, false);
+        }
+
+        /// <summary>Plain asphalt over a junction box so lane markings do not run through it.</summary>
+        public static void JunctionPatch(Transform parent, string name, float xmin, float xmax, float zmin, float zmax)
+        {
+            if (StreetKit.Available)
+                return; // junction tiles bring their own asphalt
+            RoadMeshKit.PlainPatch(parent, name, new Vector3((xmin + xmax) * 0.5f, 0f, (zmin + zmax) * 0.5f), xmax - xmin, zmax - zmin);
         }
 
         public static void SidewalkRect(Transform parent, Transform zones, string name, float xmin, float xmax, float zmin, float zmax)
         {
-            Box(parent, name, new Vector3((xmin + xmax) * 0.5f, SidewalkTop - 0.11f, (zmin + zmax) * 0.5f), new Vector3(xmax - xmin, 0.22f, zmax - zmin), "sidewalk", collider: true);
+            var box = Box(parent, name, new Vector3((xmin + xmax) * 0.5f, SidewalkTop - 0.11f, (zmin + zmax) * 0.5f), new Vector3(xmax - xmin, 0.22f, zmax - zmin), "sidewalk", collider: true);
+            if (StreetKit.Available)
+                box.GetComponent<MeshRenderer>().enabled = false; // the tiles' pavement is visible instead
             Zone(zones, name + " Zone", RoadZoneType.Sidewalk, xmin, xmax, zmin, zmax);
         }
+
+        /// <summary>Distance from the road centre to the front of the buildings (behind the pavement).</summary>
+        public static float BuildingSetback => StreetKit.Available ? StreetKit.HalfTile + 0.3f : 6.8f;
 
         public static RoadZone Zone(Transform parent, string name, RoadZoneType type, float xmin, float xmax, float zmin, float zmax)
         {
@@ -230,11 +256,17 @@ namespace RoadReady.EditorTools
         }
 
         /// <summary>Zebra crossing across an E-W road (stripes run along x).</summary>
-        public static RoadZone ZebraAcrossEW(Transform env, Transform zones, string name, float x, float roadHalfWidth, float width, RoadZoneType type = RoadZoneType.ZebraCrossing)
+        /// <param name="markings">False when the road tile already has the zebra painted on it.</param>
+        public static RoadZone ZebraAcrossEW(Transform env, Transform zones, string name, float x, float roadHalfWidth, float width, RoadZoneType type = RoadZoneType.ZebraCrossing, bool markings = true)
         {
-            var group = Group(env, name + " Markings");
-            for (var z = -roadHalfWidth + 0.5f; z <= roadHalfWidth - 0.4f; z += 1f)
-                Box(group, "Stripe", new Vector3(x, 0.005f, z), new Vector3(width, 0.01f, 0.5f), "marking");
+            if (markings)
+            {
+                var group = Group(env, name + " Markings");
+                if (!StreetKit.Available)
+                    RoadMeshKit.PlainPatch(group, "Plain asphalt", new Vector3(x, 0f, 0f), width + 1f, roadHalfWidth * 2f);
+                for (var z = -roadHalfWidth + 0.5f; z <= roadHalfWidth - 0.4f; z += 1f)
+                    Box(group, "Stripe", new Vector3(x, 0.005f, z), new Vector3(width, 0.01f, 0.5f), "marking");
+            }
             var zone = Zone(zones, name, type, x - width * 0.5f, x + width * 0.5f, -roadHalfWidth, roadHalfWidth);
             zone.KerbA = Point(zone.transform, "Kerb A (south)", new Vector3(x, 0f, -roadHalfWidth - 0.3f));
             zone.KerbB = Point(zone.transform, "Kerb B (north)", new Vector3(x, 0f, roadHalfWidth + 0.3f));
@@ -335,6 +367,12 @@ namespace RoadReady.EditorTools
 
         public static void Tree(Transform parent, Vector3 position)
         {
+            if (StreetKit.Available)
+            {
+                StreetKit.Tree(parent, position);
+                return;
+            }
+
             var t = Group(parent, "Tree");
             t.position = position;
             Prim(PrimitiveType.Cylinder, t, "Trunk", new Vector3(0f, 1.2f, 0f), new Vector3(0.3f, 1.2f, 0.3f), "trunk", collider: true);
