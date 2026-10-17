@@ -8,7 +8,7 @@ namespace RoadReady.Player
     /// <summary>
     /// The car's own handbrake lever. Grab the handle (grip button) and pull it up to apply the handbrake, or push it
     /// back down to release it: the lever follows the hand, the brake switches (with a click) half-way through the
-    /// travel, and on release the lever settles fully up or fully down. The H key / DriverController.SetHandbrake
+    /// travel, and on release the lever settles fully up or fully down. The B key / DriverController.SetHandbrake
     /// move it too.
     /// </summary>
     public class HandbrakeLever : XRBaseInteractable

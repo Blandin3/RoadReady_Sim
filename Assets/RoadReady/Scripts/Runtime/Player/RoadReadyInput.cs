@@ -75,7 +75,7 @@ namespace RoadReady.Player
             ShiftGear = Driving.AddAction("ShiftGear", InputActionType.Button);
             ShiftGear.AddBinding("<Keyboard>/g");
             Handbrake = Driving.AddAction("Handbrake", InputActionType.Button);
-            Handbrake.AddBinding("<Keyboard>/h");
+            Handbrake.AddBinding("<Keyboard>/b"); // H is the horn
 
             CrossNow = Walking.AddAction("CrossNow", InputActionType.Button);
             CrossNow.AddBinding(k_Right + "/{PrimaryButton}");

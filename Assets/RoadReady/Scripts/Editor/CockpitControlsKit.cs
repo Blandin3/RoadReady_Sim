@@ -42,7 +42,7 @@ namespace RoadReady.EditorTools
                 f.name.EndsWith("_Body_LOD0") && f.TryGetComponent<MeshRenderer>(out var r) && r.sharedMaterials.Length > 1 && r.sharedMaterials.All(m => m != null));
             if (body == null)
             {
-                Debug.LogWarning("[RoadReady] Car body mesh not found; the gear lever and handbrake stay fixed (G / H keys still work).");
+                Debug.LogWarning("[RoadReady] Car body mesh not found; the gear lever and handbrake stay fixed (G / B keys still work).");
                 return "no cockpit controls";
             }
 
