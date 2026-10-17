@@ -25,8 +25,6 @@ namespace RoadReady.Player
         [SerializeField] float m_MaxSpeedKmh = 70f;
         [SerializeField] float m_Acceleration = 3.2f;
         [SerializeField] float m_BrakeDeceleration = 7.5f;
-        [Tooltip("Extra deceleration while the handbrake is applied (it holds the car; driving against it is very slow).")]
-        [SerializeField] float m_HandbrakeDeceleration = 6f;
         [SerializeField] float m_CoastDeceleration = 0.6f;
         [SerializeField] float m_MaxSteerDegrees = 32f;
         [Tooltip("Steering authority at max speed relative to standstill.")]
@@ -89,11 +87,11 @@ namespace RoadReady.Player
         public float SignedSpeed => m_Speed;
 
         /// <summary>Automatic gearbox position, set by the gear shifter (or the G key).</summary>
-        public Gear Gear { get; private set; } = Gear.Drive;
+        public Gear Gear { get; private set; } = Gear.Park;
         public event Action<Gear> GearChanged;
 
-        /// <summary>Handbrake applied (set by the handbrake lever or the H key).</summary>
-        public bool Handbrake { get; private set; }
+        /// <summary>Handbrake applied (set by the handbrake lever or the B key).</summary>
+        public bool Handbrake { get; private set; } = true;
         public event Action<bool> HandbrakeChanged;
 
         public void SetHandbrake(bool applied)
@@ -178,8 +176,9 @@ namespace RoadReady.Player
             m_SteerAngle = 0f;
             m_Velocity = Vector3.zero;
             SetIndicator(TurnSide.None);
-            SetGear(Gear.Drive);
-            SetHandbrake(false);
+            // Every drive starts parked with the handbrake up: release it and select D (or R) to move off.
+            SetGear(Gear.Park);
+            SetHandbrake(true);
         }
 
         public void Stop()
@@ -195,13 +194,23 @@ namespace RoadReady.Player
                 return;
             ReadInput();
 
-            // Longitudinal: the gear sets which way the throttle drives; brakes, coasting and Park always oppose motion.
-            var drive = Gear switch { Gear.Drive => 1f, Gear.Reverse => -1f, _ => 0f } * Throttle * m_Acceleration;
-            var resist = Brake * m_BrakeDeceleration + (Throttle < 0.05f || drive == 0f ? m_CoastDeceleration : 0f) + (Gear == Gear.Park ? m_BrakeDeceleration : 0f) + (Handbrake ? m_HandbrakeDeceleration : 0f);
-            var speed = m_Speed + drive * dt;
-            var slow = resist * dt;
-            speed = Mathf.Abs(speed) <= slow ? 0f : speed - Mathf.Sign(speed) * slow;
-            m_Speed = Mathf.Clamp(speed, -m_MaxReverseKmh * Units.KmhToMs, m_MaxSpeedKmh * Units.KmhToMs);
+            // Longitudinal. Park or the handbrake hold the car still, whatever else happens. D only ever moves it
+            // forwards and R only backwards; N does not drive and brings the car to a stop.
+            if (Gear == Gear.Park || Handbrake)
+            {
+                m_Speed = 0f;
+            }
+            else
+            {
+                var drive = Gear switch { Gear.Drive => 1f, Gear.Reverse => -1f, _ => 0f } * Throttle * m_Acceleration;
+                var resist = Brake * m_BrakeDeceleration + (Throttle < 0.05f || drive == 0f ? m_CoastDeceleration : 0f) + (Gear == Gear.Neutral ? m_BrakeDeceleration : 0f);
+                var speed = m_Speed + drive * dt;
+                var slow = resist * dt;
+                speed = Mathf.Abs(speed) <= slow ? 0f : speed - Mathf.Sign(speed) * slow;
+                if (Gear == Gear.Drive) speed = Mathf.Max(0f, speed);
+                else if (Gear == Gear.Reverse) speed = Mathf.Min(0f, speed);
+                m_Speed = Mathf.Clamp(speed, -m_MaxReverseKmh * Units.KmhToMs, m_MaxSpeedKmh * Units.KmhToMs);
+            }
 
             // Lateral: steering authority drops with speed for stability.
             var speedFactor = Mathf.Lerp(1f, m_HighSpeedSteerFactor, Mathf.Abs(m_Speed) / (m_MaxSpeedKmh * Units.KmhToMs));
