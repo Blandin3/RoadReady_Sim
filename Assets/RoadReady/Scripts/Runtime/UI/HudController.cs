@@ -126,11 +126,13 @@ namespace RoadReady.UI
                 m_ArrowRight.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Right && blink);
                 if (m_Gear != null)
                     m_Gear.text = GearText(driver.Gear, driver.Handbrake);
-                // Trying to drive away with the handbrake on: remind the learner (at most every few seconds).
-                if (driver.Handbrake && driver.Throttle > 0.3f && driver.Gear != Gear.Park && driver.Gear != Gear.Neutral && now - m_HandbrakeHintAt > 5f)
+                // Accelerating while the car is held: say what to do (at most every few seconds).
+                if (driver.Throttle > 0.3f && now - m_HandbrakeHintAt > 5f && (driver.Handbrake || driver.Gear == Gear.Park || driver.Gear == Gear.Neutral))
                 {
                     m_HandbrakeHintAt = now;
-                    OnToast("Handbrake is on: push the lever down (or press H) to drive", 3f);
+                    OnToast(driver.Handbrake ? "Handbrake is up: push it down (or press B) to drive"
+                        : driver.Gear == Gear.Park ? "In P (park): move the gear lever to D (or R) to drive"
+                        : "In N (neutral): move the gear lever to D (or R) to drive", 3f);
                 }
                 var remaining = m_Scenarios.TimeRemaining;
                 m_Timer.text = state == AttemptState.Running && m_Scenarios.Request.phase != AttemptPhase.Tutorial ? $"{(int)remaining / 60}:{(int)remaining % 60:00}" : "";
