@@ -408,6 +408,7 @@ namespace RoadReady.EditorTools
             var vignette = originGo.AddComponent<MotionComfortVignette>();
 
             new GameObject("XR UI Toolkit Manager").AddComponent<XRUIToolkitManager>();
+            XRSimulatorSetup.AddToOpenScene();
 
             // RoadReady systems.
             var app = new GameObject("RoadReady");
