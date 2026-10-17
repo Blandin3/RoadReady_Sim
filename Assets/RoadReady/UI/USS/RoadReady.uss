@@ -625,9 +625,9 @@ ScrollView {
 /* ------------------------------------------------------------------ logo, splash, welcome */
 
 .logo-badge {
-    width: 104px;
-    height: 104px;
-    border-radius: 52px;
+    width: 150px;
+    height: 150px;
+    border-radius: 75px;
     margin-right: 28px;
     background-color: var(--rr-blue);
     align-items: center;
@@ -648,7 +648,7 @@ ScrollView {
 }
 
 .logo-badge__text {
-    font-size: 40px;
+    font-size: 56px;
     -unity-font-style: bold;
     color: rgb(255, 255, 255);
 }
@@ -671,9 +671,9 @@ ScrollView {
 }
 
 .splash__logo {
-    width: 560px;
-    height: 560px;
-    border-radius: 48px;
+    width: 860px;
+    height: 860px;
+    border-radius: 64px;
     background-color: rgb(238, 236, 224);
     -unity-background-scale-mode: scale-to-fit;
 }

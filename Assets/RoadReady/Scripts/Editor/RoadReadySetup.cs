@@ -381,9 +381,7 @@ namespace RoadReady.EditorTools
             light.type = LightType.Directional;
             sun.transform.rotation = Quaternion.Euler(50f, -20f, 0f);
             Box(lobby, "Floor", new Vector3(0f, -0.05f, 0f), new Vector3(20f, 0.1f, 20f), "lobby", collider: true);
-            Box(lobby, "Stripe blue", new Vector3(0f, 2.5f, 6f), new Vector3(12f, 1.2f, 0.1f), "rw_blue");
-            Box(lobby, "Stripe yellow", new Vector3(0f, 1.6f, 6f), new Vector3(12f, 0.6f, 0.1f), "rw_yellow");
-            Box(lobby, "Stripe green", new Vector3(0f, 1.0f, 6f), new Vector3(12f, 0.6f, 0.1f), "rw_green");
+            // No walls or backdrop: an open floor under the world-fixed sky is the most comfortable lobby in a headset.
             var lobbySpawn = Point(lobby, "Lobby Spawn", Vector3.zero);
 
             // XR rig from XRI Starter Assets.
