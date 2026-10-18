@@ -35,7 +35,7 @@ MonoBehaviour:
     voiceInstructions: 1
   logo: {fileID: 2800000, guid: 9c53402479ca218409e50ba9656f08d9, type: 3}
   splashSeconds: 3
-  lobbyBackdrop: {fileID: 2100000, guid: e5b0db9b94ae49dab6106ba1681976e4, type: 2}
+  lobbyBackdrop: {fileID: 0}
   studyName: RoadReady Kimironko Pilot
   adminPin: 2026
   askSsqAfterEverySession: 1
