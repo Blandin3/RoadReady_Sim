@@ -6,6 +6,8 @@ namespace RoadReady.Player
     /// Training-specific input actions (FR3/FR4), defined in code so there is no asset to mis-wire.
     /// Uses XR usage paths (works for Quest Touch and other OpenXR controllers) plus keyboard / mouse
     /// fallbacks for desktop testing. XRI keeps its own actions for UI pointing and walking/turning.
+    /// A USB steering wheel (Logitech G29 button layout) is supported too: the wheel and pedals are read by
+    /// <see cref="RacingWheel"/>, including its buttons (whatever device type Windows reports it as).
     /// </summary>
     public sealed class RoadReadyInput
     {
