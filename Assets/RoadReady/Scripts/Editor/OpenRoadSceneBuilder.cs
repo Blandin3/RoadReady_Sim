@@ -144,6 +144,11 @@ namespace RoadReady.EditorTools
             var slow = Point(rig.rules, name + " 30 zone", centre, yaw).gameObject.AddComponent<SpeedLimitZone>();
             slow.Size = new Vector3(2f * HalfRoad, 3f, 60f);
             slow.LimitKmh = 30f;
+            // 30 where the zone starts and 40 where it ends, for both directions (signs on the right of each lane).
+            RoadSigns.Place(rig.env, "SL30", loop.Lat(s - 33f, 5.2f) + Vector3.up * SidewalkTop, -fwd);
+            RoadSigns.Place(rig.env, "SL40", loop.Lat(s + 33f, 5.2f) + Vector3.up * SidewalkTop, -fwd);
+            RoadSigns.Place(rig.env, "SL30", loop.Lat(s + 33f, -5.2f) + Vector3.up * SidewalkTop, fwd);
+            RoadSigns.Place(rig.env, "SL40", loop.Lat(s - 33f, -5.2f) + Vector3.up * SidewalkTop, fwd);
             return (zone, playerLine);
         }
 
@@ -266,6 +271,7 @@ namespace RoadReady.EditorTools
                 new[] { Path(rig.paths, "Ped jaywalk south", loop.Lat(-60f, -5.4f), loop.Lat(-50f, -5.4f), loop.Lat(-50f, 5.4f), loop.Lat(-30f, 5.4f)) });
 
             PlayerCar(rig, loop.Lat(L - 110f, Lane), loop.Yaw(L - 110f));
+            RoadSigns.Place(rig.env, "SL40", loop.Lat(L - 95f, 5.2f) + Vector3.up * SidewalkTop, -loop.At(L - 95f).Item2);
             // No goal: the drive ends on the time limit.
 
             var director = Group(rig.root, "Recurring Hazard Director").gameObject.AddComponent<RecurringHazardDirector>();

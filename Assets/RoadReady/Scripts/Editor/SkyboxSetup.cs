@@ -23,7 +23,7 @@ namespace RoadReady.EditorTools
                 "RR_Tutorial" => "SkyBrightMorning",
                 "RR_ZebraCrossing" => "SkyMorning",
                 "RR_SignalizedIntersection" => "SkyNoon",
-                "RR_MotoTaxiJunction" => "SkyAfterNoon",
+                "RR_Parking" => "SkyAfterNoon",
                 "RR_OpenRoad" => "SkyCloudy",
                 _ => "SkyBrightMorning",
             };
@@ -54,7 +54,7 @@ namespace RoadReady.EditorTools
         [MenuItem("RoadReady/Apply Skyboxes To Generated Scenes", priority = 33)]
         public static void ApplyToAllScenes()
         {
-            foreach (var name in new[] { "RR_Tutorial", "RR_ZebraCrossing", "RR_SignalizedIntersection", "RR_MotoTaxiJunction", "RR_OpenRoad", "RR_Bootstrap" })
+            foreach (var name in new[] { "RR_Tutorial", "RR_ZebraCrossing", "RR_SignalizedIntersection", "RR_Parking", "RR_OpenRoad", "RR_Bootstrap" })
             {
                 var path = $"{GreyboxKit.GeneratedRoot}/Scenes/{name}.unity";
                 if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) == null)
