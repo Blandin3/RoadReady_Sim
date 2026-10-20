@@ -44,4 +44,6 @@ MonoBehaviour:
     timeOfDay: 0
     weather: 0
   unlockNextLevelScore: 80
+  scoringMode: 0
+  passMark: 80
   hazards: []
