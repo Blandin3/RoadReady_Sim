@@ -4435,7 +4435,6 @@ MonoBehaviour:
   m_MaxSpeedKmh: 70
   m_Acceleration: 3.2
   m_BrakeDeceleration: 7.5
-  m_HandbrakeDeceleration: 6
   m_CoastDeceleration: 0.6
   m_MaxSteerDegrees: 32
   m_HighSpeedSteerFactor: 0.35
