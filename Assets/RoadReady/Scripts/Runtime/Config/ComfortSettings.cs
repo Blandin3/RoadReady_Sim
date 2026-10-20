@@ -15,7 +15,7 @@ namespace RoadReady.Config
     {
         const string k_PrefsKey = "RoadReady.Comfort";
 
-        [Tooltip("Tunnelling vignette while the vehicle accelerates / turns or the pedestrian moves.")]
+        [Tooltip("Tunnelling vignette while the pedestrian is moved automatically. Never shown while driving (full peripheral vision for safety checks).")]
         public bool vignetteEnabled = true;
         [Range(0.3f, 1f)] public float vignetteStrength = 0.7f;
         public TurnMode turnMode = TurnMode.Snap;

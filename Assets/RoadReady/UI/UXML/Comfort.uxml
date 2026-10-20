@@ -5,7 +5,7 @@
         <ui:Label text="Comfort and accessibility" class="title" />
         <!-- Not a ScrollView: in VR a ScrollView captures controller presses, so toggles and sliders would not respond. -->
         <ui:VisualElement class="card grow">
-            <ui:Toggle name="vignette" text="Comfort vignette when moving" />
+            <ui:Toggle name="vignette" text="Comfort vignette when walking (never while driving)" />
             <ui:Slider name="vignette-strength" label="Vignette strength" low-value="0.3" high-value="1" />
             <ui:Toggle name="smooth-turn" text="Smooth turning (off = snap turning)" />
             <ui:Slider name="snap-degrees" label="Snap turn angle" low-value="15" high-value="90" />
