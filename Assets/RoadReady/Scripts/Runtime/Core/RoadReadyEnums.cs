@@ -26,7 +26,9 @@ namespace RoadReady.Core
         SignalizedIntersection,
         UnsignalizedJunction,
         /// <summary>Endless loop road with recurring random hazards; ends on the time limit (driver only).</summary>
-        OpenRoad
+        OpenRoad,
+        /// <summary>Reverse bay parking in a car park, scored by deductions like the RNP test yard (driver only).</summary>
+        ParkingBay
     }
 
     public enum RoadUserKind
@@ -135,6 +137,15 @@ namespace RoadReady.Core
         Learner,
         LicensedUnder2Years,
         Licensed2YearsPlus
+    }
+
+    /// <summary>How an attempt's 0-100 score is worked out.</summary>
+    public enum ScoringMode
+    {
+        /// <summary>Weighted hazard detection, reaction time and rule compliance (the research composite).</summary>
+        Composite,
+        /// <summary>Start at 100 and subtract fixed points per fault, with a pass mark (driving-test style).</summary>
+        PointsDeduction
     }
 
     public enum AttemptEndReason

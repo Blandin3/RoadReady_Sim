@@ -19,7 +19,7 @@ namespace RoadReady.Scoring
         /// <summary>Decision added when a goal-based attempt runs out of time; caps the score like a collision does.</summary>
         public const string IncompleteRuleId = "task_incomplete";
 
-        public static SafetyScore Compute(IReadOnlyList<PerformanceRecord> hazards, IReadOnlyList<DecisionRecord> decisions, ScoringConfig config)
+        public static SafetyScore Compute(IReadOnlyList<PerformanceRecord> hazards, IReadOnlyList<DecisionRecord> decisions, ScoringConfig config, ScenarioDefinition scenario = null)
         {
             var score = new SafetyScore { hazardsTotal = hazards.Count };
 
@@ -107,7 +107,38 @@ namespace RoadReady.Scoring
                     score.total = Mathf.Min(score.total, config.incompleteScoreCap);
             score.total = Mathf.Round(Mathf.Clamp(score.total, 0f, 100f));
             score.grade = config.GetGrade(score.total);
+            if (scenario != null && scenario.scoringMode == ScoringMode.PointsDeduction)
+                ApplyPointsDeduction(score, hazards, decisions, config, scenario);
             return score;
+        }
+
+        /// <summary>
+        /// Driving-test scoring (reverse bay parking): start at 100 and take off each fault's points. A late or missing
+        /// brake reaction to the hazard costs points; any collision (e.g. the pedestrian) scores 0. Not finishing
+        /// (time limit) is capped like other goal scenarios. Pass mark from the scenario (RNP test yard: 80).
+        /// </summary>
+        static void ApplyPointsDeduction(SafetyScore score, IReadOnlyList<PerformanceRecord> hazards, IReadOnlyList<DecisionRecord> decisions, ScoringConfig config, ScenarioDefinition scenario)
+        {
+            var total = 100f;
+            foreach (var d in decisions)
+                if (d.IsViolation)
+                    total -= d.points > 0f ? d.points : d.severity == ViolationSeverity.Critical ? 100f : config.minorViolationPenalty;
+            foreach (var h in hazards)
+                if (!h.collided && (!h.responded || h.reactionTime < 0f || h.reactionTime > config.parkingLateReactionSeconds))
+                    total -= config.parkingLateReactionPoints;
+
+            var incomplete = false;
+            foreach (var d in decisions)
+                incomplete |= d.ruleId == IncompleteRuleId;
+            if (score.collision)
+                total = 0f;
+            else if (incomplete)
+                total = Mathf.Min(total, config.incompleteScoreCap);
+
+            score.ruleComponent = Mathf.Clamp(total, 0f, 100f);
+            score.total = Mathf.Round(score.ruleComponent);
+            var passed = !score.collision && !incomplete && score.total >= scenario.passMark;
+            score.grade = passed ? $"Passed (RNP pass mark {scenario.passMark})" : "Not passed yet";
         }
 
         public static float NormaliseReaction(float reactionTime, ScoringConfig config) =>

@@ -33,6 +33,8 @@ namespace RoadReady.Scenarios
         [SerializeField] List<PedestrianSpawner> m_PedestrianSpawners = new List<PedestrianSpawner>();
         [SerializeField] List<TrafficSignalController> m_Signals = new List<TrafficSignalController>();
         [SerializeField] List<GoalZone> m_Goals = new List<GoalZone>();
+        [Tooltip("Reverse bay-parking scenario: the bay, lines, cones and pedestrian hazard.")]
+        [SerializeField] ParkingArea m_Parking;
         [Tooltip("Signal cycle start offset per perspective (seconds, -1 = keep the controller's own). Lets the same junction start at the phase that makes each perspective's decision meaningful.")]
         [SerializeField] float m_SignalOffsetDriver = -1f;
         [SerializeField] float m_SignalOffsetPedestrian = -1f;
@@ -56,6 +58,7 @@ namespace RoadReady.Scenarios
         public List<PedestrianSpawner> PedestrianSpawners => m_PedestrianSpawners;
         public List<TrafficSignalController> Signals => m_Signals;
         public List<GoalZone> Goals => m_Goals;
+        public ParkingArea Parking { get => m_Parking; set => m_Parking = value; }
         public float SignalOffsetDriver { get => m_SignalOffsetDriver; set => m_SignalOffsetDriver = value; }
         public float SignalOffsetPedestrian { get => m_SignalOffsetPedestrian; set => m_SignalOffsetPedestrian = value; }
         public IReadOnlyList<HazardTrigger> Triggers => m_Triggers;

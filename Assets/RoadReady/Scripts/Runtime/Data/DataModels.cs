@@ -154,6 +154,8 @@ namespace RoadReady.Data
         public float posZ;
         public float speedKmh;
         public string tip;
+        /// <summary>Points off 100 in <see cref="Core.ScoringMode.PointsDeduction"/> scenarios (0 = use the severity penalty).</summary>
+        public float points;
 
         public bool IsViolation => source == DecisionSource.Rule && decision != DecisionClass.Safe;
     }
