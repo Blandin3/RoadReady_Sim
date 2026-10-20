@@ -300,10 +300,11 @@ namespace RoadReady.Scenarios
                 driver = m_Driver,
                 pedestrian = m_Request.perspective == Perspective.Pedestrian ? m_Pedestrian : null,
                 gaze = m_Gaze,
+                parking = m_Context.Parking,
                 isHazardActor = m_Hazards.IsHazardActor,
                 onCollision = OnCollision,
                 onDecision = AddDecision,
-            });
+            }, IsParking ? ParkingRule.CreateRules() : null);
 
             if (m_Request.phase == AttemptPhase.Tutorial && m_Context.Tutorial != null)
             {
@@ -339,13 +340,13 @@ namespace RoadReady.Scenarios
             if (State != AttemptState.Running || m_Paused)
                 return;
 
-            if (RoadReadyInput.Instance.HazardSpotted.WasPressedThisFrame())
+            if (RoadReadyInput.Instance.HazardSpotted.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.HazardButton))
             {
                 RoadReadyEvents.RaiseHazardSpotted();
                 AddDecisionTelemetry("spotted");
             }
 
-            if (RoadReadyInput.Instance.Recenter.WasPressedThisFrame())
+            if (RoadReadyInput.Instance.Recenter.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.RecenterButton))
                 m_Rig.Recenter();
 
             var dt = Time.deltaTime;
@@ -357,7 +358,7 @@ namespace RoadReady.Scenarios
 
             if (m_PendingEnd == null)
             {
-                if (m_Request.phase != AttemptPhase.Tutorial && m_Context.IsGoalReached(m_Request.perspective, m_Player, m_Pedestrian))
+                if (m_Request.phase != AttemptPhase.Tutorial && (m_Context.IsGoalReached(m_Request.perspective, m_Player, m_Pedestrian) || IsParking && m_Context.Parking.Completed))
                     m_PendingEnd = AttemptEndReason.GoalReached;
                 else if (m_Request.phase != AttemptPhase.Tutorial && SimClock.Now >= m_Parameters.timeLimitSeconds)
                     m_PendingEnd = AttemptEndReason.TimeLimit;
@@ -388,11 +389,16 @@ namespace RoadReady.Scenarios
             m_Telemetry?.WriteEvent("decision", decision.time, decision.ruleId, $"{decision.decision}|{decision.severity}|{decision.title}");
         }
 
+        /// <summary>The reverse bay-parking scenario (its own rules, finish condition and points-deduction score).</summary>
+        bool IsParking => m_Context != null && m_Context.Parking != null && m_Request.scenario != null && m_Request.scenario.type == ScenarioType.ParkingBay;
+
         /// <summary>True when the scenario has a finish goal for this perspective (the open road and tutorials do not).</summary>
         bool HasGoalFor(Perspective perspective)
         {
             if (m_Request.phase == AttemptPhase.Tutorial || m_Context == null)
                 return false;
+            if (IsParking && perspective == Perspective.Driver)
+                return true;
             foreach (var goal in m_Context.Goals)
                 if (goal != null && goal.Perspectives.Includes(perspective))
                     return true;
@@ -473,7 +479,7 @@ namespace RoadReady.Scenarios
             }
 
             m_Attempt.decisions = new List<DecisionRecord>(m_Decisions);
-            m_Attempt.score = ScoreCalculator.Compute(m_Attempt.hazardRecords, m_Attempt.decisions, m_Config.scoring);
+            m_Attempt.score = ScoreCalculator.Compute(m_Attempt.hazardRecords, m_Attempt.decisions, m_Config.scoring, m_Request.scenario);
             m_Telemetry?.WriteEvent("attempt_end", duration, reason.ToString(), $"score={m_Attempt.score.total}");
             m_Telemetry?.Dispose();
             m_Telemetry = null;

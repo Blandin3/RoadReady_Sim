@@ -63,6 +63,29 @@ namespace RoadReady.Config
         [Tooltip("How long the car may be outside drivable zones before it is a violation.")]
         public float offRoadGraceSeconds = 0.5f;
 
+        [Header("Parking (points off 100, RNP test-yard style)")]
+        [Tooltip("Car-park speed limit (km/h).")]
+        public float parkingSpeedLimitKmh = 10f;
+        public float parkingOverSpeedPoints = 10f;
+        [Tooltip("Selecting or leaving reverse while still moving.")]
+        public float parkingWrongGearPoints = 10f;
+        public float parkingLineOrConePoints = 5f;
+        public float parkingKerbPoints = 10f;
+        [Tooltip("No mirror + over-the-shoulder check shortly before selecting reverse.")]
+        public float parkingNoObservationPoints = 15f;
+        [Tooltip("Seconds before selecting reverse in which the all-round check must happen.")]
+        public float parkingCheckWindowSeconds = 8f;
+        [Tooltip("Direction changes allowed before each further one costs points.")]
+        public int parkingFreeCorrections = 3;
+        public float parkingExtraCorrectionPoints = 5f;
+        [Tooltip("Brake reaction to the pedestrian slower than this (or none) costs points.")]
+        public float parkingLateReactionSeconds = 1.5f;
+        public float parkingLateReactionPoints = 20f;
+        [Tooltip("Car must stay inside the bay, straight, stopped and secured this long to finish.")]
+        public float parkingSettleSeconds = 1f;
+        [Tooltip("Largest angle (degrees) between car and bay that still counts as straight.")]
+        public float parkingMaxAngleDegrees = 10f;
+
         [Header("Pedestrian rules")]
         [Tooltip("Assumed walking speed for required-gap computation (m/s).")]
         public float pedestrianWalkSpeed = 1.3f;
