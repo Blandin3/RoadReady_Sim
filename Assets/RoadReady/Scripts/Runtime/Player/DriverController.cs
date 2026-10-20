@@ -126,6 +126,7 @@ namespace RoadReady.Player
             }
         }
         public float Length => m_Length;
+        public float Wheelbase => m_Wheelbase;
         public float Width => m_Width;
         public bool IsPlayer => true;
         public bool IsYielding => false;
@@ -260,6 +261,17 @@ namespace RoadReady.Player
             Throttle = DeadZone(input.Throttle.ReadValue<float>());
             Brake = DeadZone(input.Brake.ReadValue<float>());
             var stick = Mathf.Clamp(DeadZone(input.Steer.ReadValue<float>()), -1f, 1f);
+
+            // A USB driving rig (e.g. G29): pedals add to the other inputs, the wheel steers unless the keys are used.
+            var rig = RacingWheel.Current;
+            if (rig != null)
+            {
+                Throttle = Mathf.Max(Throttle, rig.Throttle);
+                Brake = Mathf.Max(Brake, rig.Brake);
+                if (stick == 0f)
+                    stick = rig.Steer;
+            }
+
             if (m_Wheel != null && m_Wheel.IsHeld)
             {
                 Steer = m_Wheel.SteerInput;
@@ -267,20 +279,33 @@ namespace RoadReady.Player
             else
             {
                 Steer = stick;
-                // Keep the wheel in step so grabbing it does not make the steering jump.
+                // Keep the wheel in step so grabbing it does not make the steering jump (and so the virtual wheel
+                // turns with a real one).
                 if (m_Wheel != null) m_Wheel.FollowSteering(stick);
             }
 
-            if (input.Handbrake.WasPressedThisFrame())
+            if (input.Handbrake.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.HandbrakeButton))
                 SetHandbrake(!Handbrake);
             if (input.ShiftGear.WasPressedThisFrame())
                 SetGear(Gear switch { Gear.Drive => Gear.Neutral, Gear.Neutral => Gear.Reverse, Gear.Reverse => Gear.Park, _ => Gear.Drive });
+            // Wheel D-pad: down moves the lever towards D (P, R, N, D), up towards P.
+            if (RacingWheel.Pressed(RacingWheel.GearTowardsDrive) && Gear != Gear.Drive)
+                SetGear(Gear + 1);
+            if (RacingWheel.Pressed(RacingWheel.GearTowardsPark) && Gear != Gear.Park)
+                SetGear(Gear - 1);
+            // H-shifter (Driving Force Shifter): R slot = R, any of gears 1-6 = D, neutral = N. P stays on the D-pad.
+            switch (RacingWheel.ShifterMoved())
+            {
+                case 0: SetGear(Gear.Reverse); break;
+                case -1: SetGear(Gear.Neutral); break;
+                case int slot when slot > 0: SetGear(Gear.Drive); break;
+            }
 
-            if (input.IndicatorLeft.WasPressedThisFrame())
+            if (input.IndicatorLeft.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.LeftPaddle))
                 SetIndicator(Indicator == TurnSide.Left ? TurnSide.None : TurnSide.Left);
-            if (input.IndicatorRight.WasPressedThisFrame())
+            if (input.IndicatorRight.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.RightPaddle))
                 SetIndicator(Indicator == TurnSide.Right ? TurnSide.None : TurnSide.Right);
-            if (input.Horn.WasPressedThisFrame())
+            if (input.Horn.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.HornButton))
             {
                 if (m_HornAudio != null) m_HornAudio.Play();
                 HornPressed?.Invoke();
