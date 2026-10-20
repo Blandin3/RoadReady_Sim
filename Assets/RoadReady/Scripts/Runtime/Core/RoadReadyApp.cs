@@ -95,6 +95,11 @@ namespace RoadReady
             m_UI.ApplyTextScale(Comfort.textScale);
             m_Hud.Initialize(this, m_Scenarios);
 
+            // Plain background behind the menus: hide the lobby's floor (its collider stays, so the rig still stands on it).
+            if (m_Scenarios.Lobby != null)
+                foreach (var r in m_Scenarios.Lobby.GetComponentsInChildren<Renderer>(true))
+                    r.enabled = false;
+
             if (m_Config.lobbyBackdrop != null && m_Scenarios.Lobby != null)
                 LobbyBackdrop.Create(m_Scenarios.Lobby, m_Rig.Head, m_Config.lobbyBackdrop);
 
@@ -116,7 +121,9 @@ namespace RoadReady
 
         void Update()
         {
-            if (RoadReadyInput.Instance.Pause.WasPressedThisFrame())
+            UpdateBackground();
+
+            if (RoadReadyInput.Instance.Pause.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.PauseButton))
             {
                 if (State == AppState.InScenario)
                     Pause();
@@ -124,8 +131,25 @@ namespace RoadReady
                     Resume();
             }
 
-            if (State != AppState.InScenario && RoadReadyInput.Instance.Recenter.WasPressedThisFrame() && m_UI.MenuVisible)
+            if (State != AppState.InScenario && (RoadReadyInput.Instance.Recenter.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.RecenterButton)) && m_UI.MenuVisible)
                 m_UI.Reposition();
+        }
+
+        /// <summary>
+        /// Plain dark-blue background (config colour) while no scenario is loaded, so the menus stand out; the
+        /// scenario's own sky as soon as one is. A uniform colour has no detail to move against, so it is comfortable.
+        /// </summary>
+        void UpdateBackground()
+        {
+            var camera = m_Rig != null ? m_Rig.Head : null;
+            if (camera == null || m_Scenarios == null)
+                return;
+            var plain = !m_Scenarios.HasScenarioLoaded;
+            var flags = plain ? CameraClearFlags.SolidColor : CameraClearFlags.Skybox;
+            if (camera.clearFlags != flags)
+                camera.clearFlags = flags;
+            if (plain)
+                camera.backgroundColor = m_Config.lobbyBackgroundColor;
         }
 
         void SetState(AppState state)
