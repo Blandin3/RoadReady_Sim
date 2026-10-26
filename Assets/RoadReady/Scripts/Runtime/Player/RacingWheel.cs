@@ -85,6 +85,7 @@ namespace RoadReady.Player
         public const string RightPaddle = "button5";
         public const string LeftPaddle = "button6";
         public const string PauseButton = "button10";     // options
+        public const string EngineButton = "button9";     // share: the ON button
         public const string GearTowardsDrive = "hat/down"; // D-pad down: P, R, N, D
         public const string GearTowardsPark = "hat/up";
 
