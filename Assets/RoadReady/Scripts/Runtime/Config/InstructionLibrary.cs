@@ -15,10 +15,13 @@ namespace RoadReady.Config
         public const string AttemptComplete = "attempt_complete";
         public const string Collision = "collision";
         public const string TimeUp = "time_up";
+        public const string TutDriverStart = "tut_driver_start";
+        public const string TutDriverCircle = "tut_driver_circle";
         public const string TutDriverThrottle = "tut_driver_throttle";
         public const string TutDriverBrake = "tut_driver_brake";
         public const string TutDriverSteer = "tut_driver_steer";
         public const string TutDriverIndicator = "tut_driver_indicator";
+        public const string TutDriverMirrors = "tut_driver_mirrors";
         public const string TutDriverMirror = "tut_driver_mirror";
         public const string TutPedLook = "tut_ped_look";
         public const string TutPedWalk = "tut_ped_walk";
@@ -30,16 +33,19 @@ namespace RoadReady.Config
         static readonly Dictionary<string, string> s_Text = new Dictionary<string, string>
         {
             { Welcome, "Welcome to RoadReady. You will practise road-safety decisions as a driver and as a pedestrian in streets modelled on Kimironko. Nothing here can hurt you - mistakes are how you learn." },
-            { ControlsDriver, "Grab the steering wheel with the grip buttons and turn it (or use the left thumbstick).  Right trigger: accelerate.  Left trigger: brake.  The car starts in P with the handbrake up: push the handbrake down and select D (forward) or R (reverse) to move.  Grab the gear lever to shift P-R-N-D.  Y: left indicator.  A: right indicator.  X: I see a hazard.  B: horn.  Menu: pause." },
+            { ControlsDriver, "Grab the steering wheel with the grip buttons and turn it (or use the left thumbstick).  Right trigger: accelerate.  Left trigger: brake.  The car starts with the engine off, in P and with the handbrake up: press the ON button (or O) to start the engine, push the handbrake down and select D (forward) or R (reverse) to move.  Right thumbstick: move your seat.  The exit button on the door leaves the car.  Grab the gear lever to shift P-R-N-D.  Y: left indicator.  A: right indicator.  X: I see a hazard.  B: horn.  Menu: pause." },
             { ControlsPedestrian, "Left thumbstick: walk.  Right thumbstick: turn.  A: cross now.  B: stop / step back.  X: I see a hazard.  Look around by turning your head.  Menu: pause." },
             { AttemptStart, "Get ready. Drive or walk as you would in real life." },
             { AttemptComplete, "Scenario complete. Let's look at how you did." },
             { Collision, "Collision. In real life this could have been fatal. Let's see what happened." },
             { TimeUp, "Time is up for this attempt." },
+            { TutDriverStart, "The engine is off, so the car cannot move yet. Press the glowing ON button on the console, right by the gear lever (or O on the keyboard), to start it." },
+            { TutDriverCircle, "Now drive to the circle on the road. The moving arrows show which way to head. When you reach the circle it disappears and a new one appears further ahead." },
             { TutDriverThrottle, "The car starts parked with the handbrake up. Grab the handbrake and push it down, move the gear lever to D, then gently pull the RIGHT trigger to move forward." },
             { TutDriverBrake, "Now pull the LEFT trigger to brake to a stop." },
             { TutDriverSteer, "Grab the steering wheel with both grip buttons and turn it - or use the LEFT thumbstick." },
             { TutDriverIndicator, "Press Y for the left indicator or A for the right indicator." },
+            { TutDriverMirrors, "Check your mirrors: look at the LEFT mirror, the RIGHT mirror and the rear-view mirror at the top of the windscreen. Check them before you move off, turn or reverse." },
             { TutDriverMirror, "Turn your head over your shoulder to check your blind spot." },
             { TutPedLook, "Look LEFT, then RIGHT, then LEFT again. In Rwanda traffic drives on the right, so the nearest lane comes from your left." },
             { TutPedWalk, "Use the LEFT thumbstick to walk to the kerb marker." },
