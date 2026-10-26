@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6f2b301c3251b0c4591303a4c9ff855e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 4890085278179872738
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/Animation_Textures/terrain/New Lighting Settings.lighting
+  uploadId: 720821

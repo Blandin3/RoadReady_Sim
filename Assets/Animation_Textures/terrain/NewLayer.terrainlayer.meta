@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c50343ed8de59ac4480dc35d3283c988
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 8574412962073106934
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/Animation_Textures/terrain/NewLayer.terrainlayer
+  uploadId: 720821
