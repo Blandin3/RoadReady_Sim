@@ -75,6 +75,14 @@ namespace RoadReady.EditorTools
             ParkedCar(rig, bayCentre + new Vector3(-k_LinePitch, 0f, 0f), Quaternion.LookRotation(-axis), "NPC_Car_Car2");
             ParkedCar(rig, bayCentre + new Vector3(k_LinePitch, 0f, 0f), bayRotation, "NPC_Car_Jeep2");
 
+            // More parked cars along the north row, with a few bays left empty, so the learner has to judge the gaps.
+            var models = new[] { "NPC_Car_Car2", "NPC_Car_Jeep2", "NPC_Car" };
+            foreach (var bayIndex in new[] { 1, 2, 3, 5, 9, 10, 12 })
+            {
+                var reversedIn = bayIndex % 2 == 0;
+                ParkedCar(rig, BayCentre(bayIndex, floorY, midZ), Quaternion.LookRotation(reversedIn ? -axis : axis), models[bayIndex % models.Length]);
+            }
+
             // Learner: in the aisle at the right-hand end, facing left, already past the bay's far side.
             PlayerCar(rig, new Vector3(12.5f, floorY, 0.6f), 270f);
 
@@ -86,6 +94,25 @@ namespace RoadReady.EditorTools
             hazard.FocusPointOverride = pedestrian.transform;
             Act(hazard, pedestrian, HazardActorMode.Activate);
 
+            // Cars moving about the car park. They set off when the learner starts to reverse, so nothing happens while
+            // they are still getting ready: a parked car pulls out of bay 4 and leaves along the learner's side of the
+            // aisle, and another drives in from the entrance in the other lane, past the mouth of the target bay.
+            var pullOutStart = BayCentre(4, floorY, midZ);
+            var exitDirection = -axis;
+            var pullOut = Path(rig.paths, "Car pulling out of bay 4",
+                pullOutStart,
+                pullOutStart + exitDirection * 3.5f,
+                new Vector3(pullOutStart.x - 2.2f, floorY, 1.0f),
+                new Vector3(pullOutStart.x - 4.5f, floorY, 0.4f),
+                new Vector3(pullOutStart.x - 8f, floorY, 0.6f),
+                new Vector3(-17f, floorY, 0.6f));
+            var leaving = MovingCar(rig, "NPC_Car_Jeep2", "Car pulling out", pullOut, 9f, hidden: false);
+            Act(hazard, leaving, HazardActorMode.Activate);
+
+            var inbound = Path(rig.paths, "Car driving through the aisle", new Vector3(-17f, floorY, -2.6f), new Vector3(17f, floorY, -2.6f));
+            var passing = MovingCar(rig, "NPC_Car_Car2", "Car driving past", inbound, 12f, hidden: true);
+            Act(hazard, passing, HazardActorMode.Activate, 12f, 1.5f);
+
             var parking = area.gameObject.AddComponent<ParkingArea>();
             parking.Configure(bay, new Vector2(bayWidth, bayLength), lines, new List<Transform>(), hazard);
             rig.ctx.Parking = parking;
@@ -95,6 +122,23 @@ namespace RoadReady.EditorTools
             RoadSigns.Place(rig.env, "Slow", new Vector3(16.9f, floorY, -3.4f), Vector3.left);
 
             Save(rig, name);
+        }
+
+        static Vector3 BayCentre(int bay, float floorY, float z) =>
+            new Vector3((LineX(bay, z) + LineX(bay + 1, z)) * 0.5f, floorY, z);
+
+        /// <summary>A scripted car that waits (parked or out of sight) until a hazard trigger sets it off.</summary>
+        static TrafficVehicleAI MovingCar(Rig rig, string prefabName, string name, WaypointPath path, float cruiseKmh, bool hidden)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/{prefabName}.prefab") ?? VehiclePrefab(RoadUserKind.Car).gameObject;
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, rig.actors);
+            go.name = name;
+            var ai = go.GetComponent<TrafficVehicleAI>();
+            ai.SetDormant(true, hidden);
+            ai.SetScripted(true);
+            ai.Configure(path, 0f, cruiseKmh, true, true);
+            rig.ctx.ActiveWhenDriving.Add(go);
+            return ai;
         }
 
         /// <summary>A parked car: the traffic prefab's model only (no AI), with a solid collider.</summary>
