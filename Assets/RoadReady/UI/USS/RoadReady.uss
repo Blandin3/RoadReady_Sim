@@ -997,3 +997,36 @@ Button.pill:hover {
     background-color: rgba(250, 210, 1, 0.95);
     color: rgb(15, 20, 26);
 }
+
+/* Small "what to do" panel at the top of the HUD. */
+.hud__objective-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 6px;
+    align-items: center;
+}
+
+.hud__objective {
+    background-color: rgba(10, 14, 20, 0.86);
+    border-color: rgba(0, 161, 222, 0.95);
+    border-width: 2px;
+    border-radius: 18px;
+    padding: 8px 22px 10px 22px;
+    max-width: 640px;
+    align-items: center;
+}
+
+.hud__objective-title {
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: rgb(0, 161, 222);
+    -unity-font-style: bold;
+}
+
+.hud__objective-text {
+    font-size: 28px;
+    white-space: normal;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}

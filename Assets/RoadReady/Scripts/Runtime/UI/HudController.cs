@@ -25,7 +25,8 @@ namespace RoadReady.UI
         ScenarioManager m_Scenarios;
         RoadReadyApp m_App;
         Label m_Speed, m_Limit, m_Timer, m_Gear, m_Countdown, m_Caption, m_Prompt, m_Toast, m_Tutorial, m_ArrowLeft, m_ArrowRight;
-        VisualElement m_Cluster;
+        VisualElement m_Cluster, m_Objective;
+        Label m_ObjectiveText;
         Button m_Skip;
         bool m_SkipShown;
         float m_HandbrakeHintAt = -100f;
@@ -52,6 +53,8 @@ namespace RoadReady.UI
             m_ArrowLeft = root.Q<Label>("arrow-left");
             m_ArrowRight = root.Q<Label>("arrow-right");
             m_Cluster = root.Q<VisualElement>("cluster");
+            m_Objective = root.Q<VisualElement>("objective");
+            m_ObjectiveText = root.Q<Label>("objective-text");
             m_Skip = root.Q<Button>("skip-tutorial");
             if (m_Skip != null)
                 m_Skip.clicked += () => m_App.Pause(); // the same pause panel as the left controller's menu button
@@ -125,12 +128,13 @@ namespace RoadReady.UI
                 m_ArrowLeft.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Left && blink);
                 m_ArrowRight.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Right && blink);
                 if (m_Gear != null)
-                    m_Gear.text = GearText(driver.Gear, driver.Handbrake);
+                    m_Gear.text = GearText(driver.Gear, driver.Handbrake, driver.EngineOn);
                 // Accelerating while the car is held: say what to do (at most every few seconds).
-                if (driver.Throttle > 0.3f && now - m_HandbrakeHintAt > 5f && (driver.Handbrake || driver.Gear == Gear.Park || driver.Gear == Gear.Neutral))
+                if (driver.Throttle > 0.3f && now - m_HandbrakeHintAt > 5f && (!driver.EngineOn || driver.Handbrake || driver.Gear == Gear.Park || driver.Gear == Gear.Neutral))
                 {
                     m_HandbrakeHintAt = now;
-                    OnToast(driver.Handbrake ? "Handbrake is up: push it down (or press B) to drive"
+                    OnToast(!driver.EngineOn ? "The engine is off: press the ON button (or O) to start it"
+                        : driver.Handbrake ? "Handbrake is up: push it down (or press B) to drive"
                         : driver.Gear == Gear.Park ? "In P (park): move the gear lever to D (or R) to drive"
                         : "In N (neutral): move the gear lever to D (or R) to drive", 3f);
                 }
@@ -142,7 +146,56 @@ namespace RoadReady.UI
             m_Prompt.text = prompt ?? "";
             m_Prompt.SetVisible(!string.IsNullOrEmpty(prompt) && !m_App.UI.MenuVisible);
 
+            UpdateObjective(state, driver);
             Place(driver);
+        }
+
+        /// <summary>
+        /// The small "what to do" panel: the very next thing the learner has to do. In the car that is first of all
+        /// getting it going (engine, handbrake, gear), then the tutorial step or the scenario's aim.
+        /// </summary>
+        void UpdateObjective(AttemptState state, Player.DriverController driver)
+        {
+            var text = ObjectiveText(state, driver);
+            var show = !string.IsNullOrEmpty(text) && !m_App.UI.MenuVisible;
+            m_Objective.SetVisible(show);
+            if (show)
+                m_ObjectiveText.text = text;
+        }
+
+        string ObjectiveText(AttemptState state, Player.DriverController driver)
+        {
+            if (state == AttemptState.Countdown)
+                return "Get ready: press the glowing ON button on the console";
+            if (state != AttemptState.Running)
+                return null;
+            var request = m_Scenarios.Request;
+            if (driver != null)
+            {
+                if (!driver.EngineOn) return "Press the glowing ON button on the console to start the engine";
+                if (driver.Handbrake) return "Release the handbrake: push the lever down";
+                if (driver.Gear == Gear.Park || driver.Gear == Gear.Neutral) return "Move the gear lever to D to drive, or R to reverse";
+            }
+
+            if (request.phase == AttemptPhase.Tutorial)
+            {
+                var tutorial = m_Scenarios.Context != null ? m_Scenarios.Context.Tutorial : null;
+                return tutorial != null && tutorial.IsRunning ? tutorial.Objective : null;
+            }
+
+            if (request.perspective == Perspective.Pedestrian)
+                return "Cross the road safely: look both ways before you step out";
+            if (request.scenario == null)
+                return null;
+            return request.scenario.type switch
+            {
+                ScenarioType.ParkingBay => "Reverse into the marked bay, then stop and park",
+                ScenarioType.UnsignalizedZebraCrossing => "Drive on and give way to anyone at the zebra crossing",
+                ScenarioType.SignalizedIntersection => "Obey the traffic lights and drive through the junction",
+                ScenarioType.UnsignalizedJunction => "Approach the junction slowly and give way",
+                ScenarioType.OpenRoad => "Drive safely and keep to the speed limit",
+                _ => "Drive safely and follow the road rules",
+            };
         }
 
         /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
@@ -167,13 +220,15 @@ namespace RoadReady.UI
             m_SkipShown = show;
         }
 
-        static string GearText(Gear gear, bool handbrake)
+        static string GearText(Gear gear, bool handbrake, bool engineOn)
         {
             var sb = new System.Text.StringBuilder();
             foreach (Gear g in System.Enum.GetValues(typeof(Gear)))
-                sb.Append(g == gear ? $"<color=#FAD201>{g.ToString()[0]}</color> " : $"<color=#5A6573>{g.ToString()[0]}</color> ");
+                sb.Append(g == gear ? $"<color=#FAD201><size=150%>{g.ToString()[0]}</size></color> " : $"<color=#5A6573>{g.ToString()[0]}</color> ");
             if (handbrake)
                 sb.Append("  <color=#E5484D>(P) BRAKE</color>");
+            if (!engineOn)
+                sb.Append("  <color=#E5484D>ENGINE OFF</color>");
             return sb.ToString().TrimEnd();
         }
 
