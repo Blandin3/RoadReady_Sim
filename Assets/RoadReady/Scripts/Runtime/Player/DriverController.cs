@@ -23,9 +23,24 @@ namespace RoadReady.Player
 
         [Header("Handling")]
         [SerializeField] float m_MaxSpeedKmh = 70f;
-        [SerializeField] float m_Acceleration = 3.2f;
+        [SerializeField] float m_Acceleration = 4f;
         [SerializeField] float m_BrakeDeceleration = 7.5f;
         [SerializeField] float m_CoastDeceleration = 0.6f;
+
+        [Header("Pedal feel (an automatic car)")]
+        [Tooltip("Throttle pedal curve: above 1 the first half of the travel is gentle, so pulling away is smooth.")]
+        [SerializeField] float m_ThrottleCurve = 1.5f;
+        [Tooltip("Brake pedal curve: above 1 a light touch slows the car gently; full travel is a hard stop.")]
+        [SerializeField] float m_BrakeCurve = 1.3f;
+        [Tooltip("How fast the pedals travel (full travel per second) when pressed and when released.")]
+        [SerializeField] float m_PedalRise = 5f;
+        [SerializeField] float m_PedalFall = 8f;
+        [Tooltip("Share of the pull still left at top speed (engines pull less the faster they spin).")]
+        [SerializeField] float m_TopSpeedPull = 0.35f;
+        [Tooltip("Air and rolling resistance: extra slowing with the square of the speed (m/s per m/s squared).")]
+        [SerializeField] float m_Drag = 0.004f;
+        [Tooltip("Pedal travel below this counts as released (wheel pedals rest with a little noise).")]
+        [SerializeField] float m_PedalDeadZone = 0.04f;
         [SerializeField] float m_MaxSteerDegrees = 32f;
         [Tooltip("Steering authority at max speed relative to standstill.")]
         [SerializeField] float m_HighSpeedSteerFactor = 0.35f;
@@ -90,6 +105,19 @@ namespace RoadReady.Player
         public Gear Gear { get; private set; } = Gear.Park;
         public event Action<Gear> GearChanged;
 
+        /// <summary>The engine. Off at the start of every drive: the car does not move until the ON button is pressed.</summary>
+        public bool EngineOn { get; private set; }
+        public event Action<bool> EngineChanged;
+
+        /// <summary>Starts the engine (the ON button, O key or wheel button). It can only be switched off when the car is stopped.</summary>
+        public void SetEngine(bool on)
+        {
+            if (on == EngineOn || (!on && SpeedKmh > 1f))
+                return;
+            EngineOn = on;
+            EngineChanged?.Invoke(on);
+        }
+
         /// <summary>Handbrake applied (set by the handbrake lever or the B key).</summary>
         public bool Handbrake { get; private set; } = true;
         public event Action<bool> HandbrakeChanged;
@@ -118,6 +146,8 @@ namespace RoadReady.Player
         {
             get
             {
+                if (!EngineOn)
+                    return 0f;
                 const float idle = 850f, gearTopKmh = 18f;
                 var kmh = SpeedKmh;
                 var inGear = kmh < 1f ? 0f : Mathf.Repeat(kmh, gearTopKmh) / gearTopKmh;
@@ -179,6 +209,7 @@ namespace RoadReady.Player
             SetIndicator(TurnSide.None);
             // Every drive starts parked with the handbrake up: release it and select D (or R) to move off.
             SetGear(Gear.Park);
+            SetEngine(false);
             SetHandbrake(true);
         }
 
@@ -195,16 +226,23 @@ namespace RoadReady.Player
                 return;
             ReadInput();
 
-            // Longitudinal. Park or the handbrake hold the car still, whatever else happens. D only ever moves it
+            // Longitudinal. Park, the handbrake or a stopped engine hold the car still, whatever else happens. D only ever moves it
             // forwards and R only backwards; N does not drive and brings the car to a stop.
-            if (Gear == Gear.Park || Handbrake)
+            if (Gear == Gear.Park || Handbrake || !EngineOn)
             {
                 m_Speed = 0f;
             }
             else
             {
-                var drive = Gear switch { Gear.Drive => 1f, Gear.Reverse => -1f, _ => 0f } * Throttle * m_Acceleration;
-                var resist = Brake * m_BrakeDeceleration + (Throttle < 0.05f || drive == 0f ? m_CoastDeceleration : 0f) + (Gear == Gear.Neutral ? m_BrakeDeceleration : 0f);
+                // Pedals work like an automatic's: a curved throttle, a pull that fades as the speed rises, creep with both
+                // pedals off, engine braking and drag when you lift, and a brake that is gentle at first.
+                var direction = Gear switch { Gear.Drive => 1f, Gear.Reverse => -1f, _ => 0f };
+                var kmh = Mathf.Abs(m_Speed) * Units.MsToKmh;
+                var pull = Mathf.Lerp(1f, m_TopSpeedPull, Mathf.Clamp01(kmh / m_MaxSpeedKmh));
+                var drive = direction * Mathf.Pow(Throttle, m_ThrottleCurve) * m_Acceleration * pull;
+                // No creep: in D or R the car only moves while the throttle is pressed (parking and tutorial alike).
+                var engineBraking = Throttle < 0.05f ? m_CoastDeceleration : 0f;
+                var resist = Mathf.Pow(Brake, m_BrakeCurve) * m_BrakeDeceleration + engineBraking + m_Drag * m_Speed * m_Speed + (Gear == Gear.Neutral ? m_BrakeDeceleration : 0f);
                 var speed = m_Speed + drive * dt;
                 var slow = resist * dt;
                 speed = Mathf.Abs(speed) <= slow ? 0f : speed - Mathf.Sign(speed) * slow;
@@ -258,19 +296,23 @@ namespace RoadReady.Player
             }
 
             var input = RoadReadyInput.Instance;
-            Throttle = DeadZone(input.Throttle.ReadValue<float>());
-            Brake = DeadZone(input.Brake.ReadValue<float>());
+            var throttle = DeadZone(input.Throttle.ReadValue<float>());
+            var brake = DeadZone(input.Brake.ReadValue<float>());
             var stick = Mathf.Clamp(DeadZone(input.Steer.ReadValue<float>()), -1f, 1f);
 
             // A USB driving rig (e.g. G29): pedals add to the other inputs, the wheel steers unless the keys are used.
             var rig = RacingWheel.Current;
             if (rig != null)
             {
-                Throttle = Mathf.Max(Throttle, rig.Throttle);
-                Brake = Mathf.Max(Brake, rig.Brake);
+                throttle = Mathf.Max(throttle, PedalDeadZone(rig.Throttle));
+                brake = Mathf.Max(brake, PedalDeadZone(rig.Brake));
                 if (stick == 0f)
                     stick = rig.Steer;
             }
+            // Real pedals have travel and a spring: the pedal position eases towards the input (quick to press, quicker to
+            // release), which also takes the jolt out of keyboard and trigger inputs.
+            Throttle = Mathf.MoveTowards(Throttle, throttle, (throttle > Throttle ? m_PedalRise : m_PedalFall) * Time.deltaTime);
+            Brake = Mathf.MoveTowards(Brake, brake, (brake > Brake ? m_PedalRise : m_PedalFall) * Time.deltaTime);
 
             if (m_Wheel != null && m_Wheel.IsHeld)
             {
@@ -284,6 +326,8 @@ namespace RoadReady.Player
                 if (m_Wheel != null) m_Wheel.FollowSteering(stick);
             }
 
+            if (input.Engine.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.EngineButton))
+                SetEngine(!EngineOn);
             if (input.Handbrake.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.HandbrakeButton))
                 SetHandbrake(!Handbrake);
             if (input.ShiftGear.WasPressedThisFrame())
@@ -313,6 +357,8 @@ namespace RoadReady.Player
         }
 
         float DeadZone(float value) => Mathf.Abs(value) < m_DeadZone ? 0f : value;
+
+        float PedalDeadZone(float value) => value < m_PedalDeadZone ? 0f : Mathf.InverseLerp(m_PedalDeadZone, 1f, value);
 
         public void SetIndicator(TurnSide side)
         {
