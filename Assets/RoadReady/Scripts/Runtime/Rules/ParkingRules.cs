@@ -23,7 +23,7 @@ namespace RoadReady.Rules
         static readonly Vector2 k_LeftShoulder = new Vector2(-180f, -100f);
         static readonly Vector2 k_RightShoulder = new Vector2(100f, 180f);
         static readonly Vector2 k_RearMirror = new Vector2(5f, 40f); // interior mirror: up and to the right
-        const float k_RearMirrorPitch = 5f;
+        const float k_RearMirrorPitch = 0f; // the interior mirror sits about 2 degrees above eye level
         const float k_MinLookSeconds = 0.3f;
         const float k_ContactCooldown = 1.5f;
 
