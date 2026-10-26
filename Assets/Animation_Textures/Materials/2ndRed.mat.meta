@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a6bdd0a9fd0eabb4aa684ba86927a866
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/Animation_Textures/Materials/2ndRed.mat
+  uploadId: 720821

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ac70b4d355d389549844c677fe4ab87f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/Animation_Textures/Materials/Blue.mat
+  uploadId: 720821
