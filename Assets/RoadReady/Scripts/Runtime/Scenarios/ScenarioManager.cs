@@ -233,6 +233,8 @@ namespace RoadReady.Scenarios
                 m_Pedestrian.enabled = false;
                 m_Rig.SetLocomotion(false);
                 m_Rig.AttachToSeat(m_Driver.EyePoint, m_Driver.transform);
+                if (m_Driver.EyePoint != null)
+                    Player.CarMirrors.EnsureOn(m_Driver); // left, right and interior rear-view mirrors
                 m_Player = m_Driver;
             }
             else
@@ -345,9 +347,6 @@ namespace RoadReady.Scenarios
                 RoadReadyEvents.RaiseHazardSpotted();
                 AddDecisionTelemetry("spotted");
             }
-
-            if (RoadReadyInput.Instance.Recenter.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.RecenterButton))
-                m_Rig.Recenter();
 
             var dt = Time.deltaTime;
             m_Hazards.Tick(dt);

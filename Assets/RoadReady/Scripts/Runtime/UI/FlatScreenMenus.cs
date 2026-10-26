@@ -32,7 +32,11 @@ namespace RoadReady.UI
             var mouse = Mouse.current;
             var app = RoadReadyApp.Instance;
             if (mouse != null && app != null && !XrActive && mouse.leftButton.wasPressedThisFrame)
-                ClickAt(mouse.position.ReadValue());
+            {
+                var position = mouse.position.ReadValue();
+                if (!ClickAt(position))
+                    CarButton.ClickAt(position); // the car's ON and exit buttons
+            }
         }
 
         /// <summary>Presses the menu button / toggle under a screen position. Returns true if something was pressed.</summary>
