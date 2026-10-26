@@ -6,3 +6,10 @@ TextScriptImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/TextMesh Pro/Resources/LineBreaking Leading Characters.txt
+  uploadId: 720821
