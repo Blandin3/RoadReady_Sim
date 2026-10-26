@@ -79,6 +79,7 @@ namespace RoadReady
         void Start()
         {
             m_Rig.Initialize(Comfort);
+            m_Rig.AutoRecentered += OnRigAutoRecentered;
             if (m_Pedestrian != null)
                 m_Pedestrian.Initialize(m_Rig, Comfort);
             if (m_Vignette != null)
@@ -119,6 +120,13 @@ namespace RoadReady
             ShowSplash();
         }
 
+        /// <summary>The headset was put back on: bring a floating menu back in front of the learner.</summary>
+        void OnRigAutoRecentered()
+        {
+            if (m_UI != null && m_UI.MenuVisible)
+                m_UI.Reposition();
+        }
+
         void Update()
         {
             UpdateBackground();
@@ -131,8 +139,13 @@ namespace RoadReady
                     Resume();
             }
 
-            if (State != AppState.InScenario && (RoadReadyInput.Instance.Recenter.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.RecenterButton)) && m_UI.MenuVisible)
-                m_UI.Reposition();
+            // Right thumbstick: slide the seat (your position in the car) while no menu is in the way.
+            if (m_Rig != null && m_Rig.IsSeated && !m_UI.MenuVisible)
+                m_Rig.AdjustSeat(RoadReadyInput.Instance.SeatMove.ReadValue<Vector2>(), Time.unscaledDeltaTime);
+
+            // Re-centre from any state (driving, countdown, paused, menus): wheel triangle, R, or right thumbstick click.
+            if (RoadReadyInput.Instance.Recenter.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.RecenterButton))
+                RecenterView();
         }
 
         /// <summary>
@@ -456,6 +469,23 @@ namespace RoadReady
             m_Rig.SetPointers(false);
         }
 
+        /// <summary>The exit button on the car door: ends the attempt after a confirmation.</summary>
+        public void RequestExitCar()
+        {
+            if (State != AppState.InScenario || m_UI.MenuVisible)
+                return;
+            if (m_Scenarios.State == AttemptState.Running)
+                Pause();
+            m_UI.Confirm("Leave the car?", "Opening the door ends this attempt and takes you back to the menu.",
+                "Leave the car", BackToMenu, () =>
+                {
+                    if (State == AppState.Paused)
+                        Resume();
+                    else
+                        m_UI.HideMenu();
+                }, "Stay in the car");
+        }
+
         public void RestartAttempt()
         {
             m_Scenarios.SetPaused(false);
@@ -482,7 +512,8 @@ namespace RoadReady
         public void RecenterView()
         {
             m_Scenarios.Recenter();
-            m_UI.Reposition();
+            if (m_UI.MenuVisible)
+                m_UI.Reposition();
         }
 
         // ================================================================ comfort & admin
