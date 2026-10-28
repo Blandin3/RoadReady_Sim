@@ -86,7 +86,16 @@ namespace RoadReady.Player
                 var interactor = interactorsSelecting[0];
                 var hand = m_Lever.parent.InverseTransformPoint(interactor.GetAttachTransform(this).position);
                 var angle = Mathf.Atan2(hand.z, Mathf.Max(0.05f, hand.y)) * Mathf.Rad2Deg;
-                m_Angle = Mathf.Clamp(angle, m_Detents[m_Detents.Length - 1] - 4f, m_Detents[0] + 4f);
+                // The detents are not in gear order on every car (the Bentley's run D, P, N, R), so use the extremes.
+                var low = float.MaxValue;
+                var high = float.MinValue;
+                foreach (var detent in m_Detents)
+                {
+                    low = Mathf.Min(low, detent);
+                    high = Mathf.Max(high, detent);
+                }
+
+                m_Angle = Mathf.Clamp(angle, low - 4f, high + 4f);
                 var gear = Nearest(m_Angle);
                 if (gear != m_Driver.Gear)
                 {
