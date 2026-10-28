@@ -6,7 +6,7 @@ using RoadReady.Core;
 namespace RoadReady.Data
 {
     // Mapping to the proposal ERD (Figure 5):
-    //   Participant        -> ParticipantRecord   (anonymised: no name / email is stored, see NFR data privacy)
+    //   Participant        -> ParticipantRecord   (anonymised: no name / email is stored here, see NFR data privacy; the optional report contact lives in ContactStore)
     //   Training Session   -> AttemptRecord       (one scenario attempt)
     //   Performance Record -> PerformanceRecord   (one per scripted hazard)
     //   Safety Score       -> SafetyScore         (embedded in the attempt)

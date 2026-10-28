@@ -29,6 +29,9 @@ namespace RoadReady.Data
         public string ParticipantsFolder => Path.Combine(RootFolder, "participants");
         public string ExportsFolder => Path.Combine(RootFolder, "exports");
 
+        /// <summary>Optional names and e-mails for sending results reports; kept apart from the study data.</summary>
+        public ContactStore Contacts { get; }
+
         public ParticipantRecord CurrentParticipant { get; private set; }
         public SessionRecord CurrentSession { get; private set; }
 
@@ -40,6 +43,7 @@ namespace RoadReady.Data
         {
             RootFolder = rootFolder ?? Path.Combine(Application.persistentDataPath, "RoadReady");
             Directory.CreateDirectory(ParticipantsFolder);
+            Contacts = new ContactStore(RootFolder);
         }
 
         // ----------------------------------------------------------------- participants
@@ -103,6 +107,7 @@ namespace RoadReady.Data
             if (Directory.Exists(folder))
                 Directory.Delete(folder, true);
             m_AttemptCache.Remove(participantId);
+            Contacts.Remove(participantId);
             if (CurrentParticipant != null && CurrentParticipant.participantId == participantId)
             {
                 CurrentParticipant = null;
