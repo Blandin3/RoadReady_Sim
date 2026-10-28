@@ -15,6 +15,7 @@ namespace RoadReady.UI
         public FeedbackScreen(FeedbackReport report) => m_Report = report;
 
         public override string TreeName => "Feedback";
+        public override float ViewDistance => 1.5f;
 
         protected override void Bind()
         {
@@ -44,7 +45,15 @@ namespace RoadReady.UI
             BuildHistory();
             BuildDetails();
 
-            Btn("menu", App.BackToMenu);
+            var menu = Btn("menu", App.BackToMenu);
+            if (App.Participant != null && !r.isTutorial)
+            {
+                // Name + email so the researcher can send this participant their overall PDF.
+                var saved = App.Data.Contacts.Get(App.Participant.participantId) != null;
+                menu.parent.Insert(menu.parent.IndexOf(menu) + 1,
+                    UIX.MakeButton(saved ? "Change report email" : "Email me my report", App.OpenReportContact, "btn--ghost", "btn--small"));
+            }
+
             var retry = Btn("retry", App.Retry);
             retry.text = r.isTutorial ? "Repeat tutorial" : "Try again";
             if (request.scenario != null && !request.scenario.isTutorial && !App.CanAttempt(request.scenario, request.perspective, out _))
@@ -128,6 +137,7 @@ namespace RoadReady.UI
         public QuestionnaireScreen(QuestionnaireType type) => m_Type = type;
 
         public override string TreeName => "Questionnaire";
+        public override float ViewDistance => 1.3f;
 
         protected override void Bind()
         {
@@ -183,6 +193,7 @@ namespace RoadReady.UI
     public class DebriefScreen : UIScreen
     {
         public override string TreeName => "Debrief";
+        public override float ViewDistance => 1.5f;
 
         protected override void Bind()
         {

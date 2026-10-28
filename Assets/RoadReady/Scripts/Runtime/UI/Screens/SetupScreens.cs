@@ -84,7 +84,7 @@ namespace RoadReady.UI
             "RoadReady is a research project at the African Leadership University. It studies whether practising road-safety decisions in virtual reality helps people make safer decisions as drivers and pedestrians.\n\n" +
             "What you will do: wear a VR headset for about 20-30 minutes, complete a short tutorial, then drive and/or walk through three street scenarios modelled on Kimironko. You may repeat scenarios and see your results.\n\n" +
             "Risks: some people feel dizzy or sick in VR. Tell the researcher immediately if you feel unwell - you can stop at any time. Nothing in the simulation can physically harm you.\n\n" +
-            "Your data: RoadReady records your reactions, decisions and scores against an anonymous code (for example RR-7KQ2TX). Your name is never stored in the headset. Data is kept in line with Rwanda's Law on the Protection of Personal Data and Privacy and is used only for this study.\n\n" +
+            "Your data: RoadReady records your reactions, decisions and scores against an anonymous code (for example RR-7KQ2TX). Your name is never stored with it. If you choose to leave a name and email so we can send you your results report, they are kept in a separate file, never with your study data, and used only to send you that report. Data is kept in line with Rwanda's Law on the Protection of Personal Data and Privacy and is used only for this study.\n\n" +
             "Your rights: taking part is voluntary. You can withdraw at any time from the menu and all of your data will be deleted.";
 
         public override string TreeName => "Consent";
@@ -120,6 +120,116 @@ namespace RoadReady.UI
             Refresh();
         }
     }
+
+    /// <summary>
+    /// Optional: the participant leaves a name and an e-mail address so the researcher can send them an overall PDF
+    /// of how they did. People tend to take the headset off before the on-screen feedback, so this is asked up front.
+    /// The details are kept apart from the study data (see <see cref="Data.ContactStore"/>). A small card; the keyboard
+    /// only appears once a box is pointed at. Built in code (no UXML to register).
+    /// </summary>
+    public class ContactScreen : UIScreen
+    {
+        readonly string m_ParticipantId;
+        readonly Action m_OnDone;
+        TypingBox m_Name, m_Email;
+        OnScreenKeyboard m_Keyboard;
+        Label m_Message;
+
+        public ContactScreen(string participantId, Action onDone)
+        {
+            m_ParticipantId = participantId;
+            m_OnDone = onDone;
+        }
+
+        public override string TreeName => "";
+        public override bool Floating => true;
+
+        protected override void Bind()
+        {
+            var existing = App.Data.Contacts.Get(m_ParticipantId);
+            Root.style.alignItems = Align.Center;
+            Root.style.justifyContent = Justify.Center;
+
+            var card = new VisualElement();
+            card.AddToClassList("contact");
+            Root.Add(card);
+
+            // The three flag colours along the top of the card.
+            var bar = new VisualElement();
+            bar.AddToClassList("contact__bar");
+            foreach (var colour in new[] { "contact__bar--blue", "contact__bar--yellow", "contact__bar--green" })
+            {
+                var segment = new VisualElement();
+                segment.AddToClassList(colour);
+                bar.Add(segment);
+            }
+
+            card.Add(bar);
+            card.Add(UIX.MakeLabel("Want your results by email?", "contact__title"));
+            card.Add(UIX.MakeLabel("Optional. We send you a PDF of how you did, kept apart from the study data.", "contact__hint"));
+
+            m_Name = Box(card, "Your name", "Tap here to type your name", existing?.name);
+            m_Email = Box(card, "Your email", "Tap here to type your email", existing?.email);
+
+            m_Keyboard = new OnScreenKeyboard();
+            m_Keyboard.SetVisible(false); // only once a box is pointed at
+            card.Add(m_Keyboard);
+            m_Message = UIX.MakeLabel("", "contact__message");
+            card.Add(m_Message);
+
+            var buttons = new VisualElement();
+            buttons.AddToClassList("row");
+            buttons.Add(UIX.MakeButton("No thanks", () => m_OnDone?.Invoke(), "btn--ghost", "btn--small"));
+            var spacer = new VisualElement();
+            spacer.AddToClassList("spacer");
+            buttons.Add(spacer);
+            buttons.Add(UIX.MakeButton("Save and continue", Save, "btn--primary", "btn--small"));
+            card.Add(buttons);
+        }
+
+        TypingBox Box(VisualElement card, string label, string placeholder, string value)
+        {
+            card.Add(UIX.MakeLabel(label, "contact__label"));
+            var box = new TypingBox(placeholder) { Value = value ?? "" };
+            box.Clicked += () => Select(box);
+            card.Add(box);
+            return box;
+        }
+
+        void Select(TypingBox box)
+        {
+            m_Keyboard.Target = box;
+            m_Keyboard.AutoCapitalise = box == m_Name;
+            m_Keyboard.SetCapitals(box == m_Name && (string.IsNullOrEmpty(box.Value) || box.Value.EndsWith(" ")));
+            m_Name.Active = box == m_Name;
+            m_Email.Active = box == m_Email;
+            m_Keyboard.SetVisible(true);
+            m_Message.text = "";
+        }
+
+        void Save()
+        {
+            var name = m_Name.Value.Trim();
+            var email = m_Email.Value.Trim();
+            if (name.Length == 0)
+            {
+                m_Message.text = "Please type your name.";
+                Select(m_Name);
+                return;
+            }
+
+            if (!RoadReady.Data.ContactStore.IsValidEmail(email))
+            {
+                m_Message.text = "That email does not look right (name@example.com).";
+                Select(m_Email);
+                return;
+            }
+
+            App.SaveReportContact(m_ParticipantId, name, email);
+            m_OnDone?.Invoke();
+        }
+    }
+
 
     public class MessageScreen : UIScreen
     {
