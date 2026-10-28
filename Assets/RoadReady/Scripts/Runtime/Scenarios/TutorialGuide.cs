@@ -4,14 +4,16 @@ using System.Collections.Generic;
 using System.Linq;
 using RoadReady.Traffic;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Haptics;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 namespace RoadReady.Scenarios
 {
     /// <summary>
-    /// Tutorial guidance: a circle on the road ahead of the learner with the direction animation (the scrolling arrows
-    /// of the Animation_Textures pack) just before it, showing where to head. Driving up to the circle makes it
-    /// disappear, and it reappears further along the lane at another distance in view. Walking learners get a
-    /// smaller circle on the spot they have to reach.
+    /// Tutorial guidance: a circle on the road ahead of the learner and, floating in the air right in front of them
+    /// (not drawn on the road), the direction animation (the scrolling arrows of the Animation_Textures pack) pointing
+    /// to it. Driving up to the circle buzzes the controllers and makes it disappear, and it reappears further along
+    /// the lane at another distance in view. Walking learners get a smaller circle on the spot they have to reach.
     /// The artwork is the "RoadReadyGuide" prefab in a Resources folder (built by the editor menu RoadReady >
     /// Build Tutorial Guide Prefab) with children Circle, Straight, TurnLeft and TurnRight, each lying flat with
     /// its forward (+Z) along the way to go.
@@ -21,10 +23,15 @@ namespace RoadReady.Scenarios
         public const string ResourceName = "RoadReadyGuide";
 
         static readonly float[] k_Distances = { 32f, 44f, 26f }; // metres ahead of the learner, cycling
-        const float k_ArrowsBeforeCircle = 7f;
         const float k_ReachRadius = 3.5f;
         const float k_WalkReachRadius = 1.2f;
         const float k_TurnAngle = 12f;
+        const float k_FloatDistance = 4f;     // metres in front of the eyes
+        const float k_FloatDrop = 0.15f;      // and a little below the line of sight
+        const float k_FloatScale = 0.17f;     // the prefab's arrows are 7.5 m long
+        const float k_BendOfTurnArrows = 35f; // as built into the TurnLeft / TurnRight art
+        const float k_RingDiameter = 7f;      // the circle in the prefab (TutorialGuideKit.k_CircleDiameter)
+        const float k_LookDownSin = 0.574f;   // sin(35 degrees)
 
         GameObject m_Root, m_Circle, m_Straight, m_TurnLeft, m_TurnRight;
         Func<Vector3> m_Position, m_Forward;
@@ -40,6 +47,8 @@ namespace RoadReady.Scenarios
         int m_Cycle;
         bool m_Running, m_Waiting;
         float m_ReachRadius;
+        GameObject m_Arrows;
+        Transform m_Viewer;
 
         /// <summary>How many circles the learner has reached so far.</summary>
         public int ReachedCount { get; private set; }
@@ -57,6 +66,8 @@ namespace RoadReady.Scenarios
                 End();
                 return false;
             }
+
+            m_ReachRadius = k_ReachRadius * m_Scale;
 
             m_Running = true;
             PlaceNext(FollowerS());
@@ -131,9 +142,10 @@ namespace RoadReady.Scenarios
             if (chain.Count < 3)
                 return false;
 
-            var half = nearest.Size.x * 0.5f;
-            var lateral = Mathf.Clamp(Vector3.Dot(position - nearest.transform.position, nearest.transform.right), -half + 1.5f, half - 1.5f);
-            var points = chain.Select(z => z.transform.position + z.transform.right * lateral).ToList();
+            // Down the middle of the road (the car starts on one side of it, which put the circle half on the kerb),
+            // with the ring made to fit inside the carriageway.
+            var points = chain.Select(z => z.transform.position).ToList();
+            m_Scale = Mathf.Clamp((nearest.Size.x - 1.5f) / k_RingDiameter, 0.45f, 1f);
             var at = chain.IndexOf(nearest);
             if (Vector3.Dot(points[(at + 1) % points.Count] - points[at], forward) < 0f)
                 points.Reverse();
@@ -237,18 +249,12 @@ namespace RoadReady.Scenarios
             m_TargetS = targetS;
             ShowCircle(GroundPoint(point));
 
-            // Arrows just before the circle, bending the way the road does beyond it.
-            if (!Sample(targetS - k_ArrowsBeforeCircle, out var arrowPoint, out var arrowDirection))
-            {
-                arrowPoint = point;
-                arrowDirection = direction;
-            }
-
+            // Arrows floating in front of the driver, bending the way the road does beyond the circle.
             if (!Sample(targetS + 24f, out _, out var beyond))
                 beyond = direction;
             var turn = Vector3.SignedAngle(direction, beyond, Vector3.up);
             var arrows = Mathf.Abs(turn) < k_TurnAngle ? m_Straight : turn > 0f ? m_TurnRight : m_TurnLeft;
-            ShowArrows(arrows, GroundPoint(arrowPoint), arrowDirection);
+            ShowArrows(arrows);
         }
 
         void ShowCircle(Vector3 position)
@@ -262,16 +268,70 @@ namespace RoadReady.Scenarios
             StartCoroutine(Pop(m_Circle.transform, 0f, m_Scale, 0.3f, false));
         }
 
-        void ShowArrows(GameObject arrows, Vector3 position, Vector3 direction)
+        void ShowArrows(GameObject arrows)
         {
+            m_Arrows = arrows;
             foreach (var part in new[] { m_Straight, m_TurnLeft, m_TurnRight })
                 if (part != null)
                     part.SetActive(part == arrows);
-            if (arrows == null)
+            PoseFloatingArrows();
+        }
+
+        Transform Viewer
+        {
+            get
+            {
+                if (m_Viewer == null && Camera.main != null)
+                    m_Viewer = Camera.main.transform;
+                return m_Viewer;
+            }
+        }
+
+        /// <summary>
+        /// Holds the arrows in the air in front of the learner, facing them, pointing towards the circle. Their yaw
+        /// follows the car (or the walking direction), not the head, so looking around does not drag them along.
+        /// </summary>
+        void PoseFloatingArrows()
+        {
+            var viewer = Viewer;
+            if (m_Arrows == null || !m_Arrows.activeSelf || viewer == null || m_Position == null)
                 return;
-            arrows.transform.position = position + Vector3.up * 0.03f;
-            arrows.transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
-            arrows.transform.localScale = Vector3.one * m_Scale;
+
+            var heading = m_Forward != null ? m_Forward() : viewer.forward;
+            heading.y = 0f;
+            heading = heading.sqrMagnitude > 1e-4f ? heading.normalized : Vector3.forward;
+            var position = viewer.position + heading * k_FloatDistance - Vector3.up * k_FloatDrop;
+
+            var toTarget = m_TargetPosition - m_Position();
+            toTarget.y = 0f;
+            var bearing = toTarget.sqrMagnitude > 0.01f ? Vector3.SignedAngle(heading, toTarget, Vector3.up) : 0f;
+            bearing = Mathf.Clamp(bearing, -80f, 80f);
+            var built = m_Arrows == m_TurnLeft ? -k_BendOfTurnArrows : m_Arrows == m_TurnRight ? k_BendOfTurnArrows : 0f;
+
+            // A panel facing the eyes: screen-up is "straight on", turned by the bearing (less the bend already in the art).
+            var normal = (viewer.position - position).normalized;
+            var up = Vector3.ProjectOnPlane(Vector3.up, normal).normalized;
+            var right = Vector3.Cross(up, -normal);
+            // The arrows are a floating plate seen almost edge-on to the ground, so a bearing on the road reads far
+            // steeper on screen than it is (a circle 10 degrees off looks well to the side). Point them the way the
+            // circle looks, as if they lay on the ground seen from about 35 degrees above it.
+            var onScreen = Mathf.Atan(Mathf.Tan(bearing * Mathf.Deg2Rad) / k_LookDownSin) * Mathf.Rad2Deg;
+            var angle = (onScreen - built) * Mathf.Deg2Rad;
+            var way = up * Mathf.Cos(angle) + right * Mathf.Sin(angle);
+            m_Arrows.transform.SetPositionAndRotation(position, Quaternion.LookRotation(way, normal));
+            m_Arrows.transform.localScale = Vector3.one * (k_FloatScale * (m_FixedTarget != null ? 0.75f : 1f));
+        }
+
+        /// <summary>A short buzz in both controllers.</summary>
+        static void Buzz(float amplitude, float duration)
+        {
+            var players = FindObjectsByType<HapticImpulsePlayer>(FindObjectsSortMode.None);
+            foreach (var player in players)
+                player.SendHapticImpulse(amplitude, duration);
+            if (players.Length > 0)
+                return;
+            foreach (var interactor in FindObjectsByType<XRBaseInputInteractor>(FindObjectsSortMode.None))
+                interactor.SendHapticImpulse(amplitude, duration);
         }
 
         void HideAll()
@@ -301,6 +361,12 @@ namespace RoadReady.Scenarios
         }
 
         // ------------------------------------------------------------------ running
+
+        void LateUpdate()
+        {
+            if (m_Running)
+                PoseFloatingArrows();
+        }
 
         void Update()
         {
@@ -336,6 +402,9 @@ namespace RoadReady.Scenarios
         {
             m_Waiting = true;
             ReachedCount++;
+            // You got there: a firm buzz, then a lighter echo.
+            Buzz(0.9f, 0.25f);
+            StartCoroutine(Echo());
             yield return Pop(m_Circle.transform, m_Scale, 0f, 0.25f, true);
             foreach (var part in new[] { m_Straight, m_TurnLeft, m_TurnRight })
                 if (part != null)
@@ -345,6 +414,12 @@ namespace RoadReady.Scenarios
             yield return new WaitForSeconds(0.2f);
             m_Waiting = false;
             PlaceNext(FollowerS());
+        }
+
+        static IEnumerator Echo()
+        {
+            yield return new WaitForSecondsRealtime(0.32f);
+            Buzz(0.5f, 0.15f);
         }
 
         void UpdateWalkingArrows(Vector3 position)
@@ -359,8 +434,7 @@ namespace RoadReady.Scenarios
                 return;
             }
 
-            var direction = to.normalized;
-            ShowArrows(m_Straight, GroundPoint(position + direction * Mathf.Min(2.5f, to.magnitude * 0.45f)), direction);
+            ShowArrows(m_Straight);
         }
 
         static IEnumerator Pop(Transform t, float from, float to, float seconds, bool hideAtEnd)
