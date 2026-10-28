@@ -27,7 +27,7 @@ namespace RoadReady.UI
         Label m_Speed, m_Limit, m_Timer, m_Gear, m_Countdown, m_Caption, m_Prompt, m_Toast, m_Tutorial, m_ArrowLeft, m_ArrowRight;
         VisualElement m_Cluster, m_Objective;
         Label m_ObjectiveText;
-        Button m_Skip;
+        Button m_Skip, m_Restart;
         bool m_SkipShown;
         float m_HandbrakeHintAt = -100f;
         float m_CaptionUntil, m_ToastUntil, m_CountdownUntil;
@@ -57,7 +57,11 @@ namespace RoadReady.UI
             m_ObjectiveText = root.Q<Label>("objective-text");
             m_Skip = root.Q<Button>("skip-tutorial");
             if (m_Skip != null)
-                m_Skip.clicked += () => m_App.Pause(); // the same pause panel as the left controller's menu button
+                m_Skip.clicked += () => m_App.OpenScenarioPicker(); // pick a scenario now, or carry on with the tutorial
+
+            m_Restart = root.Q<Button>("restart-scenario");
+            if (m_Restart != null)
+                m_Restart.clicked += () => m_App.RestartAttempt(); // run the same scenario again from the start
 
             RoadReadyEvents.InstructionRequested += OnInstruction;
             RoadReadyEvents.ToastRequested += OnToast;
@@ -198,19 +202,21 @@ namespace RoadReady.UI
             };
         }
 
-        /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
         /// <summary>
-        /// During the tutorial a "Skip tutorial" button sits under the instruction. It opens the pause panel (where
-        /// the learner confirms the skip), exactly like the left controller's menu button, which keeps working too.
-        /// The controller ray stays on while the button is shown so it can be pointed at.
+        /// During the tutorial a "Skip tutorial" button sits in the top right corner of the view, for drivers and
+        /// pedestrians alike. It opens the scenario picker (the left controller's menu button still opens the pause
+        /// panel). The controller ray stays on while the button is shown so it can be pointed at.
         /// </summary>
         void UpdateSkipButton(AttemptState state)
         {
-            if (m_Skip == null)
+            if (m_Skip == null && m_Restart == null)
                 return;
-            var show = state == AttemptState.Running && m_Scenarios.Request.phase == AttemptPhase.Tutorial
-                       && m_App.State == AppState.InScenario && !m_App.UI.MenuVisible;
-            m_Skip.SetVisible(show);
+            // Restart is offered in every scenario; Skip only during the tutorial.
+            var show = state == AttemptState.Running && m_App.State == AppState.InScenario && !m_App.UI.MenuVisible;
+            m_Skip?.SetVisible(show && m_Scenarios.Request.phase == AttemptPhase.Tutorial);
+            m_Restart?.SetVisible(show);
+            if (m_Restart != null)
+                m_Restart.style.right = m_Scenarios.Request.phase == AttemptPhase.Tutorial ? 284f : 12f;
             if (show != m_SkipShown)
                 m_Panel.SetInteractive(show);
             if (show && !m_App.Rig.PointersVisible)
@@ -220,6 +226,7 @@ namespace RoadReady.UI
             m_SkipShown = show;
         }
 
+        /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
         static string GearText(Gear gear, bool handbrake, bool engineOn)
         {
             var sb = new System.Text.StringBuilder();
