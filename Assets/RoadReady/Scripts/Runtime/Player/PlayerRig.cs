@@ -91,7 +91,15 @@ namespace RoadReady.Player
             m_Hands.Setup(FindChild(m_Origin.transform, "Left Controller"), FindChild(m_Origin.transform, "Right Controller"),
                 m_LeftHandModel, m_RightHandModel, m_HandMaterial);
             foreach (var interactor in m_Origin.GetComponentsInChildren<XRRayInteractor>(true))
-                m_PointerObjects.Add(interactor.gameObject);
+            {
+                // The starter rig also carries a plain Ray and a Teleport interactor on each controller. Showing them
+                // next to the Near-Far one gives two rays (one white, one red) that fight over the same buttons, and
+                // teleporting is never used here. So the Near-Far interactor is the only pointer.
+                if (m_NearFar.Count > 0)
+                    interactor.gameObject.SetActive(false);
+                else
+                    m_PointerObjects.Add(interactor.gameObject);
+            }
             Vignette = m_Origin.GetComponentInChildren<TunnelingVignetteController>(true);
             m_DefaultCameraYOffset = m_Origin.CameraYOffset;
             m_DefaultTrackingMode = m_Origin.RequestedTrackingOriginMode;
@@ -304,8 +312,11 @@ namespace RoadReady.Player
                 return;
             }
 
+            // Forward / back (closeness to the wheel) is the main use: sideways only when the stick is clearly pushed sideways.
+            if (Mathf.Abs(stick.x) < Mathf.Abs(stick.y) * 1.5f)
+                stick.x = 0f;
             m_SeatOffset.x = Mathf.Clamp(m_SeatOffset.x + stick.x * k_SeatSpeed * dt, -0.30f, 0.30f);
-            m_SeatOffset.z = Mathf.Clamp(m_SeatOffset.z + stick.y * k_SeatSpeed * dt, -0.40f, 0.30f);
+            m_SeatOffset.z = Mathf.Clamp(m_SeatOffset.z + stick.y * k_SeatSpeed * dt, -0.50f, 0.40f);
             m_SeatDirty = true;
             m_Origin.MoveCameraToWorldLocation(m_Seat.TransformPoint(m_SeatOffset));
         }
