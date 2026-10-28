@@ -989,8 +989,23 @@ Button.pill:hover {
     border-color: rgba(250, 210, 1, 0.9);
     border-width: 2px;
     color: rgb(255, 255, 255);
-    margin: 4px 8px 8px 8px;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin: 0;
     min-width: 260px;
+}
+
+/* Restart sits just left of the skip button (or in the corner when there is no skip button). */
+.hud__restart {
+    right: 284px;
+    min-width: 150px;
+    border-color: rgba(0, 161, 222, 0.9);
+}
+
+.hud__skip.hud__restart:hover {
+    background-color: rgba(0, 161, 222, 0.95);
+    color: rgb(255, 255, 255);
 }
 
 .hud__skip:hover {
@@ -1029,4 +1044,193 @@ Button.pill:hover {
     white-space: normal;
     -unity-text-align: middle-center;
     -unity-font-style: bold;
+}
+
+/* ------------------------------------------------------------------ scroll arrows (up / down) */
+
+.scroll-arrows {
+    position: absolute;
+    right: -66px;
+    top: 0;
+    bottom: 0;
+    width: 64px;
+    justify-content: center;
+}
+
+.scroll-arrow {
+    width: 64px;
+    height: 64px;
+    margin: 10px 0;
+    padding: 0;
+    border-radius: 32px;
+    border-width: 3px;
+    border-color: var(--rr-yellow);
+    background-color: rgba(0, 161, 222, 0.85);
+}
+
+.scroll-arrow:hover {
+    background-color: rgb(0, 161, 222);
+    border-color: rgb(255, 255, 255);
+}
+
+.scroll-arrow--off {
+    opacity: 0.3;
+}
+
+/* ------------------------------------------------------------------ scenario picker (opened by "Skip tutorial") */
+
+.picker__cards {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 8px 0 16px 0;
+}
+
+.picker-card {
+    width: 400px;
+    min-height: 330px;
+}
+
+.picker-card .scenario-card__thumb {
+    height: 190px;
+}
+
+.picker-card:hover {
+    border-color: var(--rr-yellow);
+}
+
+/* ------------------------------------------------------------------ report contact (name / email): a small card */
+
+.contact {
+    width: 980px;
+    padding: 0 36px 26px 36px;
+    border-radius: 30px;
+    border-width: 3px;
+    border-color: var(--rr-line);
+    background-color: var(--rr-bg);
+    overflow: hidden;
+}
+
+.contact__bar {
+    flex-direction: row;
+    height: 14px;
+    margin: 0 -36px 22px -36px;
+}
+
+.contact__bar--blue {
+    flex-grow: 2;
+    background-color: var(--rr-blue);
+}
+
+.contact__bar--yellow {
+    flex-grow: 1;
+    background-color: var(--rr-yellow);
+}
+
+.contact__bar--green {
+    flex-grow: 1;
+    background-color: var(--rr-green);
+}
+
+.contact__title {
+    font-size: 40px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.contact__hint {
+    font-size: 24px;
+    color: var(--rr-muted);
+    white-space: normal;
+    margin: 4px 0 10px 0;
+}
+
+.contact__label {
+    font-size: 22px;
+    color: var(--rr-muted);
+    margin: 8px 0 2px 4px;
+}
+
+.contact__message {
+    font-size: 24px;
+    color: var(--rr-borderline);
+    white-space: normal;
+    min-height: 8px;
+}
+
+.typing-box {
+    flex-direction: row;
+    align-items: center;
+    min-height: 62px;
+    padding: 4px 18px;
+    border-radius: 14px;
+    border-width: 3px;
+    border-color: var(--rr-line);
+    background-color: var(--rr-surface-2);
+}
+
+.typing-box--active {
+    border-color: var(--rr-yellow);
+}
+
+.typing-box__text {
+    font-size: 30px;
+    color: rgb(255, 255, 255);
+    margin: 0;
+    padding: 0;
+}
+
+.typing-box__text--placeholder {
+    color: var(--rr-muted);
+}
+
+/* The ticking caret: a thin white bar at the end of the text (it blinks from TypingBox). */
+.typing-box__caret {
+    width: 3px;
+    height: 36px;
+    margin-left: 2px;
+    background-color: rgb(255, 255, 255);
+    opacity: 0;
+}
+
+.keyboard {
+    align-items: center;
+    margin: 10px 0 4px 0;
+}
+
+.keyboard__row {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.key {
+    min-width: 76px;
+    height: 62px;
+    margin: 3px;
+    padding: 0 8px;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: var(--rr-line);
+    background-color: var(--rr-surface-2);
+    color: var(--rr-text);
+    font-size: 28px;
+}
+
+.key:hover {
+    background-color: var(--rr-blue);
+    border-color: var(--rr-yellow);
+}
+
+.key--wide {
+    min-width: 120px;
+    background-color: var(--rr-green);
+}
+
+.key--space {
+    min-width: 300px;
+}
+
+.key--on {
+    background-color: var(--rr-yellow);
+    color: rgb(15, 20, 26);
 }
