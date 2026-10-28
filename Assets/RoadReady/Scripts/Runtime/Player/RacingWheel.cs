@@ -86,8 +86,24 @@ namespace RoadReady.Player
         public const string LeftPaddle = "button6";
         public const string PauseButton = "button10";     // options
         public const string EngineButton = "button9";     // share: the ON button
-        public const string GearTowardsDrive = "hat/down"; // D-pad down: P, R, N, D
-        public const string GearTowardsPark = "hat/up";
+        // The cross pad (D-pad) now turns the wing mirrors, so the gear lever moves on the lower triggers instead.
+        public const string GearTowardsDrive = "button7"; // R2: P, R, N, D
+        public const string GearTowardsPark = "button8";  // L2
+
+        /// <summary>The cross pad as a vector (x right, y up), or zero. Held, not edge-triggered, so it can drive a slow adjustment.</summary>
+        public static Vector2 CrossPad()
+        {
+            var wheel = Current;
+            if (wheel == null || wheel.Calibrating)
+                return Vector2.zero;
+            return new Vector2(Held(wheel, "hat/right") - Held(wheel, "hat/left"), Held(wheel, "hat/up") - Held(wheel, "hat/down"));
+        }
+
+        static float Held(RacingWheel wheel, string button)
+        {
+            var control = wheel.m_Device.TryGetChildControl<ButtonControl>(button);
+            return control != null && control.isPressed ? 1f : 0f;
+        }
 
         // Driving Force Shifter (H-pattern, plugged into the G29). Standard G29 numbering: gears 1-6 = button13..button18,
         // reverse = button19. The F3 calibration learns the real numbers (they differ between firmware / modes).

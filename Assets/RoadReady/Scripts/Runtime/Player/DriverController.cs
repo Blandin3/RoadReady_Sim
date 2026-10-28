@@ -332,7 +332,7 @@ namespace RoadReady.Player
                 SetHandbrake(!Handbrake);
             if (input.ShiftGear.WasPressedThisFrame())
                 SetGear(Gear switch { Gear.Drive => Gear.Neutral, Gear.Neutral => Gear.Reverse, Gear.Reverse => Gear.Park, _ => Gear.Drive });
-            // Wheel D-pad: down moves the lever towards D (P, R, N, D), up towards P.
+            // Wheel R2 moves the lever towards D (P, R, N, D), L2 towards P (the D-pad adjusts the mirrors).
             if (RacingWheel.Pressed(RacingWheel.GearTowardsDrive) && Gear != Gear.Drive)
                 SetGear(Gear + 1);
             if (RacingWheel.Pressed(RacingWheel.GearTowardsPark) && Gear != Gear.Park)

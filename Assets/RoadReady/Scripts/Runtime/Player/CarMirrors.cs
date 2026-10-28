@@ -81,6 +81,51 @@ namespace RoadReady.Player
 
         public Mirror[] Mirrors => m_Mirrors;
 
+        const string k_Prefs = "RoadReady.Mirror.";
+        const float k_TurnSpeed = 12f; // degrees per second
+        const float k_MaxTurn = 18f;
+        float m_YawAdjust, m_PitchAdjust;
+        bool m_AdjustDirty;
+
+        /// <summary>
+        /// Turns both wing mirrors with the wheel's cross pad (x = left / right, y = up / down) and remembers the setting.
+        /// The rear-view mirror is not adjusted.
+        /// </summary>
+        public void Adjust(Vector2 pad, float dt)
+        {
+            if (!m_Built)
+                return;
+            if (pad.sqrMagnitude < 0.25f)
+            {
+                if (m_AdjustDirty)
+                {
+                    m_AdjustDirty = false;
+                    PlayerPrefs.SetFloat(k_Prefs + "yaw", m_YawAdjust);
+                    PlayerPrefs.SetFloat(k_Prefs + "pitch", m_PitchAdjust);
+                    PlayerPrefs.Save();
+                }
+
+                return;
+            }
+
+            m_YawAdjust = Mathf.Clamp(m_YawAdjust + pad.x * k_TurnSpeed * dt, -k_MaxTurn, k_MaxTurn);
+            m_PitchAdjust = Mathf.Clamp(m_PitchAdjust + pad.y * k_TurnSpeed * dt, -k_MaxTurn, k_MaxTurn);
+            m_AdjustDirty = true;
+            ApplyAdjust();
+        }
+
+        void ApplyAdjust()
+        {
+            for (var i = 0; i < m_Mirrors.Length; i++)
+            {
+                var mirror = m_Mirrors[i];
+                if (mirror.shape != Shape.Wing || m_Cameras == null || m_Cameras[i] == null)
+                    continue;
+                // The camera looks backwards: a positive x rotation looks down, so "up" is a negative pitch.
+                m_Cameras[i].transform.localRotation = Quaternion.Euler(-m_PitchAdjust, 180f - (mirror.lookOutward + m_YawAdjust), 0f);
+            }
+        }
+
         public bool Visible { get; private set; } = true;
 
         public void Configure(Transform eyePoint, Material screenMaterial)
@@ -142,6 +187,10 @@ namespace RoadReady.Player
             m_Materials = new Material[m_Mirrors.Length];
             for (var i = 0; i < m_Mirrors.Length; i++)
                 BuildMirror(i, m_Mirrors[i]);
+
+            m_YawAdjust = PlayerPrefs.GetFloat(k_Prefs + "yaw");
+            m_PitchAdjust = PlayerPrefs.GetFloat(k_Prefs + "pitch");
+            ApplyAdjust();
         }
 
         void BuildMirror(int index, Mirror mirror)
