@@ -27,6 +27,7 @@ namespace RoadReady.UI
         RoadReadyApp m_App;
         VisualElement m_Shell;
         VisualElement m_Content;
+        ScrollPane m_Pane;
         VisualElement m_ModalLayer;
         Action m_ModalConfirm;
         Action m_ModalCancel;
@@ -41,7 +42,18 @@ namespace RoadReady.UI
             m_App = app;
             var root = m_MenuPanel.Root;
             m_Shell = root.Q<VisualElement>("shell");
-            m_Content = root.Q<VisualElement>("content") ?? root;
+            var host = root.Q<VisualElement>("content");
+            if (host != null)
+            {
+                // Every screen sits in a pane that scrolls (with up / down arrows) when it is taller than the panel.
+                m_Pane = new ScrollPane();
+                host.Add(m_Pane);
+                m_Content = m_Pane.Content;
+            }
+            else
+            {
+                m_Content = root;
+            }
             m_ModalLayer = root.Q<VisualElement>("modal-layer");
             root.Btn("modal-confirm", () => CloseModal(true));
             root.Btn("modal-cancel", () => CloseModal(false));
@@ -50,6 +62,8 @@ namespace RoadReady.UI
 
         public VisualTreeAsset GetTree(string name)
         {
+            if (string.IsNullOrEmpty(name))
+                return null; // a screen that builds itself in code
             foreach (var entry in m_Screens)
                 if (entry.name == name)
                     return entry.tree;
@@ -65,6 +79,7 @@ namespace RoadReady.UI
             m_Current = screen;
             m_Shell?.EnableInClassList("rr-root--clear", screen.Floating);
             screen.Mount(m_App, this, m_Content, GetTree(screen.TreeName));
+            m_Pane?.Reset(screen.Floating || screen.HasOwnScroll);
             SetMenuVisible(true, reposition);
             return screen;
         }
@@ -85,11 +100,18 @@ namespace RoadReady.UI
             m_App.Rig.SetPointers(visible || m_App.State != Core.AppState.InScenario);
         }
 
+        // Held back a little further than the serialized distances (and a touch larger to keep the text readable),
+        // so the whole panel fits the field of view without turning the head.
+        const float k_Farther = 1.45f;
+        const float k_FartherScale = 1.2f;
+
         public void Reposition()
         {
             var seated = m_App.Rig.IsSeated;
-            m_MenuPanel.SetScaleMultiplier(seated ? m_SeatedScale : 1f);
-            m_MenuPanel.PlaceInFront(m_App.Rig.HeadTransform, seated ? m_SeatedDistance : m_StandingDistance, seated ? -0.05f : -0.15f);
+            // Long panels (the feedback report) are held further back, and grow less than the distance, so all of it is in view.
+            var back = m_Current != null ? m_Current.ViewDistance : 1f;
+            m_MenuPanel.SetScaleMultiplier((seated ? m_SeatedScale : 1f) * k_FartherScale * Mathf.Lerp(1f, back, 0.8f));
+            m_MenuPanel.PlaceInFront(m_App.Rig.HeadTransform, (seated ? m_SeatedDistance : m_StandingDistance) * k_Farther * back, seated ? -0.05f : -0.15f);
         }
 
         public void ApplyTextScale(float scale) => m_MenuPanel.SetTextScale(scale);
