@@ -28,7 +28,7 @@ namespace RoadReady.UI
             {
                 // Ignore the timer if something else replaced the splash in the meantime.
                 if (UI.Current == this)
-                    App.ShowWelcome();
+                    App.ShowLanding();
             }).StartingIn(ms);
         }
     }
