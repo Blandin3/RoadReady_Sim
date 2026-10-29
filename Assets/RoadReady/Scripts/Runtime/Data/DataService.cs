@@ -32,6 +32,9 @@ namespace RoadReady.Data
         /// <summary>Optional names and e-mails for sending results reports; kept apart from the study data.</summary>
         public ContactStore Contacts { get; }
 
+        /// <summary>The driving school's login and the day's learner list; kept apart from the study data.</summary>
+        public SchoolStore School { get; }
+
         public ParticipantRecord CurrentParticipant { get; private set; }
         public SessionRecord CurrentSession { get; private set; }
 
@@ -44,6 +47,7 @@ namespace RoadReady.Data
             RootFolder = rootFolder ?? Path.Combine(Application.persistentDataPath, "RoadReady");
             Directory.CreateDirectory(ParticipantsFolder);
             Contacts = new ContactStore(RootFolder);
+            School = new SchoolStore(RootFolder);
         }
 
         // ----------------------------------------------------------------- participants
