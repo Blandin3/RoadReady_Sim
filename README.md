@@ -40,7 +40,11 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 | Area | What is implemented |
 |---|---|
 | **Dual perspective** | Each scenario supports Driver and Pedestrian. Progress, levels and history are tracked separately for each perspective. After any attempt, *Switch perspective* reloads the same scenario as the other road user. |
-| **Scenarios** | Market zebra crossing (unsignalised), Signalised intersection, Moto-taxi junction (unsignalised T-junction), plus an unscored tutorial for each perspective. |
+| **Scenarios** | Market zebra crossing, Signalised intersection, Reverse bay parking (driver only, scored out of 100, pass mark 80) and an endless Open road loop (driver only, timed), plus an unscored tutorial for each perspective. Every scenario ends on reaching the goal, a collision or the time limit. |
+| **Manual car** | Clutch, gears 1–6, R and N. The engine stalls if the clutch is let out too fast or the gear is too high for the speed. Start it with the ON button (or `O`) with the clutch down or in neutral. Details in [§6](#manual-gearbox-and-racing-wheel). |
+| **Racing wheel** | Logitech G29 (and similar) wheel, pedals, clutch and H-shifter through the Input System. Press `F3` in Play to calibrate and `F2` for a live monitor. |
+| **School accounts** | A driving school registers and logs in (Firebase), registers members (codes `R-001`, `R-002`…), picks who trains and sees a dashboard. See [§8](#school-accounts-firebase). |
+| **Menus in VR** | World-space UI Toolkit menus. Grab the blue bar above the pause menu with a controller ray to move the menu where you see best; it remembers the spot. |
 | **Rule-based evaluation** | A deterministic rule engine labels every decision **Safe / Borderline / Unsafe** with a severity (minor, major, critical). |
 | **Hazard perception** | Scripted hazards are measured with head-gaze tracking and response checks. Each one is classified with Endsley's three situation-awareness levels (perception, comprehension, projection). |
 | **Safety score** | A 0–100 composite score: hazard detection 45 %, reaction time 25 %, rule compliance 30 %. A collision caps the score at 40. |
@@ -65,6 +69,7 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 | Unity module: **Android Build Support** | with **OpenJDK** and **Android SDK & NDK Tools** | Only needed to build for Meta Quest. |
 | Unity module: **Windows Build Support (IL2CPP)** | optional | For a PC VR standalone build. |
 | **Git** (+ Git LFS recommended) | any recent | To clone the repository. |
+| **Firebase project** | free Spark plan | For school accounts only (Authentication + Firestore). See [§8](#school-accounts-firebase). |
 | **Meta Quest Link** app | latest | Optional. Lets you play in the Editor on a Quest headset over USB or Air Link. |
 | **Android Platform Tools (`adb`)** | ships with Unity's Android SDK | Used to install builds and pull exported data from the headset. |
 | Code editor | VS Code (C# Dev Kit + Unity extension) or Visual Studio 2022 | |
@@ -140,7 +145,7 @@ RoadReady generates its scenes, prefabs, materials, configuration assets and UI 
 3. This command:
    - creates materials, prefabs and the world-space UI panel settings
    - creates the configuration assets in `Assets/RoadReady/Generated/Config/`: `RoadReadyConfig`, `ScoringConfig`, the scenario definitions and hazard definitions
-   - builds the scenario scenes in `Assets/RoadReady/Generated/Scenes/`: `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection`, `RR_MotoTaxiJunction`
+   - builds the scenario scenes in `Assets/RoadReady/Generated/Scenes/`: `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection`, `RR_Parking`, `RR_OpenRoad`
    - builds the bootstrap scene `RR_Bootstrap` (XR rig, UI, HUD, app controller)
    - writes the **Build Settings** scene list (bootstrap first, then the scenario scenes)
    - sets `RR_Bootstrap` as the **Play Mode start scene** and opens it
@@ -150,7 +155,10 @@ Other menu commands:
 
 | Menu item | Purpose |
 |---|---|
-| `RoadReady → Rebuild Scenario Scenes Only` | Regenerate the four scenario scenes after editing the scene builder. |
+| `RoadReady → Rebuild Scenario Scenes Only` | Regenerate the scenario scenes after editing the scene builder. |
+| `RoadReady → Use Imported Car For Driver (Bentley)` · `Add Mirrors To Player Car` · `Add PolyDrive Dashboard To Player Car` · `Set Up Vehicle Audio` | Optional car set-up: the imported car model, wing mirrors, the PolyDrive dashboard gauges and the engine sounds. |
+| `RoadReady → Accounts → Build Account Scenes` / `Add Account Scenes To Build Settings` | Create the school-account scenes and add them to Build Settings (see [§8](#school-accounts-firebase)). |
+| `RoadReady → Accounts → Test Accounts (Play From SchoolSetup)` / `Restore Game Start` | Make Play start from the account screens, or put it back on `RR_Bootstrap`. |
 | `RoadReady → Open Data Folder` | Open the local study-data folder used in the Editor. |
 | `RoadReady → Export CSV (editor data)` | Export all Editor-recorded data to CSV. |
 | `RoadReady → Play From Current Scene (disable bootstrap redirect)` | Press Play in whatever scene is open. Scenario scenes have **no camera** by design, so only use this when debugging. |
@@ -173,6 +181,9 @@ Press **Play**. The game always starts from `RR_Bootstrap`, even if another scen
 | Look around | hold **right mouse button** + move mouse | same |
 | Left / right indicator | `Q` / `E` | — |
 | Horn | `H` | — |
+| Engine ON / handbrake | `O` / `B` | — |
+| Clutch (hold) | Left `Shift` | — |
+| Gear (cycles R, N, 1–6) | `G` | — |
 | Cross now (assisted crossing) | — | `Space` |
 | Stop / step back | — | `C` |
 | "I see a hazard" | `F` | `F` |
@@ -209,12 +220,24 @@ The project includes the XRI *Starter Assets* and XR simulation settings. Turn o
 | Recenter | Right thumbstick click | Right thumbstick click |
 | Look / blind-spot check | Turn your head | Turn your head |
 
+### Manual gearbox and racing wheel
+
+The car is a manual: it starts in neutral with the engine off and the handbrake up.
+
+1. Press the clutch (left pedal, or hold left `Shift`) and press the ON button (or `O`).
+2. Push the handbrake down (or `B`), select **1st** (or **R**), then let the clutch up slowly while pressing the accelerator.
+3. Press the clutch to change gear. Changing gear without it jerks the car and shows a warning.
+
+With a **G29**: the H-shifter selects gears 1–6 and R, and `R2` / `L2` shift up and down. Press **`F3` in Play** to calibrate; it learns the wheel, accelerator, brake, clutch (Space skips it) and shifter. `F2` shows every axis and button live. Set `m_ManualGearbox` to off on the car's `DriverController` to go back to the old automatic (P-R-N-D).
+
+> The grab-able VR gear lever is still the P-R-N-D prop and selects 1st only. Use the shifter or buttons to reach higher gears.
+
 ---
 
 ## 7. Building and running on Meta Quest
 
 1. **File → Build Profiles** (or *Build Settings*) → select **Android** → **Switch Platform**.
-2. Confirm that the scene list has `RR_Bootstrap` first, followed by `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection` and `RR_MotoTaxiJunction` (Build Everything does this).
+2. Confirm that the scene list has `RR_Bootstrap` first, followed by `RR_Tutorial`, `RR_ZebraCrossing`, `RR_SignalizedIntersection`, `RR_Parking` and `RR_OpenRoad` (Build Everything does this), then the account scenes `SchoolSetup`, `Home`, `MemberRegister`, `StartTraining` and `Dashboard`.
 3. **Edit → Project Settings → XR Plug-in Management → Android tab**: tick **OpenXR**, then under **OpenXR → Android** enable the **Meta Quest Support** feature group and the Meta Quest Touch controller profiles. These are already enabled in this repository.
 4. **Player settings (Android)** already set in the project:
    - Scripting backend **IL2CPP**, target architecture **ARM64**
@@ -268,9 +291,22 @@ This asset holds every threshold of the rule engine, so the scoring model can be
 ### Scenario and hazard definitions
 
 - `Scenario_*.asset`: name, location, scene, supported perspectives, a briefing **for each perspective**, difficulty levels (traffic density, moto-taxi share, NPC speed, driver yield compliance, signal compliance, pedestrian density, time limit), the unlock score (default 80) and the hazard list.
-- `Hazards/*.asset` (e.g. `zebra_car_no_yield`, `signal_red_runner`, `junction_hidden_moto`): hazard type, the required response, feedback text for safe / borderline / unsafe outcomes, and the **other-perspective insight** shown on the feedback screen.
+- `Hazards/*.asset` (e.g. `zebra_car_no_yield`, `signal_red_runner`, `parking_pedestrian_behind`): hazard type, the required response, feedback text for safe / borderline / unsafe outcomes, and the **other-perspective insight** shown on the feedback screen.
 
 Researchers can also override scenario parameters at runtime from the **Admin panel → Scenarios** tab. These overrides are stored on the device in the data folder.
+
+### School accounts (Firebase)
+
+A driving school registers once, then logs in on the headset and stays logged in until **Log out school**. Flow: `SchoolSetup` (register / log in) → `Home` → **Start training** (pick a member, opens the game), **Register new member**, **Dashboard** (asks for the password again, then shows member counts). Screens are world-space canvases with an on-screen keyboard (letters and a `#+=` symbols page), so they work in a headset and with the mouse.
+
+One-time Firebase set-up:
+
+1. In the [Firebase console](https://console.firebase.google.com/) create a project and register the app. Put the downloaded `google-services.json` in `Assets/` and `google-services-desktop.json` in `Assets/StreamingAssets/`.
+2. **Authentication → Sign-in method**: enable **Email/Password**.
+3. **Firestore Database**: create a database, then paste [`firestore.rules`](firestore.rules) into the **Rules** tab and **Publish**. Without this, registering fails with *Missing or insufficient permissions*.
+4. In Unity run `RoadReady → Accounts → Build Account Scenes`, then `Add Account Scenes To Build Settings`, and drag `SchoolSetup` to the top of the scene list if the app should start there.
+
+Data lives at `schools/{uid}` and `schools/{uid}/members/{id}`. Only the logged-in school can read or write its own data.
 
 ---
 
@@ -302,6 +338,25 @@ Participant Setup (researcher) → Consent → Instructions → Tutorial (first 
 
 ---
 
+## 10. Data storage and export
+
+- **Local:** crash-safe JSON for participants and attempts, plus a per-attempt telemetry file (NDJSON, `telemetrySampleRate` Hz). In the Editor use `RoadReady → Open Data Folder`; on Quest pull the files with `adb`.
+- **Export:** CSV (attempts, hazards, participants) from the **Admin panel** or `RoadReady → Export CSV (editor data)`. Participants can also get a PDF report by email address (stored locally).
+- **Remote (optional):** `remoteBackend` in `RoadReadyConfig` syncs to Firebase Realtime Database or a JSON POST endpoint. Never commit real tokens.
+- **Anonymous:** only IDs such as `RR-7KQ2TX` are stored. Withdrawing deletes that participant's data.
+
+---
+
+## 11. How the simulation works
+
+- **Car:** a deterministic kinematic model driven from `Update` (no physics jitter), left-hand drive, with the manual gearbox in `DriverController`.
+- **Rules:** `RuleEngine` (driver, pedestrian and shared rules) turns behaviour into Safe / Borderline / Unsafe decisions with a severity.
+- **Hazards:** `HazardMonitor` checks head gaze and the response to each scripted hazard.
+- **Score:** `ScoreCalculator` combines hazards and rules (parking uses points off 100 instead); `FeedbackGenerator` writes the report.
+- **Ending an attempt:** reaching a goal zone, a collision, or the time limit. The open road has no goal and counts as a drive once at least 800 m is covered.
+
+---
+
 ## 12. Project structure
 
 ```
@@ -324,10 +379,14 @@ RoadReady_Sim/
 │   │   ├── UI/
 │   │   │   ├── UXML/              # one layout per screen (MainMenu, Briefing, HUD, Feedback, Pause, ...)
 │   │   │   └── USS/RoadReady.uss  # design tokens and styles
+│   │   ├── Accounts/              # school login, members, dashboard (Scripts, Editor builder, Scenes)
 │   │   └── Generated/             # created by "Build Everything": Config, Scenes, Prefabs, Materials
+│   ├── Firebase/, Plugins/        # Firebase Unity SDK (Auth, Firestore) and its native plugins
+│   ├── PolyDrive - FREE/          # vehicle models, used for the car dashboard
 │   ├── Samples/                   # XR Interaction Toolkit & XR Hands samples
 │   ├── XR/, XRI/                  # XR plug-in management, OpenXR and XRI settings
 │   └── Scenes/                    # template scenes (not used at runtime)
+├── firestore.rules                # Firestore security rules (publish in the Firebase console)
 ├── Packages/manifest.json
 └── ProjectSettings/
 ```
@@ -365,5 +424,10 @@ Supporting design files:
 | Package errors on first open | Make sure you use Unity **6000.3.21f1**. Close Unity, delete `Library/`, then reopen. |
 | Headset not detected in Build And Run | Enable Developer Mode, accept USB debugging in the headset, and check that `adb devices` lists it. Try another USB-C data cable. |
 | Black screen with Quest Link | Make sure Link is active before pressing Play and OpenXR is ticked on the **Standalone** tab. In the Meta Quest Link app, set OpenXR runtime to *Meta Quest Link*. |
+| Registering a school says **"Missing or insufficient permissions"** | Publish [`firestore.rules`](firestore.rules) in Firebase → Firestore → Rules and enable Email/Password sign-in. |
+| Play mode exits immediately with the headset connected | The Meta runtime ended the OpenXR session. Be inside Link before pressing Play, set *Play Mode OpenXR Runtime* to **Oculus**, close SteamVR and other VR apps, and set Meta Quest Link as the active OpenXR runtime. Without a headset, Play works as usual. |
+| The car does not move | It is a manual: clutch down, select 1st (or R), release the handbrake, then ease the clutch up with the accelerator pressed. If the engine stalls, clutch down and press ON again. |
+| Wheel pedals, clutch or shifter feel wrong | Press `F3` in Play to calibrate, `F2` to see the live axes. |
+| Account menu text boxes do not type | Click the box, then use the on-screen keyboard. |
 | Motion sickness during tests | Turn on the comfort vignette, snap turning or seated mode in **Comfort settings**. Stop the session if the SSQ warning appears. |
 
