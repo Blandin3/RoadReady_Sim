@@ -18,6 +18,9 @@ namespace RoadReady.UI
         /// <summary>True for screens that draw their own card over the 3D world instead of the full dark panel.</summary>
         public virtual bool Floating => false;
 
+        /// <summary>How much further back than usual the panel is held (the panel grows with it, so its text stays readable).</summary>
+        public virtual float ViewDistance => 1f;
+
         public void Mount(RoadReadyApp app, RoadReadyUI ui, VisualElement container, VisualTreeAsset tree)
         {
             App = app;
@@ -28,7 +31,12 @@ namespace RoadReady.UI
             container.Add(Root);
             Bind();
             UIX.AddGlassSheen(Root);
+            foreach (var view in Root.Query<ScrollView>().ToList())
+                ScrollArrows.Attach(view);
         }
+
+        /// <summary>True when the screen has a ScrollView of its own (so the panel does not scroll it as well).</summary>
+        public bool HasOwnScroll => Root != null && Root.Q<ScrollView>() != null;
 
         protected abstract void Bind();
 

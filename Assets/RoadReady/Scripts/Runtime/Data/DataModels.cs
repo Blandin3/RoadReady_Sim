@@ -6,7 +6,7 @@ using RoadReady.Core;
 namespace RoadReady.Data
 {
     // Mapping to the proposal ERD (Figure 5):
-    //   Participant        -> ParticipantRecord   (anonymised: no name / email is stored, see NFR data privacy)
+    //   Participant        -> ParticipantRecord   (anonymised: no name / email is stored here, see NFR data privacy; the optional report contact lives in ContactStore)
     //   Training Session   -> AttemptRecord       (one scenario attempt)
     //   Performance Record -> PerformanceRecord   (one per scripted hazard)
     //   Safety Score       -> SafetyScore         (embedded in the attempt)
@@ -154,6 +154,8 @@ namespace RoadReady.Data
         public float posZ;
         public float speedKmh;
         public string tip;
+        /// <summary>Points off 100 in <see cref="Core.ScoringMode.PointsDeduction"/> scenarios (0 = use the severity penalty).</summary>
+        public float points;
 
         public bool IsViolation => source == DecisionSource.Rule && decision != DecisionClass.Safe;
     }

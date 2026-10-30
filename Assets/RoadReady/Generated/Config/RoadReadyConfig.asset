@@ -17,7 +17,7 @@ MonoBehaviour:
   scenarios:
   - {fileID: 11400000, guid: 9913a10b794a6714eb4cfc26a917c42f, type: 2}
   - {fileID: 11400000, guid: 34925be6864803e458a6b7a6c797c893, type: 2}
-  - {fileID: 11400000, guid: f7eacc87ee6c9f54e90e36c12ada0cf1, type: 2}
+  - {fileID: 11400000, guid: 11195b7e650bd3f4c95090666c1f7cfe, type: 2}
   - {fileID: 11400000, guid: 489cabb76e369b1479d4a7aef76e18e8, type: 2}
   scoring: {fileID: 11400000, guid: 4a944ed4d1f410f479635ecd6cec2af8, type: 2}
   defaultComfort:

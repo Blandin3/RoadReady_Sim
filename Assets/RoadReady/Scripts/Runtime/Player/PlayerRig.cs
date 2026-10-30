@@ -3,6 +3,7 @@ using RoadReady.Config;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Comfort;
@@ -36,6 +37,14 @@ namespace RoadReady.Player
         float m_DefaultCameraYOffset;
         XROrigin.TrackingOriginMode m_DefaultTrackingMode;
         Scene m_HomeScene;
+        // Where the driver sits relative to the eye point (metres: x right, z forward), moved with the right thumbstick.
+        const string k_SeatPrefs = "RoadReady.Seat.";
+        const float k_SeatSpeed = 0.25f;
+        Vector3 m_SeatOffset;
+        bool m_SeatDirty;
+        bool m_HeadsetWorn = true;
+        bool m_TrackingReset;
+        int m_RecenterFrames;
         readonly List<NearFarInteractor> m_NearFar = new List<NearFarInteractor>();
         DriverHands m_Hands;
         bool m_PointersVisible = true;
@@ -53,6 +62,10 @@ namespace RoadReady.Player
         public Transform HeadTransform => Head != null ? Head.transform : transform;
         public TunnelingVignetteController Vignette { get; private set; }
         public bool IsSeated => m_Seat != null;
+        /// <summary>The driver's eye point while seated in the car, else null.</summary>
+        public Transform Seat => m_Seat;
+        /// <summary>Raised when the view re-centred by itself (headset put back on, tracking origin reset).</summary>
+        public event System.Action AutoRecentered;
         public Transform LobbySpawn { get => m_LobbySpawn; set => m_LobbySpawn = value; }
 
         public void Initialize(ComfortSettings comfort)
@@ -78,11 +91,20 @@ namespace RoadReady.Player
             m_Hands.Setup(FindChild(m_Origin.transform, "Left Controller"), FindChild(m_Origin.transform, "Right Controller"),
                 m_LeftHandModel, m_RightHandModel, m_HandMaterial);
             foreach (var interactor in m_Origin.GetComponentsInChildren<XRRayInteractor>(true))
-                m_PointerObjects.Add(interactor.gameObject);
+            {
+                // The starter rig also carries a plain Ray and a Teleport interactor on each controller. Showing them
+                // next to the Near-Far one gives two rays (one white, one red) that fight over the same buttons, and
+                // teleporting is never used here. So the Near-Far interactor is the only pointer.
+                if (m_NearFar.Count > 0)
+                    interactor.gameObject.SetActive(false);
+                else
+                    m_PointerObjects.Add(interactor.gameObject);
+            }
             Vignette = m_Origin.GetComponentInChildren<TunnelingVignetteController>(true);
             m_DefaultCameraYOffset = m_Origin.CameraYOffset;
             m_DefaultTrackingMode = m_Origin.RequestedTrackingOriginMode;
             m_HomeScene = m_Origin.gameObject.scene;
+            m_SeatOffset = new Vector3(PlayerPrefs.GetFloat(k_SeatPrefs + "x"), 0f, PlayerPrefs.GetFloat(k_SeatPrefs + "z"));
 
             // Smooth-motion mode keeps the left stick from triggering the teleport ray: teleporting
             // across a road would skip the very decision we are training.
@@ -91,6 +113,49 @@ namespace RoadReady.Player
 
             ApplyComfort(comfort);
             SetLocomotion(false);
+        }
+
+        void OnEnable()
+        {
+            var inputs = new List<XRInputSubsystem>();
+            SubsystemManager.GetSubsystems(inputs);
+            foreach (var input in inputs)
+                input.trackingOriginUpdated += OnTrackingOriginUpdated;
+        }
+
+        void OnDisable()
+        {
+            var inputs = new List<XRInputSubsystem>();
+            SubsystemManager.GetSubsystems(inputs);
+            foreach (var input in inputs)
+                input.trackingOriginUpdated -= OnTrackingOriginUpdated;
+        }
+
+        void OnTrackingOriginUpdated(XRInputSubsystem subsystem) => m_TrackingReset = true;
+
+        /// <summary>
+        /// Taking the headset off (or the runtime resetting its tracking space) leaves the driver looking away from the
+        /// road. Put the view back on the seat once the headset is worn again and its tracking has settled.
+        /// </summary>
+        void Update()
+        {
+            var head = InputDevices.GetDeviceAtXRNode(XRNode.Head);
+            var worn = !head.isValid || !head.TryGetFeatureValue(CommonUsages.userPresence, out var present) || present;
+            if (worn && !m_HeadsetWorn)
+                m_RecenterFrames = 30;
+            m_HeadsetWorn = worn;
+
+            if (m_TrackingReset)
+            {
+                m_TrackingReset = false;
+                m_RecenterFrames = Mathf.Max(m_RecenterFrames, 10);
+            }
+
+            if (m_RecenterFrames > 0 && --m_RecenterFrames == 0)
+            {
+                Recenter();
+                AutoRecentered?.Invoke();
+            }
         }
 
         public void ApplyComfort(ComfortSettings comfort)
@@ -222,8 +287,38 @@ namespace RoadReady.Player
             if (m_Seat != null)
             {
                 m_Origin.MatchOriginUpCameraForward(m_Seat.up, m_Seat.forward);
-                m_Origin.MoveCameraToWorldLocation(m_Seat.position);
+                m_Origin.MoveCameraToWorldLocation(m_Seat.TransformPoint(m_SeatOffset));
             }
+        }
+
+        /// <summary>
+        /// Seat adjustment: the right thumbstick slides the driver's head forwards / back and left / right inside the
+        /// car. The position is remembered between drives. Does nothing outside the car.
+        /// </summary>
+        public void AdjustSeat(Vector2 stick, float dt)
+        {
+            if (m_Origin == null || m_Seat == null)
+                return;
+            if (stick.sqrMagnitude < 0.09f)
+            {
+                if (m_SeatDirty)
+                {
+                    m_SeatDirty = false;
+                    PlayerPrefs.SetFloat(k_SeatPrefs + "x", m_SeatOffset.x);
+                    PlayerPrefs.SetFloat(k_SeatPrefs + "z", m_SeatOffset.z);
+                    PlayerPrefs.Save();
+                }
+
+                return;
+            }
+
+            // Forward / back (closeness to the wheel) is the main use: sideways only when the stick is clearly pushed sideways.
+            if (Mathf.Abs(stick.x) < Mathf.Abs(stick.y) * 1.5f)
+                stick.x = 0f;
+            m_SeatOffset.x = Mathf.Clamp(m_SeatOffset.x + stick.x * k_SeatSpeed * dt, -0.30f, 0.30f);
+            m_SeatOffset.z = Mathf.Clamp(m_SeatOffset.z + stick.y * k_SeatSpeed * dt, -0.50f, 0.40f);
+            m_SeatDirty = true;
+            m_Origin.MoveCameraToWorldLocation(m_Seat.TransformPoint(m_SeatOffset));
         }
 
         /// <summary>Moves the standing rig horizontally (assisted crossing / desktop walking).</summary>

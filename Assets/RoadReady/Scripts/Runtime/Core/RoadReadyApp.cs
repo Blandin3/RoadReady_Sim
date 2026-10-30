@@ -34,6 +34,7 @@ namespace RoadReady
         AttemptRecord m_LastAttempt;
         FeedbackReport m_LastReport;
         bool m_ReturnToMenuAfterTutorial;
+        ScenarioDefinition m_PickedScenario;
 
         public static RoadReadyApp Instance { get; private set; }
 
@@ -79,6 +80,7 @@ namespace RoadReady
         void Start()
         {
             m_Rig.Initialize(Comfort);
+            m_Rig.AutoRecentered += OnRigAutoRecentered;
             if (m_Pedestrian != null)
                 m_Pedestrian.Initialize(m_Rig, Comfort);
             if (m_Vignette != null)
@@ -94,6 +96,11 @@ namespace RoadReady
             m_UI.Initialize(this);
             m_UI.ApplyTextScale(Comfort.textScale);
             m_Hud.Initialize(this, m_Scenarios);
+
+            // Plain background behind the menus: hide the lobby's floor (its collider stays, so the rig still stands on it).
+            if (m_Scenarios.Lobby != null)
+                foreach (var r in m_Scenarios.Lobby.GetComponentsInChildren<Renderer>(true))
+                    r.enabled = false;
 
             if (m_Config.lobbyBackdrop != null && m_Scenarios.Lobby != null)
                 LobbyBackdrop.Create(m_Scenarios.Lobby, m_Rig.Head, m_Config.lobbyBackdrop);
@@ -114,9 +121,18 @@ namespace RoadReady
             ShowSplash();
         }
 
+        /// <summary>The headset was put back on: bring a floating menu back in front of the learner.</summary>
+        void OnRigAutoRecentered()
+        {
+            if (m_UI != null && m_UI.MenuVisible)
+                m_UI.Reposition();
+        }
+
         void Update()
         {
-            if (RoadReadyInput.Instance.Pause.WasPressedThisFrame())
+            UpdateBackground();
+
+            if (RoadReadyInput.Instance.Pause.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.PauseButton))
             {
                 if (State == AppState.InScenario)
                     Pause();
@@ -124,8 +140,38 @@ namespace RoadReady
                     Resume();
             }
 
-            if (State != AppState.InScenario && RoadReadyInput.Instance.Recenter.WasPressedThisFrame() && m_UI.MenuVisible)
-                m_UI.Reposition();
+            // Right thumbstick: slide the seat (your position in the car) while no menu is in the way.
+            if (m_Rig != null && m_Rig.IsSeated && !m_UI.MenuVisible)
+                m_Rig.AdjustSeat(RoadReadyInput.Instance.SeatMove.ReadValue<Vector2>(), Time.unscaledDeltaTime);
+
+            // Wheel cross pad: turn the wing mirrors for a good view.
+            if (m_Scenarios != null && m_Scenarios.Driver != null && !m_UI.MenuVisible)
+            {
+                var mirrors = m_Scenarios.Driver.GetComponent<Player.CarMirrors>();
+                if (mirrors != null)
+                    mirrors.Adjust(Player.RacingWheel.CrossPad(), Time.unscaledDeltaTime);
+            }
+
+            // Re-centre from any state (driving, countdown, paused, menus): wheel triangle, R, or right thumbstick click.
+            if (RoadReadyInput.Instance.Recenter.WasPressedThisFrame() || Player.RacingWheel.Pressed(Player.RacingWheel.RecenterButton))
+                RecenterView();
+        }
+
+        /// <summary>
+        /// Plain dark-blue background (config colour) while no scenario is loaded, so the menus stand out; the
+        /// scenario's own sky as soon as one is. A uniform colour has no detail to move against, so it is comfortable.
+        /// </summary>
+        void UpdateBackground()
+        {
+            var camera = m_Rig != null ? m_Rig.Head : null;
+            if (camera == null || m_Scenarios == null)
+                return;
+            var plain = !m_Scenarios.HasScenarioLoaded;
+            var flags = plain ? CameraClearFlags.SolidColor : CameraClearFlags.Skybox;
+            if (camera.clearFlags != flags)
+                camera.clearFlags = flags;
+            if (plain)
+                camera.backgroundColor = m_Config.lobbyBackgroundColor;
         }
 
         void SetState(AppState state)
@@ -210,7 +256,61 @@ namespace RoadReady
 
             Data.RecordConsent(participant, true);
             Data.BeginSession(participant, false);
-            ShowInstructions();
+            OfferReportContact(ShowInstructions);
+        }
+
+        // ================================================================ results report (name + email, optional)
+
+        /// <summary>
+        /// Asks (once, up front) for a name and an email so the participant gets a PDF of how they did: people tend to
+        /// take the headset off before the on-screen feedback. Skipped when they have already left one.
+        /// </summary>
+        void OfferReportContact(System.Action next)
+        {
+            var participant = Participant;
+            if (participant == null || Data.Contacts.Get(participant.participantId) != null)
+            {
+                next();
+                return;
+            }
+
+            SetState(AppState.Consent);
+            m_UI.Show(new ContactScreen(participant.participantId, next));
+        }
+
+        /// <summary>From the feedback screen: add or change the report email, then come back to the feedback.</summary>
+        public void OpenReportContact()
+        {
+            var participant = Participant;
+            if (participant == null)
+                return;
+            SetState(AppState.Feedback);
+            m_UI.Show(new ContactScreen(participant.participantId, () =>
+            {
+                SetState(AppState.Feedback);
+                m_UI.Show(new FeedbackScreen(m_LastReport));
+            }));
+        }
+
+        public void SaveReportContact(string participantId, string name, string email)
+        {
+            Data.Contacts.Save(participantId, name, email);
+            WriteReport(participantId);
+        }
+
+        /// <summary>Rewrites the participant's overall PDF (after every attempt, so it is ready when the headset comes off).</summary>
+        void WriteReport(string participantId)
+        {
+            try
+            {
+                var file = ReportBuilder.Write(Data, participantId);
+                if (file != null)
+                    Debug.Log($"[RoadReady] Results report written: {System.IO.Path.Combine(Data.Contacts.Folder, file)}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[RoadReady] Could not write the results report: {e.Message}");
+            }
         }
 
         void ShowInstructions()
@@ -392,6 +492,22 @@ namespace RoadReady
                 return; // leaving the scenario - no report
             Time.timeScale = 1f;
             m_Scenarios.SetPaused(false);
+            if (attempt.phase != AttemptPhase.Tutorial)
+                WriteReport(attempt.participantId);
+
+            if (m_PickedScenario != null)
+            {
+                var picked = m_PickedScenario;
+                m_PickedScenario = null;
+                if (attempt.phase == AttemptPhase.Tutorial)
+                {
+                    var perspective = m_LastRequest.perspective;
+                    m_UI.HideMenu();
+                    SetState(AppState.Loading);
+                    m_Scenarios.UnloadScenario(() => OpenBriefing(picked, perspective));
+                    return;
+                }
+            }
 
             if (attempt.phase == AttemptPhase.Tutorial && m_ReturnToMenuAfterTutorial && attempt.endReason == AttemptEndReason.TutorialComplete)
             {
@@ -422,6 +538,26 @@ namespace RoadReady
             m_UI.Show(new PauseScreen());
         }
 
+        /// <summary>
+        /// The "Skip tutorial" button: pauses and offers the scenarios. The learner picks one (ending the tutorial and
+        /// going to its briefing) or closes the panel to carry on.
+        /// </summary>
+        public void OpenScenarioPicker()
+        {
+            if (State != AppState.InScenario || m_Scenarios.State != AttemptState.Running)
+                return;
+            m_Scenarios.SetPaused(true);
+            SetState(AppState.Paused);
+            m_UI.Show(new ScenarioPickerScreen());
+        }
+
+        public void PickScenario(ScenarioDefinition scenario)
+        {
+            m_PickedScenario = scenario;
+            Resume();
+            m_Scenarios.SkipTutorial(); // the tutorial counts as done; OnAttemptFinished carries on to the scenario
+        }
+
         public void Resume()
         {
             if (State != AppState.Paused)
@@ -430,6 +566,23 @@ namespace RoadReady
             SetState(AppState.InScenario);
             m_Scenarios.SetPaused(false);
             m_Rig.SetPointers(false);
+        }
+
+        /// <summary>The exit button on the car door: ends the attempt after a confirmation.</summary>
+        public void RequestExitCar()
+        {
+            if (State != AppState.InScenario || m_UI.MenuVisible)
+                return;
+            if (m_Scenarios.State == AttemptState.Running)
+                Pause();
+            m_UI.Confirm("Leave the car?", "Opening the door ends this attempt and takes you back to the menu.",
+                "Leave the car", BackToMenu, () =>
+                {
+                    if (State == AppState.Paused)
+                        Resume();
+                    else
+                        m_UI.HideMenu();
+                }, "Stay in the car");
         }
 
         public void RestartAttempt()
@@ -458,7 +611,8 @@ namespace RoadReady
         public void RecenterView()
         {
             m_Scenarios.Recenter();
-            m_UI.Reposition();
+            if (m_UI.MenuVisible)
+                m_UI.Reposition();
         }
 
         // ================================================================ comfort & admin

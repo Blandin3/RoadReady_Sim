@@ -18,11 +18,26 @@ EditorBuildSettings:
     path: Assets/RoadReady/Generated/Scenes/RR_SignalizedIntersection.unity
     guid: bfaa65ef6cd6eb148a221a31fb3033ec
   - enabled: 1
-    path: Assets/RoadReady/Generated/Scenes/RR_MotoTaxiJunction.unity
-    guid: 03eb425cf7a2ec54ca28c6f23c0e56e9
+    path: Assets/RoadReady/Generated/Scenes/RR_Parking.unity
+    guid: f61b622bf6646fd4f9a5f2a87f94d8cb
   - enabled: 1
     path: Assets/RoadReady/Generated/Scenes/RR_OpenRoad.unity
     guid: 3f0385c286b01de4ba6510d10ee9b426
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/SchoolSetup.unity
+    guid: 506490e543ced37438e833ead3d7b79c
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/Home.unity
+    guid: 2ed6f8ed9f7e0584f8ff2719310ee3c6
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/MemberRegister.unity
+    guid: 74d2d340220741dab7c0da7fe072ffb0
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/StartTraining.unity
+    guid: e5b58a05d1ae4af295dab1ec4a2ca74d
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/Dashboard.unity
+    guid: d512f5e835ac4277998d32b191796b72
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: bfa1182bd221b4ca89619141f66f1260, type: 2}
     Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: dc5a169419fa04987b057f65238cf3ba, type: 2}

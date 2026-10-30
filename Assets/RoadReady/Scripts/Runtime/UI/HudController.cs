@@ -15,7 +15,7 @@ namespace RoadReady.UI
     public class HudController : MonoBehaviour
     {
         [SerializeField] float m_DashboardDistance = 0.95f;
-        [SerializeField] float m_DashboardDrop = 0.34f;
+        [SerializeField] float m_DashboardDrop = -0.12f;
         [SerializeField] float m_DashboardScale = 0.55f;
         [SerializeField] float m_FollowDistance = 1.4f;
         [SerializeField] float m_FollowDrop = 0.45f;
@@ -25,8 +25,9 @@ namespace RoadReady.UI
         ScenarioManager m_Scenarios;
         RoadReadyApp m_App;
         Label m_Speed, m_Limit, m_Timer, m_Gear, m_Countdown, m_Caption, m_Prompt, m_Toast, m_Tutorial, m_ArrowLeft, m_ArrowRight;
-        VisualElement m_Cluster;
-        Button m_Skip;
+        VisualElement m_Cluster, m_Objective;
+        Label m_ObjectiveText;
+        Button m_Skip, m_Restart;
         bool m_SkipShown;
         float m_HandbrakeHintAt = -100f;
         float m_CaptionUntil, m_ToastUntil, m_CountdownUntil;
@@ -52,9 +53,15 @@ namespace RoadReady.UI
             m_ArrowLeft = root.Q<Label>("arrow-left");
             m_ArrowRight = root.Q<Label>("arrow-right");
             m_Cluster = root.Q<VisualElement>("cluster");
+            m_Objective = root.Q<VisualElement>("objective");
+            m_ObjectiveText = root.Q<Label>("objective-text");
             m_Skip = root.Q<Button>("skip-tutorial");
             if (m_Skip != null)
-                m_Skip.clicked += () => m_App.Pause(); // the same pause panel as the left controller's menu button
+                m_Skip.clicked += () => m_App.OpenScenarioPicker(); // pick a scenario now, or carry on with the tutorial
+
+            m_Restart = root.Q<Button>("restart-scenario");
+            if (m_Restart != null)
+                m_Restart.clicked += () => m_App.RestartAttempt(); // run the same scenario again from the start
 
             RoadReadyEvents.InstructionRequested += OnInstruction;
             RoadReadyEvents.ToastRequested += OnToast;
@@ -101,6 +108,8 @@ namespace RoadReady.UI
         {
             if (m_Panel == null || m_App == null)
                 return;
+            // The pause / menu panel opens over the same spot, so the HUD steps aside while it is open.
+            m_Panel.Root.visible = !m_App.UI.MenuVisible;
             var now = Time.unscaledTime;
             if (now > m_CaptionUntil) m_Caption.SetVisible(false);
             if (now > m_ToastUntil) m_Toast.SetVisible(false);
@@ -125,12 +134,14 @@ namespace RoadReady.UI
                 m_ArrowLeft.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Left && blink);
                 m_ArrowRight.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Right && blink);
                 if (m_Gear != null)
-                    m_Gear.text = GearText(driver.Gear, driver.Handbrake);
+                    m_Gear.text = driver.ManualGearbox ? ManualGearText(driver) : GearText(driver.Gear, driver.Handbrake, driver.EngineOn);
                 // Accelerating while the car is held: say what to do (at most every few seconds).
-                if (driver.Throttle > 0.3f && now - m_HandbrakeHintAt > 5f && (driver.Handbrake || driver.Gear == Gear.Park || driver.Gear == Gear.Neutral))
+                if (driver.Throttle > 0.3f && now - m_HandbrakeHintAt > 5f && (!driver.EngineOn || driver.Handbrake || driver.Gear == Gear.Park || driver.Gear == Gear.Neutral))
                 {
                     m_HandbrakeHintAt = now;
-                    OnToast(driver.Handbrake ? "Handbrake is up: push it down (or press B) to drive"
+                    OnToast(!driver.EngineOn ? "The engine is off: press the clutch, then the ON button (or O) to start it"
+                        : driver.Handbrake ? "Handbrake is up: push it down (or press B) to drive"
+                        : driver.ManualGearbox ? "In neutral: press the clutch and select 1st gear (or R), then let the clutch up slowly"
                         : driver.Gear == Gear.Park ? "In P (park): move the gear lever to D (or R) to drive"
                         : "In N (neutral): move the gear lever to D (or R) to drive", 3f);
                 }
@@ -142,22 +153,74 @@ namespace RoadReady.UI
             m_Prompt.text = prompt ?? "";
             m_Prompt.SetVisible(!string.IsNullOrEmpty(prompt) && !m_App.UI.MenuVisible);
 
+            UpdateObjective(state, driver);
             Place(driver);
         }
 
-        /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
         /// <summary>
-        /// During the tutorial a "Skip tutorial" button sits under the instruction. It opens the pause panel (where
-        /// the learner confirms the skip), exactly like the left controller's menu button, which keeps working too.
-        /// The controller ray stays on while the button is shown so it can be pointed at.
+        /// The small "what to do" panel: the very next thing the learner has to do. In the car that is first of all
+        /// getting it going (engine, handbrake, gear), then the tutorial step or the scenario's aim.
+        /// </summary>
+        void UpdateObjective(AttemptState state, Player.DriverController driver)
+        {
+            var text = ObjectiveText(state, driver);
+            var show = !string.IsNullOrEmpty(text) && !m_App.UI.MenuVisible;
+            m_Objective.SetVisible(show);
+            if (show)
+                m_ObjectiveText.text = text;
+        }
+
+        string ObjectiveText(AttemptState state, Player.DriverController driver)
+        {
+            if (state == AttemptState.Countdown)
+                return "Get ready: press the glowing ON button on the console";
+            if (state != AttemptState.Running)
+                return null;
+            var request = m_Scenarios.Request;
+            if (driver != null)
+            {
+                if (!driver.EngineOn) return driver.ManualGearbox ? "Press the clutch, then the glowing ON button to start the engine" : "Press the glowing ON button on the console to start the engine";
+                if (driver.Handbrake) return "Release the handbrake: push the lever down";
+                if (driver.ManualGearbox && (driver.Gear == Gear.Park || driver.Gear == Gear.Neutral)) return "Clutch down, select 1st gear (or R), then ease the clutch up and press the accelerator";
+                if (driver.Gear == Gear.Park || driver.Gear == Gear.Neutral) return "Move the gear lever to D to drive, or R to reverse";
+            }
+
+            if (request.phase == AttemptPhase.Tutorial)
+            {
+                var tutorial = m_Scenarios.Context != null ? m_Scenarios.Context.Tutorial : null;
+                return tutorial != null && tutorial.IsRunning ? tutorial.Objective : null;
+            }
+
+            if (request.perspective == Perspective.Pedestrian)
+                return "Cross the road safely: look both ways before you step out";
+            if (request.scenario == null)
+                return null;
+            return request.scenario.type switch
+            {
+                ScenarioType.ParkingBay => "Reverse into the marked bay, then stop and park",
+                ScenarioType.UnsignalizedZebraCrossing => "Drive on and give way to anyone at the zebra crossing",
+                ScenarioType.SignalizedIntersection => "Obey the traffic lights and drive through the junction",
+                ScenarioType.UnsignalizedJunction => "Approach the junction slowly and give way",
+                ScenarioType.OpenRoad => "Drive safely and keep to the speed limit",
+                _ => "Drive safely and follow the road rules",
+            };
+        }
+
+        /// <summary>
+        /// During the tutorial a "Skip tutorial" button sits in the top right corner of the view, for drivers and
+        /// pedestrians alike. It opens the scenario picker (the left controller's menu button still opens the pause
+        /// panel). The controller ray stays on while the button is shown so it can be pointed at.
         /// </summary>
         void UpdateSkipButton(AttemptState state)
         {
-            if (m_Skip == null)
+            if (m_Skip == null && m_Restart == null)
                 return;
-            var show = state == AttemptState.Running && m_Scenarios.Request.phase == AttemptPhase.Tutorial
-                       && m_App.State == AppState.InScenario && !m_App.UI.MenuVisible;
-            m_Skip.SetVisible(show);
+            // Restart is offered in every scenario; Skip only during the tutorial.
+            var show = state == AttemptState.Running && m_App.State == AppState.InScenario && !m_App.UI.MenuVisible;
+            m_Skip?.SetVisible(show && m_Scenarios.Request.phase == AttemptPhase.Tutorial);
+            m_Restart?.SetVisible(show);
+            if (m_Restart != null)
+                m_Restart.style.right = m_Scenarios.Request.phase == AttemptPhase.Tutorial ? 284f : 12f;
             if (show != m_SkipShown)
                 m_Panel.SetInteractive(show);
             if (show && !m_App.Rig.PointersVisible)
@@ -167,13 +230,34 @@ namespace RoadReady.UI
             m_SkipShown = show;
         }
 
-        static string GearText(Gear gear, bool handbrake)
+        /// <summary>"R N 1 2 3 4 5 6" with the engaged gear bright, plus the clutch pedal while it is pressed.</summary>
+        static string ManualGearText(Player.DriverController driver)
+        {
+            var sb = new System.Text.StringBuilder();
+            string Cell(string label, bool on) => on ? $"<color=#FAD201><size=150%>{label}</size></color> " : $"<color=#5A6573>{label}</color> ";
+            sb.Append(Cell("R", driver.Gear == Gear.Reverse));
+            sb.Append(Cell("N", driver.Gear == Gear.Neutral || driver.Gear == Gear.Park));
+            for (var g = 1; g <= driver.GearCount; g++)
+                sb.Append(Cell(g.ToString(), driver.Gear == Gear.Drive && driver.ForwardGear == g));
+            if (driver.Clutch > 0.3f)
+                sb.Append("  <color=#00A1DE>CLUTCH</color>");
+            if (driver.Handbrake)
+                sb.Append("  <color=#E5484D>(P) BRAKE</color>");
+            if (!driver.EngineOn)
+                sb.Append("  <color=#E5484D>ENGINE OFF</color>");
+            return sb.ToString().TrimEnd();
+        }
+
+        /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
+        static string GearText(Gear gear, bool handbrake, bool engineOn)
         {
             var sb = new System.Text.StringBuilder();
             foreach (Gear g in System.Enum.GetValues(typeof(Gear)))
-                sb.Append(g == gear ? $"<color=#FAD201>{g.ToString()[0]}</color> " : $"<color=#5A6573>{g.ToString()[0]}</color> ");
+                sb.Append(g == gear ? $"<color=#FAD201><size=150%>{g.ToString()[0]}</size></color> " : $"<color=#5A6573>{g.ToString()[0]}</color> ");
             if (handbrake)
                 sb.Append("  <color=#E5484D>(P) BRAKE</color>");
+            if (!engineOn)
+                sb.Append("  <color=#E5484D>ENGINE OFF</color>");
             return sb.ToString().TrimEnd();
         }
 

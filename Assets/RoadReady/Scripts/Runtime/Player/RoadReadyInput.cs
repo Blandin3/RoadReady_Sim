@@ -6,6 +6,8 @@ namespace RoadReady.Player
     /// Training-specific input actions (FR3/FR4), defined in code so there is no asset to mis-wire.
     /// Uses XR usage paths (works for Quest Touch and other OpenXR controllers) plus keyboard / mouse
     /// fallbacks for desktop testing. XRI keeps its own actions for UI pointing and walking/turning.
+    /// A USB steering wheel (Logitech G29 button layout) is supported too: the wheel and pedals are read by
+    /// <see cref="RacingWheel"/>, including its buttons (whatever device type Windows reports it as).
     /// </summary>
     public sealed class RoadReadyInput
     {
@@ -28,6 +30,8 @@ namespace RoadReady.Player
         public readonly InputAction Horn;
         public readonly InputAction ShiftGear;
         public readonly InputAction Handbrake;
+        public readonly InputAction Engine;
+        public readonly InputAction SeatMove;
 
         public readonly InputAction CrossNow;
         public readonly InputAction StopRetreat;
@@ -76,6 +80,15 @@ namespace RoadReady.Player
             ShiftGear.AddBinding("<Keyboard>/g");
             Handbrake = Driving.AddAction("Handbrake", InputActionType.Button);
             Handbrake.AddBinding("<Keyboard>/b"); // H is the horn
+            Engine = Driving.AddAction("Engine", InputActionType.Button);
+            Engine.AddBinding("<Keyboard>/o"); // the car's ON button
+
+            // Right thumbstick: move the seat (the driver's position in the car). Numpad keys do the same without a headset.
+            SeatMove = Global.AddAction("SeatMove", InputActionType.Value, expectedControlLayout: "Vector2");
+            SeatMove.AddBinding(k_Right + "/{Primary2DAxis}");
+            SeatMove.AddCompositeBinding("2DVector")
+                .With("Up", "<Keyboard>/numpad8").With("Down", "<Keyboard>/numpad2")
+                .With("Left", "<Keyboard>/numpad4").With("Right", "<Keyboard>/numpad6");
 
             CrossNow = Walking.AddAction("CrossNow", InputActionType.Button);
             CrossNow.AddBinding(k_Right + "/{PrimaryButton}");

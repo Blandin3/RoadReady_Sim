@@ -1,9 +1,16 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="../USS/RoadReady.uss" />
     <ui:VisualElement name="hud" class="hud" picking-mode="Ignore">
+        <ui:VisualElement name="objective-row" class="hud__objective-row" picking-mode="Ignore">
+            <ui:VisualElement name="objective" class="hud__objective hidden" picking-mode="Ignore">
+                <ui:Label text="WHAT TO DO" class="hud__objective-title" />
+                <ui:Label name="objective-text" class="hud__objective-text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:Label name="countdown" class="hud__countdown hidden" />
         <ui:Label name="tutorial" class="hud__tutorial hidden" />
         <ui:Button name="skip-tutorial" text="Skip tutorial" class="btn btn--small hud__skip hidden" />
+        <ui:Button name="restart-scenario" text="Restart" class="btn btn--small hud__skip hud__restart hidden" />
         <ui:Label name="toast" class="hud__toast hidden" />
         <ui:Label name="caption" class="hud__caption hidden" />
         <ui:Label name="prompt" class="hud__prompt hidden" />

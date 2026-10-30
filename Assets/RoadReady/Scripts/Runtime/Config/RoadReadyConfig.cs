@@ -35,6 +35,8 @@ namespace RoadReady.Config
         [Range(1f, 10f)] public float splashSeconds = 3f;
         [Tooltip("Unlit material with the lobby background picture; it fills the whole view behind the menus. Leave empty for the plain lobby.")]
         public Material lobbyBackdrop;
+        [Tooltip("Plain colour behind the menus while no scenario is loaded (splash, welcome, setup, menus). Scenarios keep their own sky.")]
+        public Color lobbyBackgroundColor = new Color(0.055f, 0.165f, 0.32f);
 
         [Header("Study")]
         public string studyName = "RoadReady Kimironko Pilot";

@@ -207,27 +207,12 @@ namespace RoadReady.EditorTools
                 "You reacted late to the turning car.",
                 "You were caught by a car turning across the crossing.",
                 "Drivers turning left are busy looking for gaps in oncoming traffic and often notice pedestrians last.");
-            // Moto-taxi junction
-            H("junction_moto_sudden_stop", "Moto-taxi stops suddenly for a passenger", HazardType.MotoTaxiSuddenStop, Perspective.Driver, RequiredResponse.Brake, 4f, 1.0f, 1.8f, 2,
-                "You kept your distance and braked in time.",
-                "You braked late. Keep two seconds behind moto-taxis.",
-                "You did not stop in time for the moto-taxi picking up a passenger.",
-                "Moto-taxi riders stop wherever a passenger waves. Their customer is at the roadside - not behind them.");
-            H("junction_hidden_moto", "Fast moto-taxi hidden behind a parked bus", HazardType.VehicleFromBlindSpot, Perspective.Driver, RequiredResponse.Brake, 5f, 1.5f, 2.5f, 3,
-                "You waited and looked again - the hidden moto-taxi passed safely.",
-                "You held back, but only just. Creep forward slowly and look again when your view is blocked.",
-                "You pulled out in front of the moto-taxi hidden behind the bus.",
-                "The rider could not see you behind the bus either. When your view is blocked, edge forward and look again.");
-            H("junction_turning_car_ped", "Car turns into the side road without signalling", HazardType.TurningVehicle, Perspective.Pedestrian, RequiredResponse.WaitAtKerb, 7f, 1.5f, 2.5f, 3,
-                "You watched the car's movement, not just its indicator, and waited.",
-                "You waited, but without clearly checking the car. Watch the wheels and speed of turning cars.",
-                "You stepped out as a car turned into the side road.",
-                "The driver was watching main-road traffic and did not signal. Watch the wheels and the car's speed, not just the indicator.");
-            H("junction_moto_exit", "Moto-taxi pulls out of the side road", HazardType.VehicleFromBlindSpot, Perspective.Pedestrian, RequiredResponse.StopOrRetreat, 5f, 1.2f, 2.2f, 3,
-                "You spotted the moto-taxi pulling out and stepped back.",
-                "You reacted late to the moto-taxi.",
-                "You were in the path of the moto-taxi leaving the side road.",
-                "A rider waiting to join the main road is looking right for a gap - not at pedestrians crossing in front.");
+            // Reverse bay parking (driver only)
+            H("parking_pedestrian_behind", "Pedestrian walks behind the reversing car", HazardType.PedestrianStepsOut, Perspective.Driver, RequiredResponse.Brake, 4f, 1.5f, 2.5f, 3,
+                "You were watching behind the car and braked straight away for the pedestrian.",
+                "You braked, but late. Keep checking the mirrors and over your shoulder the whole time you reverse.",
+                "You did not stop for the pedestrian walking behind the car.",
+                "People walking through a car park watch for cars driving along the aisle, not cars backing out of a bay - and a reversing car is hard to hear.");
 
             // Open road (endless loop, driver only). These recur, so each lap can score them again.
             H("open_ped_steps_out", "Pedestrian steps onto the zebra", HazardType.PedestrianStepsOut, Perspective.Driver, RequiredResponse.StopBeforePoint, 6f, 1.5f, 2.5f, 3,
@@ -283,11 +268,14 @@ namespace RoadReady.EditorTools
                 "Drive straight through the traffic lights. Obey the signals and yield to anyone still on the crossings.",
                 "Cross the road at the signalised crossing on the west side of the junction.",
                 "signal_red_runner", "signal_late_pedestrian", "signal_red_runner_ped", "signal_turning_car");
-            var junction = S("Scenario_Junction", "moto_taxi_junction", "Moto-taxi junction", ScenarioType.UnsignalizedJunction, "RR_MotoTaxiJunction",
-                "An unsignalised T-junction where moto-taxis pick up passengers and the view is partly blocked.",
-                "Drive up the side road and turn LEFT onto the main road. Give way to main-road traffic and signal your turn.",
-                "Walk along the pavement and cross the mouth of the side road. There is no crossing - judge the traffic yourself.",
-                "junction_moto_sudden_stop", "junction_hidden_moto", "junction_turning_car_ped", "junction_moto_exit");
+            var parking = S("Scenario_Parking", "reverse_bay_parking", "Reverse bay parking", ScenarioType.ParkingBay, "RR_Parking",
+                "Reverse into a marked bay in a car park, like the RNP driving-test yard. Scored out of 100; pass mark 80.",
+                "Drive slowly to the bay marked with cones, check your mirrors and over your shoulder, then reverse into it. Finish with all four wheels inside the lines, the car straight, stopped and in P or with the handbrake up. Keep under 10 km/h and watch for people walking behind you.",
+                "",
+                "parking_pedestrian_behind");
+            parking.supportedPerspectives = PerspectiveMask.Driver;
+            parking.scoringMode = ScoringMode.PointsDeduction;
+            parking.passMark = 80;
 
             var openRoad = S("Scenario_OpenRoad", "open_road", "Open road (endless loop)", ScenarioType.OpenRoad, "RR_OpenRoad",
                 "An endless loop through Kimironko streets. Hazards appear at random as you drive - stay alert for the whole drive.",
@@ -300,14 +288,16 @@ namespace RoadReady.EditorTools
             ScenarioSceneBuilder.Params(tutorial, 600f, traffic: false);
             ScenarioSceneBuilder.Params(zebra, 150f);
             ScenarioSceneBuilder.Params(signal, 180f);
-            ScenarioSceneBuilder.Params(junction, 180f);
+            ScenarioSceneBuilder.Params(parking, 180f, traffic: false);
+            foreach (var level in parking.difficultyLevels)
+                level.speedLimitKmh = 10f; // shown on the HUD; the parking rule uses the scoring config's car-park limit
             ScenarioSceneBuilder.Params(openRoad, 300f);
 
             var config = LoadOrCreate<RoadReadyConfig>(ConfigPath);
             config.scoring = scoring;
             config.driverTutorial = tutorial;
             config.pedestrianTutorial = tutorial;
-            config.scenarios = new List<ScenarioDefinition> { zebra, signal, junction, openRoad };
+            config.scenarios = new List<ScenarioDefinition> { zebra, signal, parking, openRoad };
             EditorUtility.SetDirty(config);
         }
 
@@ -320,8 +310,8 @@ namespace RoadReady.EditorTools
             ScenarioSceneBuilder.BuildZebra(P("Scenario_Zebra"));
             EditorUtility.DisplayProgressBar("RoadReady", "Building signalised intersection scene...", 0.6f);
             ScenarioSceneBuilder.BuildSignalized(P("Scenario_Signal"));
-            EditorUtility.DisplayProgressBar("RoadReady", "Building moto-taxi junction scene...", 0.7f);
-            ScenarioSceneBuilder.BuildJunction(P("Scenario_Junction"));
+            EditorUtility.DisplayProgressBar("RoadReady", "Building reverse bay parking scene...", 0.7f);
+            ScenarioSceneBuilder.BuildParking(P("Scenario_Parking"));
             EditorUtility.DisplayProgressBar("RoadReady", "Building open road (endless loop) scene...", 0.8f);
             ScenarioSceneBuilder.BuildOpenRoad(P("Scenario_OpenRoad"));
             AssetDatabase.SaveAssets();

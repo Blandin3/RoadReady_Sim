@@ -81,6 +81,8 @@ MonoBehaviour:
     timeOfDay: 1
     weather: 0
   unlockNextLevelScore: 80
+  scoringMode: 0
+  passMark: 80
   hazards:
   - {fileID: 11400000, guid: dc924a21edcfe984d885300635cb3fc5, type: 2}
   - {fileID: 11400000, guid: 05c2da9ba7468c34d9626d032cc27909, type: 2}

@@ -273,6 +273,13 @@ namespace RoadReady.EditorTools
         {
             const string name = "RR_Tutorial";
             var rig = NewScene(name, defPath);
+            if (HighwayLoopKit.Available)
+            {
+                HighwayTutorial(rig);
+                Save(rig, name);
+                return;
+            }
+
             MainRoad(rig, 400f);
             ZebraAcrossEW(rig.env, rig.zones, "Tutorial zebra", 60f, HalfRoad, 4f);
             PlayerCar(rig, new Vector3(-150f, 0f, -Lane), 90f);
@@ -298,6 +305,13 @@ namespace RoadReady.EditorTools
             var slow = Point(rig.rules, "Market speed zone 30", Vector3.zero).gameObject.AddComponent<SpeedLimitZone>();
             slow.Size = new Vector3(80f, 3f, 7f);
             slow.LimitKmh = 30f;
+            // Signs on the right-hand side (traffic drives on the right), facing the drivers they are for: 30 at the start of
+            // the market zone and 40 again at its end, in both directions.
+            RoadSigns.Place(rig.env, "SL30", new Vector3(-43f, SidewalkTop, -5.4f), Vector3.left);
+            RoadSigns.Place(rig.env, "SL40", new Vector3(43f, SidewalkTop, -5.4f), Vector3.left);
+            RoadSigns.Place(rig.env, "SL30", new Vector3(43f, SidewalkTop, 5.4f), Vector3.right);
+            RoadSigns.Place(rig.env, "SL40", new Vector3(-43f, SidewalkTop, 5.4f), Vector3.right);
+            RoadSigns.Place(rig.env, "No parking", new Vector3(-12f, SidewalkTop, -5.4f), Vector3.left);
 
             // Background life.
             Spawner(rig, "Traffic EB", eb, 0.6f, 0);
@@ -460,6 +474,15 @@ namespace RoadReady.EditorTools
             PedSpawner(rig, new[] { pW, pE }, new[] { jay });
 
             PlayerCar(rig, new Vector3(-120f, 0f, -Lane), 90f);
+            // 40 on every approach, and no U-turns at the lights.
+            RoadSigns.Place(rig.env, "SL40", new Vector3(-70f, SidewalkTop, -5.4f), Vector3.left);
+            RoadSigns.Place(rig.env, "SL40", new Vector3(70f, SidewalkTop, 5.4f), Vector3.right);
+            RoadSigns.Place(rig.env, "SL40", new Vector3(5.4f, SidewalkTop, -70f), Vector3.back);
+            RoadSigns.Place(rig.env, "SL40", new Vector3(-5.4f, SidewalkTop, 70f), Vector3.forward);
+            RoadSigns.Place(rig.env, "No U turn", new Vector3(-16f, SidewalkTop, -5.4f), Vector3.left);
+            RoadSigns.Place(rig.env, "No U turn", new Vector3(16f, SidewalkTop, 5.4f), Vector3.right);
+            RoadSigns.Place(rig.env, "No U turn", new Vector3(5.4f, SidewalkTop, -16f), Vector3.back);
+            RoadSigns.Place(rig.env, "No U turn", new Vector3(-5.4f, SidewalkTop, 16f), Vector3.forward);
             Goal(rig, "Driver goal", new Vector3(60f, 0f, -Lane), new Vector3(6f, 3f, 7f), PerspectiveMask.Driver, false);
             PedestrianSpawn(rig, new Vector3(-12f, SidewalkTop, -5.2f), 90f);
             Goal(rig, "Pedestrian goal", new Vector3(-cx, 0f, 6.5f), new Vector3(8f, 3f, 3f), PerspectiveMask.Pedestrian);
@@ -497,107 +520,6 @@ namespace RoadReady.EditorTools
             var h8 = Hazard(rig, HZ("signal_turning_car"), HazardTriggerMode.PlayerEntersVolume, west.transform.position);
             h8.VolumeSize = new Vector3(3f, 3f, 7f);
             Act(h8, turner, HazardActorMode.Activate, 30f);
-
-            Save(rig, name);
-        }
-
-        // ================================================================ C: unsignalised (moto-taxi) T-junction
-
-        public static void BuildJunction(string defPath)
-        {
-            const string name = "RR_MotoTaxiJunction";
-            var rig = NewScene(name, defPath);
-            const float h = 160f;
-            MainRoad(rig, 2f * h, southGapForSideRoad: true);
-            RoadRect(rig.env, "Side road", -HalfRoad, HalfRoad, -h, -HalfRoad);
-            Zone(rig.zones, "Side carriageway", RoadZoneType.Carriageway, -HalfRoad, HalfRoad, -h, -HalfRoad);
-            Zone(rig.zones, "Junction", RoadZoneType.Junction, -HalfRoad, HalfRoad, -HalfRoad, HalfRoad);
-            JunctionPatch(rig.env, "Junction asphalt", -HalfRoad, HalfRoad, -HalfRoad, HalfRoad);
-            if (StreetKit.Available)
-            {
-                // T-junction tile: through road along x, branch to the south. The tile has zebras painted on all three
-                // arms, but this scenario is deliberately an unmarked junction, so they are covered with plain asphalt.
-                StreetKit.TJunction(rig.env, Vector3.zero, 90f);
-                var zebraOffset = 2.035f * 3.5f;
-                StreetKit.PlainAsphalt(rig.env, "Cover zebra W", new Vector3(-zebraOffset, 0f, 0f), 3.8f, 7.4f, 90f);
-                StreetKit.PlainAsphalt(rig.env, "Cover zebra E", new Vector3(zebraOffset, 0f, 0f), 3.8f, 7.4f, 90f);
-                StreetKit.PlainAsphalt(rig.env, "Cover zebra S", new Vector3(0f, 0f, -zebraOffset), 3.8f, 7.4f, 0f);
-                StreetKit.Straight(rig.env, new Vector3(0f, 0f, -StreetKit.HalfTile), Vector3.back, Mathf.CeilToInt((h - StreetKit.HalfTile) / StreetKit.TileLength));
-                for (var z = -22f; z > -h; z -= 30f)
-                {
-                    StreetKit.StreetLight(rig.env, new Vector3(-7.6f, SidewalkTop, z), Vector3.right);
-                    StreetKit.StreetLight(rig.env, new Vector3(7.6f, SidewalkTop, z - 15f), Vector3.left);
-                }
-            }
-            SidewalkRect(rig.env, rig.zones, "Side sidewalk W", -6.5f, -HalfRoad, -h, -6.5f);
-            SidewalkRect(rig.env, rig.zones, "Side sidewalk E", HalfRoad, 6.5f, -h, -6.5f);
-            BuildingsZ(rig.env, -h, -BuildingSetback - 3f, -BuildingSetback, -1, 31);
-            BuildingsZ(rig.env, -h, -BuildingSetback - 3f, BuildingSetback, +1, 32);
-
-            var conflict = Point(rig.rules, "Conflict point", Vector3.zero);
-            var giveWay = StopLine(rig.rules, rig.env, "Give way NB", new Vector3(Lane, 0f, -4.5f), Vector3.forward, StopLineType.GiveWay, conflict: conflict);
-            var sideSpeed = Point(rig.rules, "Side road 30 zone", new Vector3(0f, 0f, -60f)).gameObject.AddComponent<SpeedLimitZone>();
-            sideSpeed.Size = new Vector3(7f, 3f, 110f);
-            sideSpeed.LimitKmh = 30f;
-            var blind = Point(rig.rules, "Blind-spot check before left turn", new Vector3(Lane, 0f, -11f)).gameObject.AddComponent<BlindSpotCheckZone>();
-            blind.Size = new Vector3(3.5f, 3f, 12f);
-            blind.Side = TurnSide.Left;
-            blind.Title = "Blind-spot check before turning left";
-
-            // Parked minibus hiding the left approach from the give-way line.
-            Box(rig.env, "Parked minibus (occluder)", new Vector3(-11f, 1.3f, -5.2f), new Vector3(2.2f, 2.6f, 6f), "bus", collider: true, rotation: Quaternion.Euler(0f, 90f, 0f));
-
-            var (eb, wb) = MainLanes(rig, 2f * h);
-            var nbLeft = Path(rig.paths, "Side NB turn left", new Vector3(Lane, 0f, -h), new Vector3(Lane, 0f, -4f), new Vector3(1.2f, 0f, -1f),
-                new Vector3(0f, 0f, 0.9f), new Vector3(-2f, 0f, 1.6f), new Vector3(-4f, 0f, Lane), new Vector3(-h, 0f, Lane));
-            var nbRight = Path(rig.paths, "Side NB turn right", new Vector3(Lane, 0f, -h), new Vector3(Lane, 0f, -5f), new Vector3(2.5f, 0f, -2.6f),
-                new Vector3(4f, 0f, -Lane), new Vector3(h, 0f, -Lane));
-            var ebRight = Path(rig.paths, "Main EB turn right into side", new Vector3(-h, 0f, -Lane), new Vector3(-5f, 0f, -Lane), new Vector3(-2.6f, 0f, -2.5f),
-                new Vector3(-Lane, 0f, -4f), new Vector3(-Lane, 0f, -h));
-
-            Spawner(rig, "Traffic EB (priority)", eb, 1f, 3);
-            Spawner(rig, "Traffic WB (priority)", wb, 1f, 3);
-            Spawner(rig, "Traffic EB into side road", ebRight, 0.25f, 0);
-            var pedE = Path(rig.paths, "Ped S sidewalk E", new Vector3(-40f, 0f, -5f), new Vector3(40f, 0f, -5f));
-            var pedW = Path(rig.paths, "Ped S sidewalk W", new Vector3(40f, 0f, -5.8f), new Vector3(-40f, 0f, -5.8f));
-            var pedN = Path(rig.paths, "Ped N sidewalk", new Vector3(-60f, 0f, 5.2f), new Vector3(60f, 0f, 5.2f));
-            var jay = Path(rig.paths, "Ped jaywalk", new Vector3(-30f, 0f, 5.4f), new Vector3(-20f, 0f, 5.4f), new Vector3(-20f, 0f, -5.4f), new Vector3(-40f, 0f, -5.4f));
-            PedSpawner(rig, new[] { pedE, pedW, pedN }, new[] { jay });
-
-            PlayerCar(rig, new Vector3(Lane, 0f, -90f), 0f);
-            Goal(rig, "Driver goal (after left turn)", new Vector3(-50f, 0f, Lane), new Vector3(6f, 3f, 3.5f), PerspectiveMask.Driver, false);
-            PedestrianSpawn(rig, new Vector3(-9f, SidewalkTop, -5.2f), 90f);
-            Goal(rig, "Pedestrian goal", new Vector3(9f, 0f, -5.2f), new Vector3(5f, 3f, 3f), PerspectiveMask.Pedestrian);
-
-            // DRIVER: moto-taxi ahead stops suddenly for a passenger.
-            var pickup = ScriptedVehicle(rig, RoadUserKind.MotoTaxi, "Counterpart - pickup moto", nbRight, 90f, 25f, false, false, Perspective.Driver);
-            var passenger = ScriptedPedestrian(rig, "Waiting passenger (static)", Path(rig.paths, "Passenger spot", new Vector3(4.3f, 0f, -45f), new Vector3(4.3f, 0f, -44.5f)), Perspective.Driver);
-            passenger.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-            var h9 = Hazard(rig, HZ("junction_moto_sudden_stop"), HazardTriggerMode.PlayerWithinDistance, pickup.transform.position);
-            h9.DistancePoint = pickup.transform;
-            h9.Distance = 16f;
-            Act(h9, pickup, HazardActorMode.SuddenStop, 3.5f);
-
-            // DRIVER: fast moto-taxi hidden behind the parked minibus.
-            var hidden = ScriptedVehicle(rig, RoadUserKind.MotoTaxi, "Counterpart - hidden moto", eb, 110f, 50f, true, true, Perspective.Driver, yields: false);
-            var h10 = Hazard(rig, HZ("junction_hidden_moto"), HazardTriggerMode.PlayerWithinDistance, giveWay.transform.position);
-            h10.DistancePoint = giveWay.transform;
-            h10.Distance = 8f;
-            Act(h10, hidden, HazardActorMode.Activate, 50f);
-
-            // PEDESTRIAN: car turns into the side road without signalling.
-            var turnIn = ScriptedVehicle(rig, RoadUserKind.Car, "Counterpart - turning-in car", ebRight, 135f, 32f, true, true, Perspective.Pedestrian, yields: false);
-            var kerbWest = Point(rig.rules, "Side road west kerb", new Vector3(-3.8f, 0f, -5.2f));
-            var h11 = Hazard(rig, HZ("junction_turning_car_ped"), HazardTriggerMode.PlayerWithinDistance, kerbWest.position);
-            h11.DistancePoint = kerbWest;
-            h11.Distance = 2.5f;
-            Act(h11, turnIn, HazardActorMode.Activate, 32f);
-
-            // PEDESTRIAN: moto-taxi pulls out of the side road while you cross its mouth.
-            var exitMoto = ScriptedVehicle(rig, RoadUserKind.MotoTaxi, "Counterpart - exiting moto", nbRight, 120f, 35f, true, true, Perspective.Pedestrian, yields: false);
-            var h12 = Hazard(rig, HZ("junction_moto_exit"), HazardTriggerMode.PlayerEntersVolume, new Vector3(0f, 0f, -5.2f));
-            h12.VolumeSize = new Vector3(7f, 3f, 3f);
-            Act(h12, exitMoto, HazardActorMode.Activate, 35f);
 
             Save(rig, name);
         }

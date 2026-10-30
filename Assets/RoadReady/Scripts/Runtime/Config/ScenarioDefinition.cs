@@ -35,6 +35,12 @@ namespace RoadReady.Config
         [Tooltip("Composite score needed to unlock the next difficulty level.")]
         [Range(0, 100)] public int unlockNextLevelScore = 80;
 
+        [Header("Scoring")]
+        [Tooltip("Composite research score, or driving-test style points deduction with a pass mark.")]
+        public ScoringMode scoringMode = ScoringMode.Composite;
+        [Tooltip("Pass mark for points-deduction scoring (RNP test yard: 80).")]
+        [Range(0, 100)] public int passMark = 80;
+
         [Header("Hazards scored in this scenario (scene triggers reference these)")]
         public List<HazardDefinition> hazards = new List<HazardDefinition>();
 

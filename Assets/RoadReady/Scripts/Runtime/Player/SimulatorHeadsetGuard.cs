@@ -18,6 +18,9 @@ namespace RoadReady.Player
         readonly List<GameObject> m_Children = new List<GameObject>();
         bool m_On = true;
 
+        /// <summary>True while the simulator drives the camera and controllers (flat-screen mouse look / menus stand aside).</summary>
+        public static bool SimulatorOn { get; private set; }
+
         void Awake()
         {
             var displays = new List<XRDisplaySubsystem>();
@@ -36,8 +39,11 @@ namespace RoadReady.Player
                     m_Simulator.Add(behaviour);
             foreach (Transform child in transform)
                 m_Children.Add(child.gameObject);
+            SimulatorOn = true;
             Debug.Log("[RoadReady] No headset: XR Interaction Simulator on. Press F1 to switch it off for keyboard driving (and on again for menus).");
         }
+
+        void OnDisable() => SimulatorOn = false;
 
         void Update()
         {
@@ -45,6 +51,7 @@ namespace RoadReady.Player
             if (keyboard == null || !keyboard.f1Key.wasPressedThisFrame)
                 return;
             m_On = !m_On;
+            SimulatorOn = m_On;
             foreach (var behaviour in m_Simulator)
                 if (behaviour != null) behaviour.enabled = m_On;
             foreach (var child in m_Children)

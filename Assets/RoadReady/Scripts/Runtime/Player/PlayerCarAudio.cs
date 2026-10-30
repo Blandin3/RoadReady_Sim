@@ -6,7 +6,7 @@ using UnityEngine;
 namespace RoadReady.Player
 {
     /// <summary>
-    /// Sound of the learner's car (Vehicle Essentials clips): getting in and starting up, an engine that blends idle,
+    /// Sound of the learner's car (Vehicle Essentials clips): getting in, starting up with the ON button, an engine that blends idle,
     /// 1000 and 2000 rpm loops with the simulated rpm, road noise with speed, horn, indicator tick-tock in time with
     /// the blinking arrows, gear-lever and handbrake clicks, a collision thud and the engine stopping at the end.
     /// </summary>
@@ -42,7 +42,7 @@ namespace RoadReady.Player
         DriverController m_Driver;
         AudioSource m_IdleSource, m_LowSource, m_HighSource, m_RoadSource, m_HornSource, m_OneShots;
         ScenarioManager m_Scenarios;
-        bool m_EngineRunning, m_WasInputEnabled, m_LastBlink;
+        bool m_EngineRunning, m_LastBlink;
         Coroutine m_Startup;
 
         public void Configure(AudioClip doorClose, AudioClip seatBelt, AudioClip keys, AudioClip engineStart, AudioClip engineStop,
@@ -75,6 +75,7 @@ namespace RoadReady.Player
             m_Driver.HornPressed += OnHorn;
             m_Driver.GearChanged += OnGear;
             m_Driver.HandbrakeChanged += OnHandbrake;
+            m_Driver.EngineChanged += OnEngineChanged;
             m_Driver.ObstacleHit += OnObstacle;
             m_Scenarios = FindAnyObjectByType<ScenarioManager>();
             if (m_Scenarios != null)
@@ -83,7 +84,6 @@ namespace RoadReady.Player
                 m_Scenarios.StateChanged += OnAttemptState;
             }
 
-            m_WasInputEnabled = false;
             SetEngine(false, immediate: true);
         }
 
@@ -92,6 +92,7 @@ namespace RoadReady.Player
             m_Driver.HornPressed -= OnHorn;
             m_Driver.GearChanged -= OnGear;
             m_Driver.HandbrakeChanged -= OnHandbrake;
+            m_Driver.EngineChanged -= OnEngineChanged;
             m_Driver.ObstacleHit -= OnObstacle;
             if (m_Scenarios != null)
             {
@@ -104,11 +105,11 @@ namespace RoadReady.Player
 
         void OnAttemptState(AttemptState state)
         {
-            // The countdown is the moment the learner "gets in": door, seat belt, key, engine.
+            // The countdown is the moment the learner "gets in": door and seat belt. The engine starts with the ON button.
             if (state == AttemptState.Countdown && isActiveAndEnabled)
             {
                 if (m_Startup != null) StopCoroutine(m_Startup);
-                m_Startup = StartCoroutine(StartUp());
+                m_Startup = StartCoroutine(GetIn());
             }
             else if (state == AttemptState.Finished && m_EngineRunning)
             {
@@ -117,13 +118,32 @@ namespace RoadReady.Player
             }
         }
 
-        IEnumerator StartUp()
+        IEnumerator GetIn()
         {
             SetEngine(false, immediate: true);
             Play(m_DoorClose, 0.7f);
             yield return new WaitForSecondsRealtime(0.6f);
             Play(m_SeatBelt, 0.8f);
-            yield return new WaitForSecondsRealtime(0.5f);
+            m_Startup = null;
+        }
+
+        /// <summary>The ON button: key and starter, then the engine runs. Switching it off stops it.</summary>
+        void OnEngineChanged(bool on)
+        {
+            if (m_Startup != null) StopCoroutine(m_Startup);
+            if (on)
+            {
+                m_Startup = StartCoroutine(StartEngine());
+            }
+            else
+            {
+                SetEngine(false, immediate: false);
+                Play(m_EngineStop, 0.8f);
+            }
+        }
+
+        IEnumerator StartEngine()
+        {
             Play(m_Keys, 0.6f);
             yield return new WaitForSecondsRealtime(0.35f);
             Play(m_EngineStart, 0.9f);
@@ -134,11 +154,6 @@ namespace RoadReady.Player
 
         void Update()
         {
-            // Safety net: if input was enabled without a countdown (e.g. restart), make sure the engine runs.
-            if (m_Driver.InputEnabled && !m_WasInputEnabled && !m_EngineRunning && m_Startup == null)
-                SetEngine(true, immediate: false);
-            m_WasInputEnabled = m_Driver.InputEnabled;
-
             UpdateEngine();
             UpdateIndicator();
         }
