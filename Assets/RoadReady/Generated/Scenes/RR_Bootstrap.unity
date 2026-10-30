@@ -237,7 +237,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: RoadReady.Runtime::RoadReady.UI.HudController
   m_DashboardDistance: 0.95
-  m_DashboardDrop: 0.34
+  m_DashboardDrop: -0.12
   m_DashboardScale: 0.55
   m_FollowDistance: 1.4
   m_FollowDrop: 0.45
