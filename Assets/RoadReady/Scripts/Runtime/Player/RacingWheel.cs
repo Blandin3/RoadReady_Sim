@@ -65,6 +65,7 @@ namespace RoadReady.Player
         float m_SteeringCenter, m_SteeringSign = 1f;
         readonly Pedal m_Throttle = new Pedal();
         readonly Pedal m_Brake = new Pedal();
+        readonly Pedal m_Clutch = new Pedal();
         bool m_ShowMonitor;
         Calibration m_Calibration;
 
@@ -74,6 +75,9 @@ namespace RoadReady.Player
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
         public float Brake { get; private set; }
+        /// <summary>Clutch pedal travel 0 (up) to 1 (down); 0 when no clutch axis has been calibrated (F3).</summary>
+        public float Clutch { get; private set; }
+        public bool HasClutch => m_Clutch.axis != null;
         public string DeviceName => m_Device != null ? m_Device.description.product : "";
         public bool Calibrating => m_Calibration != null;
 
@@ -180,9 +184,12 @@ namespace RoadReady.Player
                 return;
             m_Device = device;
             m_Steering = null;
-            m_Throttle.axis = m_Brake.axis = null;
+            m_Throttle.axis = m_Brake.axis = m_Clutch.axis = null;
             m_Throttle.Reset();
             m_Brake.Reset();
+            m_Clutch.Reset();
+            m_Clutch.rest = float.NaN;
+            m_Clutch.travel = 0f;
             m_Throttle.rest = m_Brake.rest = float.NaN;
             m_Throttle.travel = m_Brake.travel = 0f;
             if (device == null)
@@ -217,6 +224,9 @@ namespace RoadReady.Player
                 m_Brake.axis = Axis(PlayerPrefs.GetString(key + "brake"));
                 m_Brake.rest = PlayerPrefs.GetFloat(key + "brakeRest", float.NaN);
                 m_Brake.travel = PlayerPrefs.GetFloat(key + "brakeTravel");
+                m_Clutch.axis = Axis(PlayerPrefs.GetString(key + "clutch"));
+                m_Clutch.rest = PlayerPrefs.GetFloat(key + "clutchRest", float.NaN);
+                m_Clutch.travel = PlayerPrefs.GetFloat(key + "clutchTravel");
                 m_ShifterFirst = PlayerPrefs.GetInt(key + "shiftFirst", 13);
                 m_ShifterReverse = PlayerPrefs.GetInt(key + "shiftReverse", 19);
             }
@@ -242,7 +252,7 @@ namespace RoadReady.Player
 
             if (m_Calibration != null)
             {
-                Steer = Throttle = Brake = 0f;
+                Steer = Throttle = Brake = Clutch = 0f;
                 if (m_Calibration.Update())
                     m_Calibration = null;
                 return;
@@ -250,7 +260,7 @@ namespace RoadReady.Player
 
             if (Current == null)
             {
-                Steer = Throttle = Brake = 0f;
+                Steer = Throttle = Brake = Clutch = 0f;
                 return;
             }
 
@@ -258,6 +268,7 @@ namespace RoadReady.Player
             Steer = Mathf.Abs(steer) < k_Deadzone ? 0f : steer;
             Throttle = m_Throttle.Read();
             Brake = m_Brake.Read();
+            Clutch = m_Clutch.Read();
         }
 
         // ------------------------------------------------------------------ calibration
@@ -281,8 +292,9 @@ namespace RoadReady.Player
                 1 => "Turn the wheel all the way to the RIGHT and hold it.",
                 2 => "Let the wheel go, then press the ACCELERATOR (right pedal) all the way down and hold it.",
                 3 => "Release the accelerator, then press the BRAKE (middle pedal) all the way down and hold it.",
-                4 => "Release the brake. Put the SHIFTER into 1st gear and hold it there.   (No shifter? Press SPACE to skip.)",
-                5 => "Now put the SHIFTER into REVERSE (push the stick down, then right and back) and hold it.   (SPACE to skip.)",
+                4 => "Release the brake. Press the CLUTCH (left pedal) all the way down and hold it.   (No clutch pedal? Press SPACE to skip.)",
+                5 => "Release the clutch. Put the SHIFTER into 1st gear and hold it there.   (No shifter? Press SPACE to skip.)",
+                6 => "Now put the SHIFTER into REVERSE (push the stick down, then right and back) and hold it.   (SPACE to skip.)",
                 _ => "Done.",
             };
 
@@ -311,15 +323,21 @@ namespace RoadReady.Player
                     return false;
                 }
 
-                if (m_Step >= 4)
+                if (m_Step >= 5)
                     return UpdateShifter();
+
+                if (m_Step == 4 && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+                {
+                    Next(); // no clutch pedal: the keyboard (left Shift) is the clutch
+                    return false;
+                }
 
                 // The axis that moved furthest from rest (excluding ones already assigned).
                 AxisControl best = null;
                 var bestDelta = 0f;
                 foreach (var axis in m_Axes)
                 {
-                    if (axis == m_Wheel.m_Steering && m_Step > 1 || axis == m_Wheel.m_Throttle.axis && m_Step > 2)
+                    if (axis == m_Wheel.m_Steering && m_Step > 1 || axis == m_Wheel.m_Throttle.axis && m_Step > 2 || axis == m_Wheel.m_Brake.axis && m_Step > 3)
                         continue;
                     var delta = Mathf.Abs(axis.ReadValue() - m_Rest[axis]);
                     if (delta > bestDelta) { bestDelta = delta; best = axis; }
@@ -355,13 +373,18 @@ namespace RoadReady.Player
                         m_Wheel.m_Brake.rest = rest;
                         m_Wheel.m_Brake.travel = value - rest;
                         break;
+                    case 4:
+                        m_Wheel.m_Clutch.axis = m_Candidate;
+                        m_Wheel.m_Clutch.rest = rest;
+                        m_Wheel.m_Clutch.travel = value - rest;
+                        break;
                 }
 
                 Next();
                 return false;
             }
 
-            /// <summary>Steps 4-5: the shifter button that goes down when the stick is put in 1st, then in R.</summary>
+            /// <summary>Steps 5-6: the shifter button that goes down when the stick is put in 1st, then in R.</summary>
             bool UpdateShifter()
             {
                 var keyboard = Keyboard.current;
@@ -371,7 +394,7 @@ namespace RoadReady.Player
                     return true; // no shifter: keep the standard numbering
                 }
 
-                var held = m_Buttons.FirstOrDefault(b => b.isPressed && !m_HeldAtRest.Contains(b) && (m_Step == 4 || b != m_HeldButton));
+                var held = m_Buttons.FirstOrDefault(b => b.isPressed && !m_HeldAtRest.Contains(b) && (m_Step == 5 || b != m_HeldButton));
                 if (held == null)
                 {
                     m_Timer = 0f;
@@ -382,7 +405,7 @@ namespace RoadReady.Player
                 if (m_Timer < 1f)
                     return false;
                 var number = int.Parse(held.name.Substring("button".Length));
-                if (m_Step == 4)
+                if (m_Step == 5)
                 {
                     m_Wheel.m_ShifterFirst = number;
                     m_HeldButton = held;
@@ -414,6 +437,9 @@ namespace RoadReady.Player
                 PlayerPrefs.SetString(key + "brake", RelativePath(w.m_Brake.axis));
                 PlayerPrefs.SetFloat(key + "brakeRest", w.m_Brake.rest);
                 PlayerPrefs.SetFloat(key + "brakeTravel", w.m_Brake.travel);
+                PlayerPrefs.SetString(key + "clutch", RelativePath(w.m_Clutch.axis));
+                PlayerPrefs.SetFloat(key + "clutchRest", w.m_Clutch.rest);
+                PlayerPrefs.SetFloat(key + "clutchTravel", w.m_Clutch.travel);
                 PlayerPrefs.SetInt(key + "shiftFirst", w.m_ShifterFirst);
                 PlayerPrefs.SetInt(key + "shiftReverse", w.m_ShifterReverse);
                 PlayerPrefs.Save();
@@ -451,7 +477,7 @@ namespace RoadReady.Player
                     GUILayout.Label("Input devices Unity sees: " + string.Join(", ", InputSystem.devices.Select(d => $"{d.displayName} [{d.GetType().Name}]")), Rich(12));
                 if (m_Device != null)
                 {
-                    GUILayout.Label($"Steer {Steer:+0.00;-0.00}   Accelerator {Throttle:0.00}   Brake {Brake:0.00}", Rich(16));
+                    GUILayout.Label($"Steer {Steer:+0.00;-0.00}   Accelerator {Throttle:0.00}   Brake {Brake:0.00}   Clutch {(HasClutch ? Clutch.ToString("0.00") : "not set (F3)")}", Rich(16));
                     foreach (var axis in Axes(m_Device).Take(12))
                         GUILayout.Label($"{axis.path.Substring(m_Device.path.Length + 1),-12} {axis.ReadValue():+0.000;-0.000}" + (axis == m_Steering ? "  (steering)" : axis == m_Throttle.axis ? "  (accelerator)" : axis == m_Brake.axis ? "  (brake)" : ""));
                     var pressed = m_Device.allControls.OfType<ButtonControl>().Where(b => b.isPressed && !(b.parent is ButtonControl)).Select(b => b.path.Substring(m_Device.path.Length + 1));

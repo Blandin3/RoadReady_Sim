@@ -33,7 +33,7 @@ namespace RoadReady.Config
         static readonly Dictionary<string, string> s_Text = new Dictionary<string, string>
         {
             { Welcome, "Welcome to RoadReady. You will practise road-safety decisions as a driver and as a pedestrian in streets modelled on Kimironko. Nothing here can hurt you - mistakes are how you learn." },
-            { ControlsDriver, "Grab the steering wheel with the grip buttons and turn it (or use the left thumbstick).  Right trigger: accelerate.  Left trigger: brake.  The car starts with the engine off, in P and with the handbrake up: press the ON button (or O) to start the engine, push the handbrake down and select D (forward) or R (reverse) to move.  Right thumbstick: move your seat.  The exit button on the door leaves the car.  Grab the gear lever to shift P-R-N-D.  Y: left indicator.  A: right indicator.  X: I see a hazard.  B: horn.  Menu: pause." },
+            { ControlsDriver, "Grab the steering wheel with the grip buttons and turn it (or use the left thumbstick).  Right trigger: accelerate.  Left trigger: brake.  The car is a manual: it starts with the engine off, in neutral and with the handbrake up. Press the clutch (left pedal, or left Shift), press the ON button (or O) to start the engine, push the handbrake down, select 1st gear (or R to reverse) and let the clutch up slowly while you press the accelerator. Press the clutch again to change gear; if you let it up too fast the engine stalls.  Right thumbstick: move your seat.  The exit button on the door leaves the car.  Change gear with the shifter (1-6 and R) or the wheel's R2 / L2 buttons.  Y: left indicator.  A: right indicator.  X: I see a hazard.  B: horn.  Menu: pause." },
             { ControlsPedestrian, "Left thumbstick: walk.  Right thumbstick: turn.  A: cross now.  B: stop / step back.  X: I see a hazard.  Look around by turning your head.  Menu: pause." },
             { AttemptStart, "Get ready. Drive or walk as you would in real life." },
             { AttemptComplete, "Scenario complete. Let's look at how you did." },
@@ -41,7 +41,7 @@ namespace RoadReady.Config
             { TimeUp, "Time is up for this attempt." },
             { TutDriverStart, "The engine is off, so the car cannot move yet. Press the glowing ON button on the console, right by the gear lever (or O on the keyboard), to start it." },
             { TutDriverCircle, "Now drive to the circle on the road. The moving arrows show which way to head. When you reach the circle it disappears and a new one appears further ahead." },
-            { TutDriverThrottle, "The car starts parked with the handbrake up. Grab the handbrake and push it down, move the gear lever to D, then gently pull the RIGHT trigger to move forward." },
+            { TutDriverThrottle, "The car starts in neutral with the handbrake up. Push the handbrake down, press the clutch and select 1st gear, then press the accelerator gently while you let the clutch up slowly. Press the clutch again to change up a gear." },
             { TutDriverBrake, "Now pull the LEFT trigger to brake to a stop." },
             { TutDriverSteer, "Grab the steering wheel with both grip buttons and turn it - or use the LEFT thumbstick." },
             { TutDriverIndicator, "Press Y for the left indicator or A for the right indicator." },
