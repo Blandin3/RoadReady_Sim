@@ -189,6 +189,25 @@ namespace RoadReady
             m_UI.Show(new SplashScreen());
         }
 
+        /// <summary>Landing page: a learner types a name; the driving school logs in to see who took part today.</summary>
+        public void ShowLanding()
+        {
+            SetState(AppState.Welcome);
+            m_UI.Show(new LandingScreen());
+        }
+
+        public void ShowSchoolLearners()
+        {
+            SetState(AppState.Welcome);
+            m_UI.Show(new SchoolLearnersScreen());
+        }
+
+        public void LearnerStarted(string name)
+        {
+            Data.School.AddLearner(name);
+            ShowWelcome();
+        }
+
         public void ShowWelcome()
         {
             SetState(AppState.Welcome);
@@ -256,7 +275,7 @@ namespace RoadReady
 
             Data.RecordConsent(participant, true);
             Data.BeginSession(participant, false);
-            OfferReportContact(ShowInstructions);
+            ShowInstructions(); // the learner's name is asked on the landing page; the report email stays optional on the feedback screen
         }
 
         // ================================================================ results report (name + email, optional)

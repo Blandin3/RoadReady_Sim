@@ -15,6 +15,7 @@ namespace RoadReady.UI
         readonly VisualElement m_Caret;
         readonly string m_Placeholder;
         string m_Value = "";
+        bool m_Masked;
         bool m_Active;
         bool m_CaretOn;
         IVisualElementScheduledItem m_Blink;
@@ -57,6 +58,17 @@ namespace RoadReady.UI
             }
         }
 
+        /// <summary>Shows dots instead of the characters (a password).</summary>
+        public bool Masked
+        {
+            get => m_Masked;
+            set
+            {
+                m_Masked = value;
+                Refresh();
+            }
+        }
+
         public bool Active
         {
             get => m_Active;
@@ -80,7 +92,7 @@ namespace RoadReady.UI
         void Refresh()
         {
             var empty = m_Value.Length == 0;
-            m_Text.text = empty ? (m_Active ? "" : m_Placeholder) : m_Value;
+            m_Text.text = empty ? (m_Active ? "" : m_Placeholder) : m_Masked ? new string('•', m_Value.Length) : m_Value;
             m_Text.EnableInClassList("typing-box__text--placeholder", empty);
             m_Caret.style.opacity = m_Active ? 1f : 0f;
         }
