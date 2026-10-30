@@ -108,6 +108,8 @@ namespace RoadReady.UI
         {
             if (m_Panel == null || m_App == null)
                 return;
+            // The pause / menu panel opens over the same spot, so the HUD steps aside while it is open.
+            m_Panel.Root.visible = !m_App.UI.MenuVisible;
             var now = Time.unscaledTime;
             if (now > m_CaptionUntil) m_Caption.SetVisible(false);
             if (now > m_ToastUntil) m_Toast.SetVisible(false);
@@ -132,13 +134,14 @@ namespace RoadReady.UI
                 m_ArrowLeft.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Left && blink);
                 m_ArrowRight.EnableInClassList("hud__arrow--on", driver.Indicator == TurnSide.Right && blink);
                 if (m_Gear != null)
-                    m_Gear.text = GearText(driver.Gear, driver.Handbrake, driver.EngineOn);
+                    m_Gear.text = driver.ManualGearbox ? ManualGearText(driver) : GearText(driver.Gear, driver.Handbrake, driver.EngineOn);
                 // Accelerating while the car is held: say what to do (at most every few seconds).
                 if (driver.Throttle > 0.3f && now - m_HandbrakeHintAt > 5f && (!driver.EngineOn || driver.Handbrake || driver.Gear == Gear.Park || driver.Gear == Gear.Neutral))
                 {
                     m_HandbrakeHintAt = now;
-                    OnToast(!driver.EngineOn ? "The engine is off: press the ON button (or O) to start it"
+                    OnToast(!driver.EngineOn ? "The engine is off: press the clutch, then the ON button (or O) to start it"
                         : driver.Handbrake ? "Handbrake is up: push it down (or press B) to drive"
+                        : driver.ManualGearbox ? "In neutral: press the clutch and select 1st gear (or R), then let the clutch up slowly"
                         : driver.Gear == Gear.Park ? "In P (park): move the gear lever to D (or R) to drive"
                         : "In N (neutral): move the gear lever to D (or R) to drive", 3f);
                 }
@@ -176,8 +179,9 @@ namespace RoadReady.UI
             var request = m_Scenarios.Request;
             if (driver != null)
             {
-                if (!driver.EngineOn) return "Press the glowing ON button on the console to start the engine";
+                if (!driver.EngineOn) return driver.ManualGearbox ? "Press the clutch, then the glowing ON button to start the engine" : "Press the glowing ON button on the console to start the engine";
                 if (driver.Handbrake) return "Release the handbrake: push the lever down";
+                if (driver.ManualGearbox && (driver.Gear == Gear.Park || driver.Gear == Gear.Neutral)) return "Clutch down, select 1st gear (or R), then ease the clutch up and press the accelerator";
                 if (driver.Gear == Gear.Park || driver.Gear == Gear.Neutral) return "Move the gear lever to D to drive, or R to reverse";
             }
 
@@ -224,6 +228,24 @@ namespace RoadReady.UI
             else if (!show && m_SkipShown && !m_App.UI.MenuVisible && m_App.State == AppState.InScenario)
                 m_App.Rig.SetPointers(false);
             m_SkipShown = show;
+        }
+
+        /// <summary>"R N 1 2 3 4 5 6" with the engaged gear bright, plus the clutch pedal while it is pressed.</summary>
+        static string ManualGearText(Player.DriverController driver)
+        {
+            var sb = new System.Text.StringBuilder();
+            string Cell(string label, bool on) => on ? $"<color=#FAD201><size=150%>{label}</size></color> " : $"<color=#5A6573>{label}</color> ";
+            sb.Append(Cell("R", driver.Gear == Gear.Reverse));
+            sb.Append(Cell("N", driver.Gear == Gear.Neutral || driver.Gear == Gear.Park));
+            for (var g = 1; g <= driver.GearCount; g++)
+                sb.Append(Cell(g.ToString(), driver.Gear == Gear.Drive && driver.ForwardGear == g));
+            if (driver.Clutch > 0.3f)
+                sb.Append("  <color=#00A1DE>CLUTCH</color>");
+            if (driver.Handbrake)
+                sb.Append("  <color=#E5484D>(P) BRAKE</color>");
+            if (!driver.EngineOn)
+                sb.Append("  <color=#E5484D>ENGINE OFF</color>");
+            return sb.ToString().TrimEnd();
         }
 
         /// <summary>"P R N D" with the engaged gear bright and the others dimmed.</summary>
