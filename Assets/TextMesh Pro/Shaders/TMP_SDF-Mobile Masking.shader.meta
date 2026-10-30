@@ -7,3 +7,10 @@ ShaderImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/TextMesh Pro/Shaders/TMP_SDF-Mobile Masking.shader
+  uploadId: 720821

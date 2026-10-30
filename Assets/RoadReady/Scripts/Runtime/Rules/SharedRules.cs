@@ -32,6 +32,8 @@ namespace RoadReady.Rules
         {
             if (m_Ctx == null)
                 return;
+            if (obstacle.GetComponentInParent<Scenarios.ParkingKerb>() != null)
+                return; // a kerb / wheel stop in the car park: a parking fault, scored by the parking rule
             m_Ctx.Report(Id, "Hit a roadside object", DecisionClass.Unsafe, ViolationSeverity.Critical,
                 $"Collided with {obstacle.name}.", "Keep your speed down and your eyes on where you want the car to go.");
             m_Ctx.onCollision?.Invoke(null, obstacle.name);

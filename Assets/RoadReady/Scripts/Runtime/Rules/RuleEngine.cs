@@ -19,6 +19,8 @@ namespace RoadReady.Rules
         public DriverController driver;
         public PedestrianController pedestrian;
         public GazeTracker gaze;
+        /// <summary>The bay and its lines / cones in the parking scenario (null elsewhere).</summary>
+        public Scenarios.ParkingArea parking;
         /// <summary>Agents already evaluated by a scored hazard (to avoid double penalties).</summary>
         public Func<IRoadAgent, bool> isHazardActor;
         /// <summary>Invoked by the collision rule; the scenario manager may end the attempt.</summary>

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 29eda401f0ba07a45ad073aa5da8df76
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 298874
+  packageName: Animations_Textures
+  packageVersion: 1.0.2
+  assetPath: Assets/Animation_Textures/Scripts/2nd Animation/TextureScrollAndFlash.cs
+  uploadId: 720821

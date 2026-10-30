@@ -20,6 +20,11 @@ namespace RoadReady.Player
             public Source source;
             [Tooltip("Local axis pointing out of the dial, towards the driver.")]
             public Vector3 axis = Vector3.forward;
+            [Tooltip("When ticked the needle turns about Pivot (in its parent's space, the dial's centre) instead of its own origin.")]
+            public bool usePivot;
+            public Vector3 pivot;
+            [Tooltip("Value at the start of the scale (0 for speed and rpm, 50 for a temperature gauge that starts at 50).")]
+            public float minValue;
             [Tooltip("Value at the end of the scale (km/h for speed, rpm for the rev counter).")]
             public float maxValue = 250f;
             [Tooltip("Sweep from zero to Max Value, in degrees (clockwise as seen by the driver).")]
@@ -32,6 +37,7 @@ namespace RoadReady.Player
             public float response = 6f;
 
             [NonSerialized] public Quaternion rest;
+            [NonSerialized] public Vector3 restPosition;
             [NonSerialized] public float shown;
         }
 
@@ -50,7 +56,10 @@ namespace RoadReady.Player
             m_Driver = GetComponent<DriverController>();
             foreach (var n in m_Needles)
                 if (n.needle != null)
+                {
                     n.rest = n.needle.localRotation;
+                    n.restPosition = n.needle.localPosition;
+                }
         }
 
         void LateUpdate()
@@ -58,7 +67,7 @@ namespace RoadReady.Player
             var dt = Time.deltaTime;
             foreach (var n in m_Needles)
             {
-                if (n.needle == null || n.maxValue <= 0f)
+                if (n.needle == null || n.maxValue <= n.minValue)
                     continue;
                 var value = n.source switch
                 {
@@ -66,11 +75,20 @@ namespace RoadReady.Player
                     Source.Rpm => m_Driver.Rpm,
                     _ => n.fixedValue,
                 };
-                n.shown = Mathf.Lerp(n.shown, Mathf.Clamp(value, 0f, n.maxValue), 1f - Mathf.Exp(-n.response * dt));
-                // Positive rotation about an axis that points at the viewer looks anticlockwise, hence the minus.
-                var angle = -(n.shown / n.maxValue * n.degreesAtMax) - n.zeroOffset;
-                n.needle.localRotation = n.rest * Quaternion.AngleAxis(angle, n.axis);
+                n.shown = Mathf.Lerp(n.shown, Mathf.Clamp(value, n.minValue, n.maxValue), 1f - Mathf.Exp(-n.response * dt));
+                Pose(n, n.shown);
             }
+        }
+
+        /// <summary>Turns a needle to read <paramref name="value"/>, from its rest pose.</summary>
+        public static void Pose(Needle n, float value)
+        {
+            // Unity is left-handed: a positive rotation about an axis that points at the viewer turns clockwise.
+            var angle = (value - n.minValue) / (n.maxValue - n.minValue) * n.degreesAtMax + n.zeroOffset;
+            var rotation = n.rest * Quaternion.AngleAxis(angle, n.axis);
+            if (n.usePivot)
+                n.needle.localPosition = n.pivot + rotation * Quaternion.Inverse(n.rest) * (n.restPosition - n.pivot);
+            n.needle.localRotation = rotation;
         }
     }
 }

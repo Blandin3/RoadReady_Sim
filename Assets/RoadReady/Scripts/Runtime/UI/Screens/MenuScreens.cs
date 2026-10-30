@@ -218,6 +218,78 @@ namespace RoadReady.UI
         }
     }
 
+    /// <summary>
+    /// Opened by the "Skip tutorial" button: the scenarios as cards in the usual RoadReady panel, so the learner
+    /// either picks one to go to straight away or closes it and carries on with the tutorial. Built in code (no UXML
+    /// to register).
+    /// </summary>
+    public class ScenarioPickerScreen : UIScreen
+    {
+        public override string TreeName => "";
+
+        protected override void Bind()
+        {
+            var perspective = App.Scenarios.Request.perspective;
+
+            var header = new VisualElement();
+            header.AddToClassList("row");
+            var heading = new VisualElement();
+            heading.AddToClassList("col");
+            heading.AddToClassList("grow");
+            heading.Add(UIX.MakeLabel("SKIP TUTORIAL", "eyebrow"));
+            heading.Add(UIX.MakeLabel(perspective == Perspective.Driver ? "Driving Lessons" : "Road Crossing Lessons", "title"));
+            header.Add(heading);
+            header.Add(UIX.MakeButton("Close", App.Resume, "btn--ghost", "btn--small"));
+            Root.Add(header);
+            Root.Add(UIX.MakeLabel("Choose a scenario to go to now, or close this and carry on with the tutorial.", "subtitle"));
+
+            var cards = new VisualElement();
+            cards.AddToClassList("picker__cards");
+            Root.Add(cards);
+            foreach (var scenario in App.Config.scenarios)
+            {
+                if (scenario == null || scenario.isTutorial || !scenario.supportedPerspectives.Includes(perspective))
+                    continue;
+                cards.Add(BuildCard(scenario, perspective));
+            }
+
+            var footer = new VisualElement();
+            footer.AddToClassList("row");
+            footer.AddToClassList("row--end");
+            footer.Add(UIX.MakeButton("Continue tutorial", App.Resume, "btn--primary"));
+            Root.Add(footer);
+        }
+
+        VisualElement BuildCard(ScenarioDefinition scenario, Perspective perspective)
+        {
+            var card = new VisualElement();
+            card.AddToClassList("card");
+            card.AddToClassList("scenario-card");
+            card.AddToClassList("picker-card");
+            card.AddToClassList("card--interactive");
+            var thumb = new VisualElement();
+            thumb.AddToClassList("scenario-card__thumb");
+            if (scenario.thumbnail != null)
+                thumb.style.backgroundImage = new StyleBackground(Background.FromSprite(scenario.thumbnail));
+            card.Add(thumb);
+            card.Add(UIX.MakeLabel(scenario.displayName, "card__title"));
+            card.Add(UIX.MakeLabel(scenario.location, "card__meta"));
+
+            if (App.CanAttempt(scenario, perspective, out var reason))
+            {
+                card.AddManipulator(new Clickable(() => App.PickScenario(scenario)));
+            }
+            else
+            {
+                card.SetEnabled(false);
+                card.Add(UIX.MakeLabel(reason, "card__meta"));
+            }
+
+            return card;
+        }
+    }
+
+
     /// <summary>NFR safety and comfort options + accessibility text size.</summary>
     public class ComfortScreen : UIScreen
     {
