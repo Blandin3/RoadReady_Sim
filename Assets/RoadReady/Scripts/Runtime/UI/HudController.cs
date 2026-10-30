@@ -15,7 +15,7 @@ namespace RoadReady.UI
     public class HudController : MonoBehaviour
     {
         [SerializeField] float m_DashboardDistance = 0.95f;
-        [SerializeField] float m_DashboardDrop = 0.34f;
+        [SerializeField] float m_DashboardDrop = -0.12f;
         [SerializeField] float m_DashboardScale = 0.55f;
         [SerializeField] float m_FollowDistance = 1.4f;
         [SerializeField] float m_FollowDrop = 0.45f;
