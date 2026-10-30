@@ -23,6 +23,9 @@ namespace RoadReady.Accounts.Editor
         {
             (SceneRouter.SchoolSetup, typeof(SchoolSetupController)),
             (SceneRouter.Home, typeof(HomeController)),
+            (SceneRouter.MemberRegister, typeof(MemberRegisterController)),
+            (SceneRouter.StartTraining, typeof(StartTrainingController)),
+            (SceneRouter.Dashboard, typeof(DashboardController)),
         };
 
         [MenuItem("RoadReady/Accounts/Build Account Scenes")]
