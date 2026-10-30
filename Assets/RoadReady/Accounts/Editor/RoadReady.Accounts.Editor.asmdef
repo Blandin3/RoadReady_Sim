@@ -1,0 +1,23 @@
+{
+    "name": "RoadReady.Accounts.Editor",
+    "rootNamespace": "RoadReady.Accounts.Editor",
+    "references": [
+        "RoadReady.Accounts",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.Interaction.Toolkit"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "ROADREADY_FIREBASE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
