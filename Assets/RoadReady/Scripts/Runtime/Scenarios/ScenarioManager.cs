@@ -234,10 +234,7 @@ namespace RoadReady.Scenarios
                 m_Rig.SetLocomotion(false);
                 m_Rig.AttachToSeat(m_Driver.EyePoint, m_Driver.transform);
                 if (m_Driver.EyePoint != null)
-                {
                     Player.CarMirrors.EnsureOn(m_Driver); // left, right and interior rear-view mirrors
-                    Player.DashboardIndicators.EnsureOn(m_Driver); // left and right turn-signal arrows on the dashboard
-                }
                 m_Player = m_Driver;
             }
             else
