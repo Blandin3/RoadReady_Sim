@@ -7,6 +7,7 @@
         <ui:VisualElement class="row grow" style="align-items: stretch;">
             <ui:VisualElement class="card grow">
                 <ui:Label text="New participant" class="card__title" />
+                <ui:Label name="profile-hint" class="muted small" />
                 <ui:Label text="Study group" class="field-label" />
                 <ui:VisualElement name="group-chips" class="row row--wrap" />
                 <ui:Label text="Condition" class="field-label" />
@@ -17,7 +18,7 @@
                 <ui:VisualElement name="experience-chips" class="row row--wrap" />
                 <ui:Toggle name="guardian" text="Guardian consent form signed (required for 16-17)" />
                 <ui:VisualElement class="spacer" />
-                <ui:Button name="create" text="Register participant" class="btn btn--primary" />
+                <ui:Button name="create" text="Confirm and continue" class="btn btn--primary" />
             </ui:VisualElement>
             <ui:VisualElement class="card" style="width: 620px;">
                 <ui:Label text="Returning participant" class="card__title" />
@@ -27,7 +28,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement class="row">
-            <ui:Button name="admin" text="Admin" class="btn btn--ghost btn--small" />
+            <ui:Button name="back" text="Back" class="btn btn--ghost btn--small" />
             <ui:Button name="comfort" text="Comfort settings" class="btn btn--ghost btn--small" />
             <ui:VisualElement class="spacer" />
             <ui:Label name="version" class="muted small" />

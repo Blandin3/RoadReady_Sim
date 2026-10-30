@@ -1,20 +1,28 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 
 namespace RoadReady.UI
 {
     /// <summary>
     /// A QWERTY keyboard drawn in the panel, so names and e-mail addresses can be typed by pointing at keys with the
-    /// controller. It types into whichever <see cref="Target"/> field was touched last.
+    /// controller. It types into whichever <see cref="Target"/> field was touched last. The "#+=" key switches to a
+    /// page of symbols and "ABC" switches back.
     /// </summary>
     public class OnScreenKeyboard : VisualElement
     {
-        static readonly string[] k_Rows = { "1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm" };
+        // Letters page and symbols page. Both pages have the same number of keys in each row.
+        static readonly string[][] k_Pages =
+        {
+            new[] { "1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm" },
+            new[] { "1234567890", "!@#$%^&*()", "-_=+[]{}/", "?:;,.'\"" },
+        };
 
         TypingBox m_Target;
         bool m_Upper = true; // a name starts with a capital letter
-        Button m_Shift;
-        readonly System.Collections.Generic.List<Button> m_Letters = new System.Collections.Generic.List<Button>();
+        bool m_Symbols;
+        Button m_Shift, m_PageKey;
+        readonly List<List<Button>> m_Grid = new List<List<Button>>();
 
         public event Action Changed;
 
@@ -31,32 +39,36 @@ namespace RoadReady.UI
         {
             m_Upper = startUpper;
             AddToClassList("keyboard");
-            foreach (var row in k_Rows)
+            var letters = k_Pages[0];
+            for (var r = 0; r < letters.Length; r++)
             {
                 var line = NewRow();
-                foreach (var key in row)
+                var keys = new List<Button>();
+                m_Grid.Add(keys);
+                foreach (var key in letters[r])
                 {
-                    var letter = key;
-                    var button = Key(letter.ToString(), () => Type(letter));
-                    if (char.IsLetter(letter))
-                        m_Letters.Add(button);
+                    Button button = null;
+                    button = Key(key.ToString(), () => Type(button.text[0]));
+                    keys.Add(button);
                     line.Add(button);
                 }
 
-                if (row == k_Rows[k_Rows.Length - 1])
+                if (r == letters.Length - 1)
                     line.Add(Key("Delete", Backspace, "key--wide"));
             }
 
             var bottom = NewRow();
-            m_Shift = Key("Shift", () => { m_Upper = !m_Upper; RefreshLetters(); }, "key--wide");
+            m_Shift = Key("Shift", () => { m_Upper = !m_Upper; Refresh(); }, "key--wide");
+            m_PageKey = Key("#+=", () => { m_Symbols = !m_Symbols; Refresh(); }, "key--wide");
             bottom.Add(m_Shift);
+            bottom.Add(m_PageKey);
             bottom.Add(Key("@", () => Type('@')));
             bottom.Add(Key(".", () => Type('.')));
             bottom.Add(Key("-", () => Type('-')));
             bottom.Add(Key("_", () => Type('_')));
             bottom.Add(Key("Space", () => Type(' '), "key--space"));
             bottom.Add(Key(".com", () => Append(".com"), "key--wide"));
-            RefreshLetters();
+            Refresh();
         }
 
         VisualElement NewRow()
@@ -76,21 +88,30 @@ namespace RoadReady.UI
             return button;
         }
 
-        void RefreshLetters()
+        /// <summary>Writes the right characters on the keys for the current page and capitals state.</summary>
+        void Refresh()
         {
-            foreach (var button in m_Letters)
-                button.text = m_Upper ? button.text.ToUpperInvariant() : button.text.ToLowerInvariant();
-            m_Shift.EnableInClassList("key--on", m_Upper);
+            var page = k_Pages[m_Symbols ? 1 : 0];
+            for (var r = 0; r < m_Grid.Count; r++)
+                for (var c = 0; c < m_Grid[r].Count; c++)
+                {
+                    var ch = page[r][c];
+                    m_Grid[r][c].text = (!m_Symbols && m_Upper ? char.ToUpperInvariant(ch) : ch).ToString();
+                }
+
+            m_PageKey.text = m_Symbols ? "ABC" : "#+=";
+            m_Shift.SetEnabled(!m_Symbols);
+            m_Shift.EnableInClassList("key--on", m_Upper && !m_Symbols);
         }
 
         void Type(char ch)
         {
-            if (char.IsLetter(ch) && m_Upper)
+            if (char.IsLetter(ch) && m_Upper && !m_Symbols)
                 ch = char.ToUpperInvariant(ch);
             Append(ch.ToString());
             // One capital, then lower case (and again after a space, for a surname).
             m_Upper = AutoCapitalise && ch == ' ';
-            RefreshLetters();
+            Refresh();
         }
 
         void Append(string text)
@@ -113,7 +134,7 @@ namespace RoadReady.UI
         public void SetCapitals(bool upper)
         {
             m_Upper = upper;
-            RefreshLetters();
+            Refresh();
         }
     }
 }

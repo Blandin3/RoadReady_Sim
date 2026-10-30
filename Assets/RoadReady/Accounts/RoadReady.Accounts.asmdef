@@ -2,6 +2,7 @@
     "name": "RoadReady.Accounts",
     "rootNamespace": "RoadReady.Accounts",
     "references": [
+        "RoadReady.Runtime",
         "Unity.TextMeshPro",
         "UnityEngine.UI",
         "Unity.InputSystem",

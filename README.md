@@ -6,7 +6,7 @@
 
 ## Description
 
-RoadReady is a Unity virtual-reality simulator for practising road-safety decisions in streets modelled on **Kimironko, Kigali (Rwanda)**. Every scenario can be played from **two perspectives**:
+RoadReady is a Unity virtual-reality simulator for practising road-safety decisions in streets modelled on **Kigali (Rwanda)**. Every scenario can be played from **two perspectives**:
 
 - 🚗 **Driver**: drive a car through the scenario and obey speed limits, signals, zebra crossings and give-way rules.
 - 🚶 **Pedestrian**: walk and cross the same street, judge gaps in traffic and look both ways.
@@ -41,7 +41,7 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 |---|---|
 | **Dual perspective** | Each scenario supports Driver and Pedestrian. Progress, levels and history are tracked separately for each perspective. After any attempt, *Switch perspective* reloads the same scenario as the other road user. |
 | **Scenarios** | Market zebra crossing, Signalised intersection, Reverse bay parking (driver only, scored out of 100, pass mark 80) and an endless Open road loop (driver only, timed), plus an unscored tutorial for each perspective. Every scenario ends on reaching the goal, a collision or the time limit. |
-| **Manual car** | Clutch, gears 1–6, R and N. The engine stalls if the clutch is let out too fast or the gear is too high for the speed. Start it with the ON button (or `O`) with the clutch down or in neutral. Details in [§6](#manual-gearbox-and-racing-wheel). |
+| **Automatic car** | Starts in neutral with the engine off and the handbrake up, and only moves once the engine is on (ON button or `O`), the handbrake is down (`B`) and D or R is selected (lever or `G`). See [§6](#automatic-gearbox-and-racing-wheel). |
 | **Racing wheel** | Logitech G29 (and similar) wheel, pedals, clutch and H-shifter through the Input System. Press `F3` in Play to calibrate and `F2` for a live monitor. |
 | **School accounts** | A driving school registers and logs in (Firebase), registers members (codes `R-001`, `R-002`…), picks who trains and sees a dashboard. See [§8](#school-accounts-firebase). |
 | **Menus in VR** | World-space UI Toolkit menus. Grab the blue bar above the pause menu with a controller ray to move the menu where you see best; it remembers the spot. |
@@ -220,17 +220,11 @@ The project includes the XRI *Starter Assets* and XR simulation settings. Turn o
 | Recenter | Right thumbstick click | Right thumbstick click |
 | Look / blind-spot check | Turn your head | Turn your head |
 
-### Manual gearbox and racing wheel
+### Automatic gearbox and racing wheel
 
-The car is a manual: it starts in neutral with the engine off and the handbrake up.
+The car is an **automatic**. Every drive starts in **neutral with the engine off and the handbrake up**; it only moves once all three are dealt with: press the ON button (or `O`), push the handbrake down (or `B`), and select D (or R) with the gear lever (or `G`, or R2 / L2 on the wheel), then use the accelerator and brake.
 
-1. Press the clutch (left pedal, or hold left `Shift`) and press the ON button (or `O`).
-2. Push the handbrake down (or `B`), select **1st** (or **R**), then let the clutch up slowly while pressing the accelerator.
-3. Press the clutch to change gear. Changing gear without it jerks the car and shows a warning.
-
-With a **G29**: the H-shifter selects gears 1–6 and R, and `R2` / `L2` shift up and down. Press **`F3` in Play** to calibrate; it learns the wheel, accelerator, brake, clutch (Space skips it) and shifter. `F2` shows every axis and button live. Set `m_ManualGearbox` to off on the car's `DriverController` to go back to the old automatic (P-R-N-D).
-
-> The grab-able VR gear lever is still the P-R-N-D prop and selects 1st only. Use the shifter or buttons to reach higher gears.
+With a **G29**: press **`F3` in Play** to calibrate the wheel, accelerator, brake and shifter (`F2` shows every axis and button live). The first drive with an uncalibrated wheel opens the calibration by itself; `F4` swaps the accelerator and clutch if they are the wrong way round. `R2` / `L2` move the lever.
 
 ---
 
@@ -297,7 +291,7 @@ Researchers can also override scenario parameters at runtime from the **Admin pa
 
 ### School accounts (Firebase)
 
-A driving school registers once, then logs in on the headset and stays logged in until **Log out school**. Flow: `SchoolSetup` (register / log in) → `Home` → **Start training** (pick a member, opens the game), **Register new member**, **Dashboard** (asks for the password again, then shows member counts). Screens are world-space canvases with an on-screen keyboard (letters and a `#+=` symbols page), so they work in a headset and with the mouse.
+A driving school registers once, then logs in on the headset and stays logged in until **Log out school**. Flow: `SchoolSetup` (register / log in) → `Home` → **Start training** (pick a member, opens the game), **Register new member**, **Dashboard** (asks for the password again, then shows member counts). Screens are world-space canvases with an on-screen keyboard (letters and a `#+=` symbols page), so they work in a headset and with the mouse. The whole experience starts here: Play and the first scene of a build are `SchoolSetup`; **Start training** hands the chosen member to the game, which skips its splash and name page, and finishing a session returns to Home.
 
 One-time Firebase set-up:
 
@@ -349,7 +343,7 @@ Participant Setup (researcher) → Consent → Instructions → Tutorial (first 
 
 ## 11. How the simulation works
 
-- **Car:** a deterministic kinematic model driven from `Update` (no physics jitter), left-hand drive, with the manual gearbox in `DriverController`.
+- **Car:** a deterministic kinematic model driven from `Update` (no physics jitter), left-hand drive, an automatic gearbox in `DriverController`.
 - **Rules:** `RuleEngine` (driver, pedestrian and shared rules) turns behaviour into Safe / Borderline / Unsafe decisions with a severity.
 - **Hazards:** `HazardMonitor` checks head gaze and the response to each scripted hazard.
 - **Score:** `ScoreCalculator` combines hazards and rules (parking uses points off 100 instead); `FeedbackGenerator` writes the report.
@@ -426,8 +420,8 @@ Supporting design files:
 | Black screen with Quest Link | Make sure Link is active before pressing Play and OpenXR is ticked on the **Standalone** tab. In the Meta Quest Link app, set OpenXR runtime to *Meta Quest Link*. |
 | Registering a school says **"Missing or insufficient permissions"** | Publish [`firestore.rules`](firestore.rules) in Firebase → Firestore → Rules and enable Email/Password sign-in. |
 | Play mode exits immediately with the headset connected | The Meta runtime ended the OpenXR session. Be inside Link before pressing Play, set *Play Mode OpenXR Runtime* to **Oculus**, close SteamVR and other VR apps, and set Meta Quest Link as the active OpenXR runtime. Without a headset, Play works as usual. |
-| The car does not move | It is a manual: clutch down, select 1st (or R), release the handbrake, then ease the clutch up with the accelerator pressed. If the engine stalls, clutch down and press ON again. |
-| Wheel pedals, clutch or shifter feel wrong | Press `F3` in Play to calibrate, `F2` to see the live axes. |
+| The car does not move | It starts in neutral with the engine off and the handbrake up: press the ON button (`O`), push the handbrake down (`B`) and select D or R (lever or `G`). |
+| Wheel pedals, clutch or shifter feel wrong | Press `F3` in Play to calibrate, `F4` to swap the accelerator and clutch if they are the wrong way round, `F2` to see the live axes. |
 | Account menu text boxes do not type | Click the box, then use the on-screen keyboard. |
 | Motion sickness during tests | Turn on the comfort vignette, snap turning or seated mode in **Comfort settings**. Stop the session if the SSQ warning appears. |
 

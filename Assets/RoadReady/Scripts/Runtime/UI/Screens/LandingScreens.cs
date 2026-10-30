@@ -51,8 +51,22 @@ namespace RoadReady.UI
 
             var buttons = Row(card);
             buttons.Add(UIX.MakeButton("Driving school login", () => { m_SchoolMode = true; Build(); }, "btn--ghost", "btn--small"));
+            buttons.Add(UIX.MakeButton("Register school", OpenSchoolRegistration, "btn--ghost", "btn--small"));
             buttons.Add(Spacer());
             buttons.Add(UIX.MakeButton("Start", StartLearner, "btn--primary", "btn--small"));
+        }
+
+        /// <summary>Opens the online school account screens (Register school / School login, in the Accounts scenes).</summary>
+        void OpenSchoolRegistration()
+        {
+            const string scene = "SchoolSetup";
+            if (!UnityEngine.Application.CanStreamedLevelBeLoaded(scene))
+            {
+                m_Message.text = "The school accounts scenes are missing from Build Settings. Run RoadReady > Accounts > Add Account Scenes To Build Settings.";
+                return;
+            }
+
+            UnityEngine.SceneManagement.SceneManager.LoadScene(scene);
         }
 
         void BuildSchool(VisualElement card)

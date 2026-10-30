@@ -7,7 +7,11 @@ using UnityEngine.UIElements;
 
 namespace RoadReady.UI
 {
-    /// <summary>Researcher registers a new participant or picks a returning one (anonymised ids only).</summary>
+    /// <summary>
+    /// Participant setup. The learner's details (group, condition, age band, experience) are saved against their name or
+    /// member code the first time; when they come back the same details are filled in and they only approve or edit them.
+    /// The list on the right is for picking an earlier study record directly.
+    /// </summary>
     public class ParticipantSetupScreen : UIScreen
     {
         Perspective m_Group = Perspective.Driver;
@@ -21,6 +25,26 @@ namespace RoadReady.UI
         {
             Text("study-name", App.Config.studyName);
             Text("version", "RoadReady v" + Application.version);
+
+            // Details saved earlier for this learner are filled in: they only approve them, or change what is different.
+            var saved = App.FindLearnerProfile();
+            if (saved != null)
+            {
+                m_Group = saved.group;
+                m_Condition = saved.condition;
+                m_Age = saved.ageBand;
+                m_Experience = saved.drivingExperience;
+            }
+
+            var who = string.IsNullOrWhiteSpace(App.LearnerName) ? "" : " " + App.LearnerName;
+            var hint = Q<Label>("profile-hint");
+            hint.text = saved != null
+                ? $"Welcome back{who}. These are your saved details: change anything that is wrong, then confirm."
+                : string.IsNullOrWhiteSpace(App.LearnerName) ? "" : $"Hello{who}. Choose your details once; they are saved for next time.";
+            hint.SetVisible(!string.IsNullOrEmpty(hint.text));
+
+            var guardian = Q<Toggle>("guardian");
+            guardian.value = saved != null && saved.guardianConsentVerified;
 
             UIX.BuildEnumChips(Q<VisualElement>("group-chips"), m_Group, p => p == Perspective.Driver ? "Driver group" : "Pedestrian group", v => m_Group = v);
             UIX.BuildEnumChips(Q<VisualElement>("condition-chips"), m_Condition, c => c == StudyCondition.RoadReadyTraining ? "RoadReady training" : "Briefing only", v => m_Condition = v);
@@ -39,13 +63,13 @@ namespace RoadReady.UI
                 _ => "Licensed 2+ yrs",
             }, v => m_Experience = v);
 
-            Btn("create", OnCreate);
-            Btn("admin", App.OpenAdmin);
+            var postTest = Q<Toggle>("post-test");
+            Btn("create", () => OnConfirm(guardian.value, postTest.value));
+            Btn("back", App.ShowWelcome);
             Btn("comfort", () => App.OpenComfort(App.GoToSetup));
 
             // A plain list (not a ScrollView, which swallows VR controller presses): the six most recent participants.
             var list = Q<VisualElement>("participant-list");
-            var postTest = Q<Toggle>("post-test");
             var participants = App.Data.LoadAllParticipants().Where(p => p.consentGiven).ToList();
             Q<Label>("empty-list").SetVisible(participants.Count == 0);
             foreach (var p in participants.Skip(Mathf.Max(0, participants.Count - 6)))
@@ -58,9 +82,8 @@ namespace RoadReady.UI
             }
         }
 
-        void OnCreate()
+        void OnConfirm(bool guardian, bool postTest)
         {
-            var guardian = Q<Toggle>("guardian").value;
             if (m_Age == AgeBand.Age16To17 && m_Group == Perspective.Driver)
             {
                 UI.Confirm("Driver group is 18+", "Learner and licensed drivers must be 18 or older (proposal 3.2.5). Register this person in the pedestrian group instead.", "OK", null, null, null);
@@ -73,7 +96,7 @@ namespace RoadReady.UI
                 return;
             }
 
-            App.RegisterParticipant(m_Group, m_Condition, m_Age, m_Experience, guardian);
+            App.ConfirmParticipant(m_Group, m_Condition, m_Age, m_Experience, guardian, postTest);
         }
     }
 
@@ -82,7 +105,7 @@ namespace RoadReady.UI
     {
         const string k_Text =
             "RoadReady is a research project at the African Leadership University. It studies whether practising road-safety decisions in virtual reality helps people make safer decisions as drivers and pedestrians.\n\n" +
-            "What you will do: wear a VR headset for about 20-30 minutes, complete a short tutorial, then drive and/or walk through three street scenarios modelled on Kimironko. You may repeat scenarios and see your results.\n\n" +
+            "What you will do: wear a VR headset for about 20-30 minutes, complete a short tutorial, then drive and/or walk through three street scenarios modelled on Kigali. You may repeat scenarios and see your results.\n\n" +
             "Risks: some people feel dizzy or sick in VR. Tell the researcher immediately if you feel unwell - you can stop at any time. Nothing in the simulation can physically harm you.\n\n" +
             "Your data: RoadReady records your reactions, decisions and scores against an anonymous code (for example RR-7KQ2TX). Your name is never stored with it. If you choose to leave a name and email so we can send you your results report, they are kept in a separate file, never with your study data, and used only to send you that report. Data is kept in line with Rwanda's Law on the Protection of Personal Data and Privacy and is used only for this study.\n\n" +
             "Your rights: taking part is voluntary. You can withdraw at any time from the menu and all of your data will be deleted.";
@@ -168,7 +191,12 @@ namespace RoadReady.UI
             card.Add(UIX.MakeLabel("Want your results by email?", "contact__title"));
             card.Add(UIX.MakeLabel("Optional. We send you a PDF of how you did, kept apart from the study data.", "contact__hint"));
 
-            m_Name = Box(card, "Your name", "Tap here to type your name", existing?.name);
+            // The learner already typed their name on the landing page: reuse it, so it is only asked for once.
+            var knownName = !string.IsNullOrWhiteSpace(existing?.name) ? existing.name : App.LearnerName;
+            if (!string.IsNullOrWhiteSpace(knownName))
+                m_Name = new TypingBox("") { Value = knownName.Trim() }; // kept, but not shown
+            else
+                m_Name = Box(card, "Your name", "Tap here to type your name", null);
             m_Email = Box(card, "Your email", "Tap here to type your email", existing?.email);
 
             m_Keyboard = new OnScreenKeyboard();

@@ -21,6 +21,9 @@ namespace RoadReady.EditorTools
     {
         const string UiFolder = Root + "/UI";
         const string BootstrapScene = ScenarioSceneBuilder.ScenesFolder + "/RR_Bootstrap.unity";
+        // The whole experience starts at the school screens (register / log in, then Home); the game scenes follow.
+        const string AccountScenesFolder = "Assets/RoadReady/Accounts/Scenes";
+        static readonly string[] AccountScenes = { "SchoolSetup", "Home", "MemberRegister", "StartTraining", "Dashboard" };
         const string XrOriginGuid = "f6336ac4ac8b4d34bc5072418cdc62a0";
         const string VignetteGuid = "6c8af5c8012f01440af6cb2bc3eb987c";
 
@@ -90,7 +93,7 @@ namespace RoadReady.EditorTools
             AssetDatabase.SaveAssets();
             // Scenario scenes deliberately contain no camera (the XR rig lives in the bootstrap scene), so
             // pressing Play in one of them would show "No cameras rendering". Always enter Play Mode via bootstrap.
-            EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(BootstrapScene);
+            EditorSceneManager.playModeStartScene = StartScene();
             EditorSceneManager.OpenScene(BootstrapScene);
         }
 
@@ -105,9 +108,9 @@ namespace RoadReady.EditorTools
             {
                 if (EditorSceneManager.playModeStartScene == null)
                 {
-                    var bootstrap = AssetDatabase.LoadAssetAtPath<SceneAsset>(BootstrapScene);
-                    if (bootstrap != null)
-                        EditorSceneManager.playModeStartScene = bootstrap;
+                    var start = StartScene();
+                    if (start != null)
+                        EditorSceneManager.playModeStartScene = start;
                 }
             };
         }
@@ -243,7 +246,7 @@ namespace RoadReady.EditorTools
                 s.displayName = name;
                 s.type = type;
                 s.sceneName = scene;
-                s.location = "Kimironko, Kigali";
+                s.location = "Kigali";
                 s.description = description;
                 s.driverBriefing = driver;
                 s.pedestrianBriefing = pedestrian;
@@ -259,7 +262,7 @@ namespace RoadReady.EditorTools
                 "Learn to look, walk and cross.");
             tutorial.location = "Practice road";
             var zebra = S("Scenario_Zebra", "zebra_crossing", "Market zebra crossing", ScenarioType.UnsignalizedZebraCrossing, "RR_ZebraCrossing",
-                "An unsignalised zebra crossing outside Kimironko market with busy foot traffic.",
+                "An unsignalised zebra crossing outside the market with busy foot traffic.",
                 "Drive east along the market road through the 30 km/h zone and past the zebra crossing. Watch for people on and around the crossing.",
                 "Walk to the zebra crossing and cross to the other side of the road. Cars do not always stop.",
                 "zebra_ped_steps_out", "zebra_jaywalker", "zebra_car_no_yield", "zebra_moto_far_lane");
@@ -278,7 +281,7 @@ namespace RoadReady.EditorTools
             parking.passMark = 80;
 
             var openRoad = S("Scenario_OpenRoad", "open_road", "Open road (endless loop)", ScenarioType.OpenRoad, "RR_OpenRoad",
-                "An endless loop through Kimironko streets. Hazards appear at random as you drive - stay alert for the whole drive.",
+                "An endless loop through Kigali streets. Hazards appear at random as you drive - stay alert for the whole drive.",
                 "Drive round the loop until the time is up. Keep to 40 km/h (30 at the zebra crossings), give way to pedestrians and react to whatever happens ahead.",
                 "",
                 "open_ped_steps_out", "open_jaywalker", "open_moto_sudden_stop", "open_car_pulls_out");
@@ -453,9 +456,17 @@ namespace RoadReady.EditorTools
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), BootstrapScene);
         }
 
+        /// <summary>Play starts at the school screens when they exist, otherwise at the bootstrap scene.</summary>
+        static SceneAsset StartScene() =>
+            AssetDatabase.LoadAssetAtPath<SceneAsset>($"{AccountScenesFolder}/SchoolSetup.unity") ?? AssetDatabase.LoadAssetAtPath<SceneAsset>(BootstrapScene);
+
         static void ApplyBuildSettings()
         {
-            var scenes = new List<EditorBuildSettingsScene> { new EditorBuildSettingsScene(BootstrapScene, true) };
+            var scenes = new List<EditorBuildSettingsScene>();
+            foreach (var name in AccountScenes)
+                if (System.IO.File.Exists($"{AccountScenesFolder}/{name}.unity"))
+                    scenes.Add(new EditorBuildSettingsScene($"{AccountScenesFolder}/{name}.unity", true));
+            scenes.Add(new EditorBuildSettingsScene(BootstrapScene, true));
             var config = Load<RoadReadyConfig>(ConfigPath);
             var names = new List<string> { config.driverTutorial.sceneName };
             names.AddRange(config.scenarios.Select(s => s.sceneName));

@@ -15,7 +15,7 @@ MonoBehaviour:
   scenarioId: signalized_intersection
   displayName: Signalised intersection
   type: 2
-  location: Kimironko, Kigali
+  location: Kigali
   description: A four-way signalised junction with cars, buses, moto-taxis and pedestrians.
   thumbnail: {fileID: 0}
   sceneName: RR_SignalizedIntersection
