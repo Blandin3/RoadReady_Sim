@@ -1,0 +1,21 @@
+{
+    "name": "RoadReady.Accounts",
+    "rootNamespace": "RoadReady.Accounts",
+    "references": [
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.InputSystem",
+        "Unity.XR.Interaction.Toolkit"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ROADREADY_FIREBASE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
