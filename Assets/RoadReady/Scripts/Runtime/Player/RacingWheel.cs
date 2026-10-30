@@ -31,12 +31,14 @@ namespace RoadReady.Player
             public float travel; // signed rest -> fully pressed; 0 = not calibrated
             readonly float[] m_TimeAt = new float[21]; // time spent at each tenth of the -1..1 range
             float m_Min = float.MaxValue, m_Max = float.MinValue;
+            bool m_Reported; // the wheel reads 0 on every axis until it sends its first report
 
             public void Reset()
             {
                 System.Array.Clear(m_TimeAt, 0, m_TimeAt.Length);
                 m_Min = float.MaxValue;
                 m_Max = float.MinValue;
+                m_Reported = false;
             }
 
             public float Read()
@@ -45,6 +47,15 @@ namespace RoadReady.Player
                 var v = axis.ReadValue();
                 if (!float.IsNaN(rest) && Mathf.Abs(travel) > 0.2f)
                     return Mathf.Clamp01((v - rest) / travel);
+
+                // Before the wheel's first report every axis reads exactly 0. Counting that time as "at rest" made a released
+                // pedal (which sits at +1 or -1) look fully pressed, so the car drove off by itself. Ignore it until real data arrives.
+                if (!m_Reported)
+                {
+                    if (v == 0f)
+                        return 0f;
+                    m_Reported = true;
+                }
 
                 m_Min = Mathf.Min(m_Min, v);
                 m_Max = Mathf.Max(m_Max, v);
@@ -70,7 +81,7 @@ namespace RoadReady.Player
         Calibration m_Calibration;
 
         /// <summary>The connected wheel, or null.</summary>
-        public static RacingWheel Current => s_Instance != null && s_Instance.m_Device != null && s_Instance.m_Steering != null ? s_Instance : null;
+        public static RacingWheel Current => s_Instance != null && s_Instance.m_Device != null ? s_Instance : null;
 
         public float Steer { get; private set; }
         public float Throttle { get; private set; }
@@ -78,6 +89,9 @@ namespace RoadReady.Player
         /// <summary>Clutch pedal travel 0 (up) to 1 (down); 0 when no clutch axis has been calibrated (F3).</summary>
         public float Clutch { get; private set; }
         public bool HasClutch => m_Clutch.axis != null;
+
+        /// <summary>Set by the car: only a manual gearbox asks for the clutch pedal during F3 calibration.</summary>
+        public static bool CalibrateClutch { get; set; }
         public string DeviceName => m_Device != null ? m_Device.description.product : "";
         public bool Calibrating => m_Calibration != null;
 
@@ -184,6 +198,7 @@ namespace RoadReady.Player
                 return;
             m_Device = device;
             m_Steering = null;
+            m_WheelSearch.Clear();
             m_Throttle.axis = m_Brake.axis = m_Clutch.axis = null;
             m_Throttle.Reset();
             m_Brake.Reset();
@@ -231,15 +246,110 @@ namespace RoadReady.Player
                 m_ShifterReverse = PlayerPrefs.GetInt(key + "shiftReverse", 19);
             }
 
-            // G29 defaults (Windows, G HUB, separate pedals): wheel = X, accelerator = Y, brake = Rz.
-            m_Steering ??= Axis("stick/x") ?? Axis("x") ?? Axes(m_Device).FirstOrDefault();
-            m_Throttle.axis ??= Axis("stick/y") ?? Axis("y");
-            m_Brake.axis ??= Axis("rz") ?? Axis("z");
-            if (!PlayerPrefs.HasKey(key + "steer"))
-                Debug.Log("[RoadReady] Wheel not calibrated yet: using G29 defaults. Press F3 to calibrate if the pedals or steering feel wrong.");
+            // Not calibrated: the pedals as this G29 (through G HUB) actually reports them - the accelerator on the first stick
+            // axis (X) and the brake on Z (on Y when there is no Z / Rz pair). The steering axis is NOT guessed: it is found
+            // by watching which other axis moves both ways from where it rests (only the wheel does that; pedals move one way).
+            // A saved calibration (F3) always wins over all of this.
+            if (!IsCalibrated)
+            {
+                var axisY = Axis("stick/y") ?? Axis("y");
+                var axisZ = Axis("z");
+                var axisRz = Axis("rz");
+                var accelerator = Axis("stick/x") ?? Axis("x") ?? Axes(m_Device).FirstOrDefault();
+                var brake = axisY != null && axisZ != null && axisRz != null ? axisZ : axisY ?? axisRz ?? axisZ;
+                m_Throttle.axis ??= accelerator;
+                if (brake != m_Throttle.axis)
+                    m_Brake.axis ??= brake;
+                m_Steering = null; // found by FindWheelAxis once the wheel is turned
+                m_WheelSearch.Clear();
+            }
+
+            if (m_Clutch.axis != null && (m_Clutch.axis == m_Throttle.axis || m_Clutch.axis == m_Brake.axis))
+                m_Clutch.axis = null; // one axis can only be one pedal
+
+            if (!IsCalibrated)
+                Debug.Log($"[RoadReady] Wheel not calibrated yet: accelerator={RelativePath(m_Throttle.axis)}, brake={RelativePath(m_Brake.axis)}; turn the wheel left and right once so its axis is found. Press F3 to calibrate everything.");
+        }
+
+        /// <summary>Starts the calibration steps (the same as pressing F3).</summary>
+        public void BeginCalibration()
+        {
+            if (m_Device != null && m_Calibration == null)
+                m_Calibration = new Calibration(this);
+        }
+
+        /// <summary>True once the F3 calibration has been completed and saved for this wheel.</summary>
+        public bool IsCalibrated => m_Device != null && PlayerPrefs.HasKey(k_Prefs + DeviceKey + ".steer");
+
+        /// <summary>F4: the accelerator and clutch pedals are on each other's axes; swap them and remember it.</summary>
+        void SwapAcceleratorAndClutch()
+        {
+            if (m_Device == null || m_Clutch.axis == null)
+                return;
+            (m_Throttle.axis, m_Clutch.axis) = (m_Clutch.axis, m_Throttle.axis);
+            foreach (var pedal in new[] { m_Throttle, m_Clutch })
+            {
+                pedal.rest = float.NaN; // each pedal learns its own travel again
+                pedal.travel = 0f;
+                pedal.Reset();
+            }
+
+            SaveMapping();
+            Debug.Log($"[RoadReady] Accelerator and clutch swapped: accelerator={RelativePath(m_Throttle.axis)}, clutch={RelativePath(m_Clutch.axis)}.");
+        }
+
+        static string RelativePath(InputControl control) =>
+            control == null ? "" : control.path.Substring(control.device.path.Length + 1);
+
+        void SaveMapping()
+        {
+            var key = k_Prefs + DeviceKey + ".";
+            PlayerPrefs.SetString(key + "steer", RelativePath(m_Steering));
+            PlayerPrefs.SetFloat(key + "steerCenter", m_SteeringCenter);
+            PlayerPrefs.SetFloat(key + "steerSign", m_SteeringSign);
+            PlayerPrefs.SetString(key + "throttle", RelativePath(m_Throttle.axis));
+            PlayerPrefs.SetFloat(key + "throttleRest", m_Throttle.rest);
+            PlayerPrefs.SetFloat(key + "throttleTravel", m_Throttle.travel);
+            PlayerPrefs.SetString(key + "brake", RelativePath(m_Brake.axis));
+            PlayerPrefs.SetFloat(key + "brakeRest", m_Brake.rest);
+            PlayerPrefs.SetFloat(key + "brakeTravel", m_Brake.travel);
+            PlayerPrefs.SetString(key + "clutch", RelativePath(m_Clutch.axis));
+            PlayerPrefs.SetFloat(key + "clutchRest", m_Clutch.rest);
+            PlayerPrefs.SetFloat(key + "clutchTravel", m_Clutch.travel);
+            PlayerPrefs.SetInt(key + "shiftFirst", m_ShifterFirst);
+            PlayerPrefs.SetInt(key + "shiftReverse", m_ShifterReverse);
+            PlayerPrefs.Save();
         }
 
         string DeviceKey => m_Device == null ? "" : $"{m_Device.description.product}".Replace(" ", "");
+
+        // Uncalibrated wheel: lowest and highest value seen on each spare axis, and where it was first seen (at rest).
+        readonly Dictionary<AxisControl, Vector3> m_WheelSearch = new Dictionary<AxisControl, Vector3>(); // x = rest, y = min, z = max
+
+        /// <summary>The steering axis is the one that moves both ways from where it rests (pedals only move one way).</summary>
+        void FindWheelAxis()
+        {
+            var axes = Axes(m_Device).Where(a => a != m_Throttle.axis && a != m_Brake.axis && a != m_Clutch.axis).ToList();
+            if (axes.All(a => a.ReadValue() == 0f) && m_WheelSearch.Count == 0)
+                return; // the wheel has not sent its first report yet
+            foreach (var axis in axes)
+            {
+                var v = axis.ReadValue();
+                if (!m_WheelSearch.TryGetValue(axis, out var seen))
+                    seen = new Vector3(v, v, v);
+                seen.y = Mathf.Min(seen.y, v);
+                seen.z = Mathf.Max(seen.z, v);
+                m_WheelSearch[axis] = seen;
+                if (seen.z - seen.x > 0.15f && seen.x - seen.y > 0.15f)
+                {
+                    m_Steering = axis;
+                    m_SteeringCenter = seen.x;
+                    m_SteeringSign = 1f;
+                    Debug.Log($"[RoadReady] Wheel axis found: steering={RelativePath(axis)}. Press F3 if left and right are the wrong way round.");
+                    return;
+                }
+            }
+        }
 
         void Update()
         {
@@ -248,6 +358,7 @@ namespace RoadReady.Player
             {
                 if (keyboard.f2Key.wasPressedThisFrame) m_ShowMonitor = !m_ShowMonitor;
                 if (keyboard.f3Key.wasPressedThisFrame && m_Device != null) m_Calibration = new Calibration(this);
+                if (keyboard.f4Key.wasPressedThisFrame) SwapAcceleratorAndClutch();
             }
 
             if (m_Calibration != null)
@@ -264,7 +375,9 @@ namespace RoadReady.Player
                 return;
             }
 
-            var steer = Mathf.Clamp((m_Steering.ReadValue() - m_SteeringCenter) * m_SteeringSign, -1f, 1f);
+            if (m_Steering == null)
+                FindWheelAxis();
+            var steer = m_Steering == null ? 0f : Mathf.Clamp((m_Steering.ReadValue() - m_SteeringCenter) * m_SteeringSign, -1f, 1f);
             Steer = Mathf.Abs(steer) < k_Deadzone ? 0f : steer;
             Throttle = m_Throttle.Read();
             Brake = m_Brake.Read();
@@ -325,6 +438,12 @@ namespace RoadReady.Player
 
                 if (m_Step >= 5)
                     return UpdateShifter();
+
+                if (m_Step == 4 && !CalibrateClutch)
+                {
+                    Next(); // automatic car: no clutch to calibrate
+                    return false;
+                }
 
                 if (m_Step == 4 && Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
                 {
@@ -468,7 +587,7 @@ namespace RoadReady.Player
             }
             else
             {
-                GUILayout.Label(m_Device == null ? "<b>No wheel found.</b> Plug in the G29 (USB) and check it shows in Windows' 'Set up USB game controllers'." : $"<b>{DeviceName}</b>  (F3: calibrate, F2: hide)", Rich());
+                GUILayout.Label(m_Device == null ? "<b>No wheel found.</b> Plug in the G29 (USB) and check it shows in Windows' 'Set up USB game controllers'." : $"<b>{DeviceName}</b>  (F3: calibrate, F4: swap accelerator and clutch, F2: hide)", Rich());
                 var driver = RoadReadyApp.Instance != null && RoadReadyApp.Instance.Scenarios != null ? RoadReadyApp.Instance.Scenarios.Driver : null;
                 GUILayout.Label(driver == null
                     ? "Car: not driving (start a Driver scenario)"
@@ -479,7 +598,7 @@ namespace RoadReady.Player
                 {
                     GUILayout.Label($"Steer {Steer:+0.00;-0.00}   Accelerator {Throttle:0.00}   Brake {Brake:0.00}   Clutch {(HasClutch ? Clutch.ToString("0.00") : "not set (F3)")}", Rich(16));
                     foreach (var axis in Axes(m_Device).Take(12))
-                        GUILayout.Label($"{axis.path.Substring(m_Device.path.Length + 1),-12} {axis.ReadValue():+0.000;-0.000}" + (axis == m_Steering ? "  (steering)" : axis == m_Throttle.axis ? "  (accelerator)" : axis == m_Brake.axis ? "  (brake)" : ""));
+                        GUILayout.Label($"{axis.path.Substring(m_Device.path.Length + 1),-12} {axis.ReadValue():+0.000;-0.000}" + (axis == m_Steering ? "  (steering)" : axis == m_Throttle.axis ? "  (accelerator)" : axis == m_Brake.axis ? "  (brake)" : axis == m_Clutch.axis ? "  (clutch)" : ""));
                     var pressed = m_Device.allControls.OfType<ButtonControl>().Where(b => b.isPressed && !(b.parent is ButtonControl)).Select(b => b.path.Substring(m_Device.path.Length + 1));
                     GUILayout.Label("Pressed: " + string.Join(", ", pressed));
                 }

@@ -16,7 +16,7 @@ namespace RoadReady.Config
         public string displayName = "Scenario";
         public ScenarioType type = ScenarioType.UnsignalizedZebraCrossing;
         [Tooltip("Real-world location the scenario is modelled on.")]
-        public string location = "Kimironko, Kigali";
+        public string location = "Kigali";
         [TextArea] public string description;
         public Sprite thumbnail;
 

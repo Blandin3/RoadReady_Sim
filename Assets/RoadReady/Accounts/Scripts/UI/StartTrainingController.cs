@@ -73,6 +73,7 @@ namespace RoadReady.Accounts
         void Train(MemberRecord member)
         {
             CurrentMember.Set(AuthService.SchoolId, member);
+            RoadReady.Core.SchoolHandoff.Set(member.FullName, member.Code); // the game skips its own name page and returns here at the end
             if (!SceneRouter.Go(SceneRouter.Game))
                 UiKit.ShowMessage(m_Message, "The simulator scene (RR_Bootstrap) is not in Build Settings.");
         }

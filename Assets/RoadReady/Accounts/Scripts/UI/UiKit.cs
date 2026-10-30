@@ -56,6 +56,7 @@ namespace RoadReady.Accounts
             rect.localScale = Vector3.one * 0.001f;
             rect.position = new Vector3(0f, 1.4f, 1.4f); // a sensible spot until the placer below runs
             scaler.dynamicPixelsPerUnit = 3f;
+            canvasGo.AddComponent<CanvasGroup>().alpha = 0f; // hidden until placed, so it never visibly jumps
             canvasGo.AddComponent<ScreenPlacer>(); // moves it in front of the head once the headset is tracking
             var panel = NewPanel(rect);
             Stretch(panel, 0f);
@@ -67,8 +68,8 @@ namespace RoadReady.Accounts
             barRect.anchorMin = new Vector2(0f, 1f);
             barRect.anchorMax = Vector2.one;
             barRect.pivot = new Vector2(0.5f, 1f);
-            barRect.sizeDelta = new Vector2(0f, 10f);
-            barRect.anchoredPosition = Vector2.zero;
+            barRect.sizeDelta = new Vector2(-80f, 10f); // inset so it sits inside the rounded corners
+            barRect.anchoredPosition = new Vector2(0f, -18f);
             var barLayout = bar.GetComponent<HorizontalLayoutGroup>();
             barLayout.childControlWidth = barLayout.childControlHeight = true;
             barLayout.childForceExpandWidth = barLayout.childForceExpandHeight = true;
@@ -77,6 +78,7 @@ namespace RoadReady.Accounts
                 var segment = new GameObject("Segment", typeof(RectTransform), typeof(Image));
                 segment.transform.SetParent(bar.transform, false);
                 segment.GetComponent<Image>().color = colour;
+                Round(segment.GetComponent<Image>(), 4.8f);
             }
 
             var content = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
@@ -94,13 +96,124 @@ namespace RoadReady.Accounts
             return content.GetComponent<RectTransform>();
         }
 
-        /// <summary>The dark rounded-corner-free panel every screen sits on.</summary>
+        /// <summary>The dark rounded panel every screen sits on.</summary>
         static RectTransform NewPanel(RectTransform parent)
         {
             var go = new GameObject("Panel", typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = Background;
+            var image = go.GetComponent<Image>();
+            image.color = Background;
+            Round(image, 0.9f);
             return go.GetComponent<RectTransform>();
+        }
+
+        static Sprite s_Rounded;
+
+        /// <summary>A white rounded rectangle (9-sliced), tinted by each Image's colour, so every widget has the same soft corners as the rest of the UI.</summary>
+        static Sprite RoundedSprite()
+        {
+            if (s_Rounded != null)
+                return s_Rounded;
+            const int size = 64;
+            const float radius = 24f;
+            var pixels = new Color32[size * size];
+            for (var y = 0; y < size; y++)
+                for (var x = 0; x < size; x++)
+                {
+                    var qx = Mathf.Max(Mathf.Abs(x + 0.5f - size * 0.5f) - (size * 0.5f - radius), 0f);
+                    var qy = Mathf.Max(Mathf.Abs(y + 0.5f - size * 0.5f) - (size * 0.5f - radius), 0f);
+                    var alpha = Mathf.Clamp01(0.5f - (Mathf.Sqrt(qx * qx + qy * qy) - radius));
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                }
+
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            s_Rounded = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(radius, radius, radius, radius));
+            return s_Rounded;
+        }
+
+        // ---------------------------------------------------------------- liquid-glass buttons
+
+        // The same look as the .btn style in RoadReady.uss: a translucent fill, a bright rim and a soft gloss on the top half.
+        static readonly Color GlassPlain = new Color(1f, 1f, 1f, 0.10f);
+        static readonly Color GlassBlue = new Color(0f, 161f / 255f, 222f / 255f, 0.55f);
+        static readonly Color GlassYellow = new Color(250f / 255f, 210f / 255f, 1f / 255f, 0.75f);
+        static readonly Color RimPlain = new Color(1f, 1f, 1f, 0.28f);
+        static readonly Color RimBlue = new Color(0.47f, 0.84f, 1f, 0.55f);
+        static readonly Color RimYellow = new Color(1f, 0.93f, 0.55f, 0.65f);
+
+        public enum GlassState { Plain, Primary, Highlight }
+
+        static Sprite s_Ring;
+
+        /// <summary>The outline of the rounded rectangle (a thin ring), for the glass rim.</summary>
+        static Sprite RingSprite()
+        {
+            if (s_Ring != null)
+                return s_Ring;
+            const int size = 64;
+            const float radius = 24f, thickness = 3f;
+            var pixels = new Color32[size * size];
+            for (var y = 0; y < size; y++)
+                for (var x = 0; x < size; x++)
+                {
+                    var ax = Mathf.Abs(x + 0.5f - size * 0.5f) - (size * 0.5f - radius);
+                    var ay = Mathf.Abs(y + 0.5f - size * 0.5f) - (size * 0.5f - radius);
+                    var d = new Vector2(Mathf.Max(ax, 0f), Mathf.Max(ay, 0f)).magnitude + Mathf.Min(Mathf.Max(ax, ay), 0f) - radius;
+                    var alpha = Mathf.Clamp01(Mathf.Clamp01(0.5f - d) - Mathf.Clamp01(0.5f - (d + thickness)));
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                }
+
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            s_Ring = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(radius, radius, radius, radius));
+            return s_Ring;
+        }
+
+        /// <summary>Adds the gloss (top half) and the bright rim as children of a button, under its label.</summary>
+        static void AddGlass(RectTransform button)
+        {
+            var sheen = new GameObject("Sheen", typeof(RectTransform), typeof(Image));
+            sheen.transform.SetParent(button, false);
+            var sheenRect = sheen.GetComponent<RectTransform>();
+            sheenRect.anchorMin = new Vector2(0f, 0.5f);
+            sheenRect.anchorMax = Vector2.one;
+            sheenRect.offsetMin = new Vector2(4f, 0f);
+            sheenRect.offsetMax = new Vector2(-4f, -4f);
+            var sheenImage = sheen.GetComponent<Image>();
+            sheenImage.color = new Color(1f, 1f, 1f, 0.09f);
+            sheenImage.raycastTarget = false;
+            Round(sheenImage, 2f);
+
+            var rim = new GameObject("Rim", typeof(RectTransform), typeof(Image));
+            rim.transform.SetParent(button, false);
+            Stretch(rim.GetComponent<RectTransform>(), 0f);
+            var rimImage = rim.GetComponent<Image>();
+            rimImage.sprite = RingSprite();
+            rimImage.type = Image.Type.Sliced;
+            rimImage.pixelsPerUnitMultiplier = 1.4f;
+            rimImage.raycastTarget = false;
+        }
+
+        /// <summary>Sets a button's glass tint: plain white glass, blue (primary) or yellow (highlighted, e.g. Shift is on).</summary>
+        public static void SetGlass(Button button, GlassState state)
+        {
+            var fill = state == GlassState.Primary ? GlassBlue : state == GlassState.Highlight ? GlassYellow : GlassPlain;
+            var rim = state == GlassState.Primary ? RimBlue : state == GlassState.Highlight ? RimYellow : RimPlain;
+            button.GetComponent<Image>().color = fill;
+            var rimTransform = button.transform.Find("Rim");
+            if (rimTransform != null)
+                rimTransform.GetComponent<Image>().color = rim;
+        }
+
+        /// <summary>Gives an Image rounded corners. A larger <paramref name="cornerScale"/> makes the corners smaller.</summary>
+        static void Round(Image image, float cornerScale = 1.4f)
+        {
+            image.sprite = RoundedSprite();
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = cornerScale;
         }
 
         /// <summary>
@@ -113,7 +226,7 @@ namespace RoadReady.Accounts
             {
                 for (var i = 0; i < 5; i++)
                     yield return null;
-                for (var i = 0; i < 240 && !XRSettings.isDeviceActive; i++)
+                for (var i = 0; i < 240 && !XRSettings.isDeviceActive && XRSettings.enabled; i++) // PC-VR can take a moment; no XR at all: do not wait
                     yield return null;
                 // Let the rig finish its own height adjustment (floor offset) before reading where the head points.
                 var settle = Time.unscaledTime + 1f;
@@ -122,7 +235,10 @@ namespace RoadReady.Accounts
 
                 var head = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
                 if (head == null)
+                {
+                    Reveal();
                     yield break;
+                }
 
                 // Fix the screen to the rig (the XR Origin root) at a set height, not to the head and not to the
                 // world: it can then neither follow the head nor drift when the head height or the rig moves.
@@ -132,6 +248,7 @@ namespace RoadReady.Accounts
                     var flat = Vector3.ProjectOnPlane(head.transform.forward, Vector3.up).normalized;
                     flat = flat == Vector3.zero ? Vector3.forward : flat;
                     transform.SetPositionAndRotation(head.transform.position + flat * 1.4f, Quaternion.LookRotation(flat, Vector3.up));
+                    Reveal();
                     yield break;
                 }
 
@@ -143,6 +260,14 @@ namespace RoadReady.Accounts
                 transform.localScale = Vector3.one * 0.001f;
                 transform.localPosition = new Vector3(0f, 1.4f, 0f) + forward * distance;
                 transform.localRotation = Quaternion.LookRotation(forward, Vector3.up);
+                Reveal();
+            }
+
+            void Reveal()
+            {
+                var group = GetComponent<CanvasGroup>();
+                if (group != null)
+                    group.alpha = 1f;
             }
         }
 
@@ -177,13 +302,16 @@ namespace RoadReady.Accounts
             var go = new GameObject(text + " Button", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var image = go.GetComponent<Image>();
-            image.color = primary ? Accent : Field;
+            Round(image);
             var button = go.GetComponent<Button>();
             button.targetGraphic = image;
+            AddGlass(go.GetComponent<RectTransform>());
+            SetGlass(button, primary ? GlassState.Primary : GlassState.Plain);
             var colours = button.colors;
-            colours.highlightedColor = new Color(1.15f, 1.15f, 1.15f);
-            colours.pressedColor = new Color(0.75f, 0.75f, 0.75f);
-            colours.disabledColor = new Color(0.55f, 0.55f, 0.55f, 0.6f);
+            colours.highlightedColor = new Color(1.3f, 1.3f, 1.3f, 1.35f);
+            colours.pressedColor = new Color(0.8f, 0.8f, 0.8f, 0.8f);
+            colours.disabledColor = new Color(0.6f, 0.6f, 0.6f, 0.5f);
+            colours.fadeDuration = 0f; // no colour fade: the button changes instantly
             button.colors = colours;
             if (onClick != null)
                 button.onClick.AddListener(() => onClick());
@@ -207,7 +335,9 @@ namespace RoadReady.Accounts
             var go = new GameObject("Input", typeof(RectTransform), typeof(Image));
             go.SetActive(false);
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = Field;
+            var fieldImage = go.GetComponent<Image>();
+            fieldImage.color = Field;
+            Round(fieldImage);
             var element = go.AddComponent<LayoutElement>();
             element.minHeight = 64f;
             element.preferredHeight = 64f;
@@ -222,6 +352,9 @@ namespace RoadReady.Accounts
 
             var input = go.AddComponent<TMP_InputField>();
             input.targetGraphic = go.GetComponent<Image>();
+            var inputColours = input.colors;
+            inputColours.fadeDuration = 0f; // no colour fade
+            input.colors = inputColours;
             input.textViewport = viewport.GetComponent<RectTransform>();
             input.textComponent = text;
             input.placeholder = hint;
@@ -356,7 +489,7 @@ namespace RoadReady.Accounts
 
                 symbolsLabel.text = symbols ? "ABC" : "#+=";
                 shiftButton.interactable = !symbols;
-                shiftButton.GetComponent<Image>().color = shift ? Yellow : Field;
+                SetGlass(shiftButton, shift ? GlassState.Highlight : GlassState.Plain);
             }
 
             RectTransform KeyRow()

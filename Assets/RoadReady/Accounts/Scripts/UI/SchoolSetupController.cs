@@ -75,8 +75,8 @@ namespace RoadReady.Accounts
         {
             m_RegisterForm.gameObject.SetActive(registering);
             m_LoginForm.gameObject.SetActive(!registering);
-            m_RegisterTab.GetComponent<Image>().color = registering ? UiKit.Accent : UiKit.Field;
-            m_LoginTab.GetComponent<Image>().color = registering ? UiKit.Field : UiKit.Accent;
+            UiKit.SetGlass(m_RegisterTab, registering ? UiKit.GlassState.Primary : UiKit.GlassState.Plain);
+            UiKit.SetGlass(m_LoginTab, registering ? UiKit.GlassState.Plain : UiKit.GlassState.Primary);
             UiKit.Focus(registering ? m_SchoolName : m_LoginEmail);
             UiKit.ShowMessage(m_Message, "");
         }

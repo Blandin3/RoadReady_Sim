@@ -39,7 +39,7 @@ namespace RoadReady.Config
         public Color lobbyBackgroundColor = new Color(0.055f, 0.165f, 0.32f);
 
         [Header("Study")]
-        public string studyName = "RoadReady Kimironko Pilot";
+        public string studyName = "RoadReady Pilot";
         [Tooltip("Researcher PIN for the admin panel. Change before the pilot.")]
         public string adminPin = "2026";
         [Tooltip("Show the SSQ after every session (NFR comfort target).")]

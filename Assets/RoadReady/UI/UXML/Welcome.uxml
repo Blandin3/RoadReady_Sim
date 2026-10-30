@@ -20,6 +20,7 @@
             <ui:VisualElement class="row welcome__actions">
                 <ui:Button name="start" text="Start" class="btn btn--primary grow welcome__start" />
                 <ui:Button name="how-it-works" text="How it works" class="btn grow" />
+                <ui:Button name="school-home" text="School home" class="btn btn--ghost grow" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Label name="hint" text="Point with the controller and pull the trigger to select" class="welcome__hint" />

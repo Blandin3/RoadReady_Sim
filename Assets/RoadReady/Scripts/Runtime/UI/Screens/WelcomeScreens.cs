@@ -59,6 +59,8 @@ namespace RoadReady.UI
 
             Btn("start", App.GoToSetup);
             Btn("how-it-works", App.ShowHowItWorks);
+            var home = Btn("school-home", () => RoadReady.Core.SchoolHandoff.ReturnHome());
+            home?.SetVisible(RoadReady.Core.SchoolHandoff.CanReturnHome);
         }
 
         void ToggleVoice()

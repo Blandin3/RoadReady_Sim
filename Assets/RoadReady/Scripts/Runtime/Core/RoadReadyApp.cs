@@ -118,6 +118,14 @@ namespace RoadReady
         {
             for (var i = 0; i < 3; i++)
                 yield return null;
+            if (SchoolHandoff.HasLearner)
+            {
+                // Arrived from the school Home screens: the learner is already chosen, so skip the splash and name page.
+                LearnerName = SchoolHandoff.LearnerName;
+                ShowWelcome();
+                yield break;
+            }
+
             ShowSplash();
         }
 
@@ -192,6 +200,7 @@ namespace RoadReady
         /// <summary>Landing page: a learner types a name; the driving school logs in to see who took part today.</summary>
         public void ShowLanding()
         {
+            LearnerName = null; // a new learner is about to type their name
             SetState(AppState.Welcome);
             m_UI.Show(new LandingScreen());
         }
@@ -202,8 +211,12 @@ namespace RoadReady
             m_UI.Show(new SchoolLearnersScreen());
         }
 
+        /// <summary>The name the learner typed on the landing page; later screens reuse it so it is only typed once.</summary>
+        public string LearnerName { get; private set; }
+
         public void LearnerStarted(string name)
         {
+            LearnerName = (name ?? "").Trim();
             Data.School.AddLearner(name);
             ShowWelcome();
         }
@@ -231,9 +244,45 @@ namespace RoadReady
             m_UI.Show(new ParticipantSetupScreen());
         }
 
+        /// <summary>The key that ties a person to their saved study details: the member code from the school Home, or the name they typed.</summary>
+        public string LearnerKey => SchoolHandoff.HasLearner
+            ? LearnerProfileStore.MakeKey(SchoolHandoff.LearnerName, SchoolHandoff.LearnerCode)
+            : LearnerProfileStore.MakeKey(LearnerName, null);
+
+        /// <summary>The study record saved earlier for the current learner, or null the first time.</summary>
+        public ParticipantRecord FindLearnerProfile()
+        {
+            var id = Data.Learners.FindParticipantId(LearnerKey);
+            return id == null ? null : Data.LoadParticipant(id);
+        }
+
+        /// <summary>
+        /// The learner approved (or edited) their setup details. First time: a study record is created and tied to their name.
+        /// Next times: the saved record is updated with any changes and used, so nothing is typed in again.
+        /// </summary>
+        public void ConfirmParticipant(Perspective group, StudyCondition condition, AgeBand age, DrivingExperience experience, bool guardianConsent, bool postTest)
+        {
+            var saved = FindLearnerProfile();
+            if (saved == null)
+            {
+                RegisterParticipant(group, condition, age, experience, guardianConsent);
+                return;
+            }
+
+            saved.group = group;
+            saved.condition = condition;
+            saved.ageBand = age;
+            saved.drivingExperience = experience;
+            saved.guardianConsentVerified = guardianConsent;
+            Data.SaveParticipant(saved);
+            SelectReturningParticipant(saved.participantId, postTest);
+        }
+
         public void RegisterParticipant(Perspective group, StudyCondition condition, AgeBand age, DrivingExperience experience, bool guardianConsent)
         {
             Data.CreateParticipant(group, condition, age, experience, guardianConsent);
+            if (LearnerKey != null)
+                Data.Learners.Link(LearnerKey, Data.CurrentParticipant.participantId);
             SelectedPerspective = group;
             SetState(AppState.Consent);
             m_UI.Show(new ConsentScreen());
@@ -730,6 +779,8 @@ namespace RoadReady
             Data.EndSession();
             LastSsq = null;
             Data.SetCurrentParticipant(null);
+            if (SchoolHandoff.ReturnHome()) // came from the school Home: finish there
+                return;
             GoToSetup();
         }
 

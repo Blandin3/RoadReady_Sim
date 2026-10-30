@@ -15,8 +15,8 @@ MonoBehaviour:
   scenarioId: open_road
   displayName: Open road (endless loop)
   type: 4
-  location: Kimironko, Kigali
-  description: An endless loop through Kimironko streets. Hazards appear at random
+  location: Kigali
+  description: An endless loop through Kigali streets. Hazards appear at random
     as you drive - stay alert for the whole drive.
   thumbnail: {fileID: 0}
   sceneName: RR_OpenRoad

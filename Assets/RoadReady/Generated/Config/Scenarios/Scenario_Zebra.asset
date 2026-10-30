@@ -15,8 +15,8 @@ MonoBehaviour:
   scenarioId: zebra_crossing
   displayName: Market zebra crossing
   type: 1
-  location: Kimironko, Kigali
-  description: An unsignalised zebra crossing outside Kimironko market with busy
+  location: Kigali
+  description: An unsignalised zebra crossing outside the market with busy
     foot traffic.
   thumbnail: {fileID: 0}
   sceneName: RR_ZebraCrossing

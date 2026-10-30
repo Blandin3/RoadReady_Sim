@@ -8,7 +8,6 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:Label name="countdown" class="hud__countdown hidden" />
-        <ui:Label name="tutorial" class="hud__tutorial hidden" />
         <ui:Button name="skip-tutorial" text="Skip tutorial" class="btn btn--small hud__skip hidden" />
         <ui:Button name="restart-scenario" text="Restart" class="btn btn--small hud__skip hud__restart hidden" />
         <ui:Label name="toast" class="hud__toast hidden" />

@@ -959,24 +959,6 @@ Button.pill:hover {
     -unity-text-align: middle-center;
 }
 
-/* The tutorial instruction sits at the top of the view, under "what to do", so the road ahead stays clear.
-   Slightly see-through and a little smaller than before. */
-.hud__tutorial {
-    position: absolute;
-    top: 100px;
-    left: 18%;
-    right: 18%;
-    background-color: rgba(250, 210, 1, 0.8);
-    color: rgb(15, 20, 26);
-    border-radius: 18px;
-    padding: 10px 22px;
-    font-size: 26px;
-    -unity-font-style: bold;
-    white-space: normal;
-    -unity-text-align: middle-center;
-    margin: 0;
-}
-
 .hidden {
     display: none;
 }
@@ -988,23 +970,22 @@ Button.pill:hover {
     background-color: rgb(0, 0, 0);
 }
 
-/* Skip button under the tutorial instruction: opens the same pause panel as the left controller's menu button. */
+/* Skip tutorial and Restart: stacked in a column at the lower right of the view, where a driver can see them easily.
+   Skip sits above Restart. */
 .hud__skip {
     background-color: rgba(10, 14, 20, 0.88);
     border-color: rgba(250, 210, 1, 0.9);
     border-width: 2px;
     color: rgb(255, 255, 255);
     position: absolute;
-    top: 12px;
     right: 12px;
+    bottom: 84px;
     margin: 0;
     min-width: 260px;
 }
 
-/* Restart sits just left of the skip button (or in the corner when there is no skip button). */
 .hud__restart {
-    right: 284px;
-    min-width: 150px;
+    bottom: 12px;
     border-color: rgba(0, 161, 222, 0.9);
 }
 
@@ -1016,6 +997,19 @@ Button.pill:hover {
 .hud__skip:hover {
     background-color: rgba(250, 210, 1, 0.95);
     color: rgb(15, 20, 26);
+}
+
+/* Login and contact pages: no hover / press animations (plain, instant buttons and keys). */
+.contact .btn,
+.contact .key {
+    transition-duration: 0s;
+}
+
+.contact .btn:hover,
+.contact .btn:active,
+.contact .key:hover,
+.contact .key:active {
+    scale: 1 1;
 }
 
 /* Small "what to do" panel at the top of the HUD. */

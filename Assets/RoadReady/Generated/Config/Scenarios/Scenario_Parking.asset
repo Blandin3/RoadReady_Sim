@@ -15,7 +15,7 @@ MonoBehaviour:
   scenarioId: reverse_bay_parking
   displayName: Reverse bay parking
   type: 5
-  location: Kimironko, Kigali
+  location: Kigali
   description: Reverse into a marked bay in a car park, like the RNP driving-test
     yard. Scored out of 100; pass mark 80.
   thumbnail: {fileID: 0}

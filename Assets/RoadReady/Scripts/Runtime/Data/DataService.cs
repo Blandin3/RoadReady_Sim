@@ -35,6 +35,9 @@ namespace RoadReady.Data
         /// <summary>The driving school's login and the day's learner list; kept apart from the study data.</summary>
         public SchoolStore School { get; }
 
+        /// <summary>Which study record belongs to which learner (so their setup details are remembered); kept apart from the study data.</summary>
+        public LearnerProfileStore Learners { get; }
+
         public ParticipantRecord CurrentParticipant { get; private set; }
         public SessionRecord CurrentSession { get; private set; }
 
@@ -48,6 +51,7 @@ namespace RoadReady.Data
             Directory.CreateDirectory(ParticipantsFolder);
             Contacts = new ContactStore(RootFolder);
             School = new SchoolStore(RootFolder);
+            Learners = new LearnerProfileStore(RootFolder);
         }
 
         // ----------------------------------------------------------------- participants
@@ -112,6 +116,7 @@ namespace RoadReady.Data
                 Directory.Delete(folder, true);
             m_AttemptCache.Remove(participantId);
             Contacts.Remove(participantId);
+            Learners.Remove(participantId);
             if (CurrentParticipant != null && CurrentParticipant.participantId == participantId)
             {
                 CurrentParticipant = null;

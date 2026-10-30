@@ -15,6 +15,7 @@ namespace RoadReady.Accounts
 
         async void Start()
         {
+            RoadReady.Core.SchoolHandoff.Clear(); // back at Home: nobody is training until one is picked
             m_Content = UiKit.CreateScreen("Home");
             m_SchoolName = UiKit.Label(m_Content, "", 34f, UiKit.Accent, FontStyles.Bold, 56f);
             m_Message = UiKit.Label(m_Content, "", 26f, UiKit.Error);
