@@ -32,6 +32,7 @@ namespace RoadReady.UI
         Action m_ModalConfirm;
         Action m_ModalCancel;
         UIScreen m_Current;
+        MenuGrabHandle m_Grip;
 
         public UIScreen Current => m_Current;
         public bool MenuVisible => m_MenuPanel != null && m_MenuPanel.Visible;
@@ -58,6 +59,7 @@ namespace RoadReady.UI
             root.Btn("modal-confirm", () => CloseModal(true));
             root.Btn("modal-cancel", () => CloseModal(false));
             UIX.AddGlassSheen(m_ModalLayer);
+            m_Grip = MenuGrabHandle.Create(m_MenuPanel, () => m_App.Rig.HeadTransform);
         }
 
         public VisualTreeAsset GetTree(string name)
@@ -111,7 +113,11 @@ namespace RoadReady.UI
             // Long panels (the feedback report) are held further back, and grow less than the distance, so all of it is in view.
             var back = m_Current != null ? m_Current.ViewDistance : 1f;
             m_MenuPanel.SetScaleMultiplier((seated ? m_SeatedScale : 1f) * k_FartherScale * Mathf.Lerp(1f, back, 0.8f));
-            m_MenuPanel.PlaceInFront(m_App.Rig.HeadTransform, (seated ? m_SeatedDistance : m_StandingDistance) * k_Farther * back, seated ? -0.05f : -0.15f);
+            var head = m_App.Rig.HeadTransform;
+            if (m_Grip != null && m_Grip.HasCustomPosition)
+                m_MenuPanel.PlaceAt(m_Grip.CustomPosition(head), head.position); // where the player last put it
+            else
+                m_MenuPanel.PlaceInFront(head, (seated ? m_SeatedDistance : m_StandingDistance) * k_Farther * back, seated ? -0.05f : -0.15f);
         }
 
         public void ApplyTextScale(float scale) => m_MenuPanel.SetTextScale(scale);

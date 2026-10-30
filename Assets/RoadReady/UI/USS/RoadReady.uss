@@ -959,17 +959,22 @@ Button.pill:hover {
     -unity-text-align: middle-center;
 }
 
+/* The tutorial instruction sits at the top of the view, under "what to do", so the road ahead stays clear.
+   Slightly see-through and a little smaller than before. */
 .hud__tutorial {
-    background-color: rgba(250, 210, 1, 0.92);
+    position: absolute;
+    top: 100px;
+    left: 18%;
+    right: 18%;
+    background-color: rgba(250, 210, 1, 0.8);
     color: rgb(15, 20, 26);
-    border-radius: 22px;
-    padding: 16px 28px;
-    font-size: 32px;
+    border-radius: 18px;
+    padding: 10px 22px;
+    font-size: 26px;
     -unity-font-style: bold;
     white-space: normal;
-    max-width: 1000px;
     -unity-text-align: middle-center;
-    margin: 8px;
+    margin: 0;
 }
 
 .hidden {
