@@ -70,6 +70,7 @@ namespace RoadReady.EditorTools
                 k_ModelName, k_WheelGrabName, "Windshield Menu", "Windshield Menu Tint", CockpitControlsKit.ShifterName, CockpitControlsKit.HandbrakeName,
                 CockpitControlsKit.StartButtonName, CockpitControlsKit.ExitButtonName, "SteeringWheel Pivot",
                 "Indicator Front Left", "Indicator Rear Left", "Indicator Front Right", "Indicator Rear Right",
+                PolyDriveDashboard.GroupName,
             })
             {
                 // Earlier runs may have left several (each run adds one).
@@ -145,18 +146,15 @@ namespace RoadReady.EditorTools
             mirrors.Configure(eye, MirrorScreenMaterial());
             var mirrorReport = MirrorsFromModel(mirrors, m, rootT, eye);
 
-            // The BMW's dials are a flat digital display (no needles to turn), so the gauge component has nothing to drive.
-            var gauges = root.GetComponent<DashboardGauges>();
-            if (gauges == null)
-                gauges = root.AddComponent<DashboardGauges>();
-            gauges.Needles = null;
+            // The Bentley's own dials are a flat texture (no needles to turn), so the PolyDrive cluster goes in front of it.
+            var dashboard = PolyDriveDashboard.Build(root, hub);
 
             var controls = BuildControls(root, steering, axis, hub);
             if (hub.x > 0f)
                 Debug.LogWarning("[RoadReady] The steering wheel is on the right (right-hand drive). Rwanda drives on the right, so a left-hand-drive car is expected.");
 
             return $"Size {bounds.size.x:0.00} x {bounds.size.y:0.00} x {bounds.size.z:0.00} m, wheelbase {wheelbase:0.00} m, eye point at {eye.localPosition}. " +
-                   $"{wheelParts}, {cockpit}, {lamps}, {controls}, mirrors: {mirrorReport}.";
+                   $"{wheelParts}, {cockpit}, {lamps}, {controls}, mirrors: {mirrorReport}. {dashboard}";
         }
 
         // ================================================================ materials
