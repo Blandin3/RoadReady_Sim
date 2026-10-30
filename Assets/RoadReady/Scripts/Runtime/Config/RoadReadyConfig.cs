@@ -49,9 +49,11 @@ namespace RoadReady.Config
 
         [Header("Data")]
         public RemoteBackend remoteBackend = RemoteBackend.None;
-        [Tooltip("e.g. https://your-project-default-rtdb.firebaseio.com")]
+        [Tooltip("Firebase Realtime Database URL, e.g. https://roadready-vr-default-rtdb.europe-west1.firebasedatabase.app")]
         public string remoteBaseUrl = "";
-        [Tooltip("Database secret / auth token. Leave empty for open test databases only.")]
+        [Tooltip("Firebase Web API key (Project settings > General). The headset signs in anonymously with it; it is not a secret.")]
+        public string remoteApiKey = "";
+        [Tooltip("Optional legacy database secret or bearer token, used only when no Web API key is set.")]
         public string remoteAuthToken = "";
         [Tooltip("Telemetry sampling rate (Hz) for the per-attempt trajectory log.")]
         [Range(1f, 30f)] public float telemetrySampleRate = 10f;

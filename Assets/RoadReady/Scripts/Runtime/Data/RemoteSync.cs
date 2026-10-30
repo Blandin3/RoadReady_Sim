@@ -22,6 +22,7 @@ namespace RoadReady.Data
         DataService m_Data;
         string m_Outbox;
         bool m_Busy;
+        FirebaseAuth m_Auth;
 
         public int PendingCount => Directory.Exists(m_Outbox) ? Directory.GetFiles(m_Outbox, "*.json").Length : 0;
         public string LastError { get; private set; }
@@ -32,6 +33,8 @@ namespace RoadReady.Data
             m_Config = config;
             m_Data = data;
             m_Outbox = Path.Combine(data.RootFolder, "outbox");
+            if (config.remoteBackend == RemoteBackend.FirebaseRealtimeDatabase && !string.IsNullOrWhiteSpace(config.remoteApiKey))
+                m_Auth = new FirebaseAuth(config.remoteApiKey);
             Directory.CreateDirectory(m_Outbox);
             data.RecordSaved += OnRecordSaved;
             data.ParticipantDeleted += OnParticipantDeleted;
@@ -78,6 +81,18 @@ namespace RoadReady.Data
         IEnumerator FlushOutbox()
         {
             m_Busy = true;
+            if (m_Auth != null)
+            {
+                yield return m_Auth.EnsureToken();
+                if (!m_Auth.HasValidToken)
+                {
+                    LastError = m_Auth.LastError;
+                    Debug.LogWarning($"[RoadReady] Cloud backup sign-in failed: {LastError}");
+                    m_Busy = false;
+                    yield break;
+                }
+            }
+
             foreach (var file in Directory.GetFiles(m_Outbox, "*.json").OrderBy(File.GetLastWriteTimeUtc))
             {
                 var parts = Path.GetFileNameWithoutExtension(file).Split(new[] { "__" }, System.StringSplitOptions.None);
@@ -98,7 +113,9 @@ namespace RoadReady.Data
                 }
                 else
                 {
-                    LastError = $"{request.responseCode} {request.error}";
+                    LastError = request.responseCode == 401 || request.responseCode == 403
+                        ? "Permission denied: check the Realtime Database rules in the Firebase console."
+                        : $"{request.responseCode} {request.error}";
                     Debug.LogWarning($"[RoadReady] Upload of {collection}/{id} failed: {LastError}");
                     break; // retry on next loop
                 }
@@ -119,8 +136,9 @@ namespace RoadReady.Data
             if (m_Config.remoteBackend == RemoteBackend.FirebaseRealtimeDatabase)
             {
                 url = $"{baseUrl}/{remotePath}.json";
-                if (!string.IsNullOrEmpty(m_Config.remoteAuthToken))
-                    url += "?auth=" + UnityWebRequest.EscapeURL(m_Config.remoteAuthToken);
+                var token = m_Auth != null ? m_Auth.IdToken : m_Config.remoteAuthToken;
+                if (!string.IsNullOrEmpty(token))
+                    url += "?auth=" + UnityWebRequest.EscapeURL(token);
             }
             else
             {
