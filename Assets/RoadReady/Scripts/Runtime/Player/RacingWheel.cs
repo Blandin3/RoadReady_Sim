@@ -340,10 +340,12 @@ namespace RoadReady.Player
                 seen.y = Mathf.Min(seen.y, v);
                 seen.z = Mathf.Max(seen.z, v);
                 m_WheelSearch[axis] = seen;
+                // Moved well past both sides of where it rests: only the steering wheel does that (pedals move one way). The
+                // G29's own power-up spin counts too, which is fine: it is the wheel.
                 if (seen.z - seen.x > 0.15f && seen.x - seen.y > 0.15f)
                 {
                     m_Steering = axis;
-                    m_SteeringCenter = seen.x;
+                    m_SteeringCenter = 0f; // the G29 finds its own centre (the lock-to-lock spin at power-up) and reports it as 0
                     m_SteeringSign = 1f;
                     Debug.Log($"[RoadReady] Wheel axis found: steering={RelativePath(axis)}. Press F3 if left and right are the wrong way round.");
                     return;
@@ -437,7 +439,11 @@ namespace RoadReady.Player
                 }
 
                 if (m_Step >= 5)
-                    return UpdateShifter();
+                {
+                    // Automatic car: the H-shifter is not used for gears, so there is nothing to learn for it.
+                    Save();
+                    return true;
+                }
 
                 if (m_Step == 4 && !CalibrateClutch)
                 {

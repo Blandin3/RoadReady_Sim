@@ -376,13 +376,9 @@ namespace RoadReady.Player
                 SetGear(Gear + 1);
             if (armed && RacingWheel.Pressed(RacingWheel.GearTowardsPark) && Gear != Gear.Park)
                 SetGear(Gear - 1);
-            // H-shifter (Driving Force Shifter): R slot = R, any of gears 1-6 = D, neutral = N. P stays on the D-pad.
-            switch (armed ? RacingWheel.ShifterMoved() : null)
-            {
-                case 0: SetGear(Gear.Reverse); break;
-                case -1: SetGear(Gear.Neutral); break;
-                case int slot when slot > 0: SetGear(Gear.Drive); break;
-            }
+            // The car is an automatic, so the game chooses the gears: like any game set to automatic, it ignores the G29's
+            // H-shifter and paddles for gear changes (the paddles work the indicators below). P, R, N and D come only from the
+            // car's own gear lever: grab it, press G, or use R2 / L2 on the wheel.
 
             if (input.IndicatorLeft.WasPressedThisFrame() || RacingWheel.Pressed(RacingWheel.LeftPaddle))
                 SetIndicator(Indicator == TurnSide.Left ? TurnSide.None : TurnSide.Left);
