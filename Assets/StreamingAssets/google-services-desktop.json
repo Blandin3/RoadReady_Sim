@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "54731766650",
+    "project_id": "roadreadysim",
+    "storage_bucket": "roadreadysim.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:54731766650:android:b1e548a6805b3a5a40f4c3",
+        "android_client_info": {
+          "package_name": "com.roadready.sim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkdbYLj36UJ16_MpN-MZRkBsG-i03B_r0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
