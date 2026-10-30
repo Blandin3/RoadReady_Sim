@@ -24,6 +24,7 @@ namespace RoadReady.Accounts
             m_Message = UiKit.Label(m_Content, "Starting...", 26f, UiKit.Muted);
             BuildRegisterForm();
             BuildLoginForm();
+            UiKit.Keyboard(m_Content);
             ShowForm(registering: false);
             SetBusy(true);
 
@@ -76,6 +77,7 @@ namespace RoadReady.Accounts
             m_LoginForm.gameObject.SetActive(!registering);
             m_RegisterTab.GetComponent<Image>().color = registering ? UiKit.Accent : UiKit.Field;
             m_LoginTab.GetComponent<Image>().color = registering ? UiKit.Field : UiKit.Accent;
+            UiKit.Focus(registering ? m_SchoolName : m_LoginEmail);
             UiKit.ShowMessage(m_Message, "");
         }
 

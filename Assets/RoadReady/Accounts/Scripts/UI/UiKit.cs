@@ -25,20 +25,20 @@ namespace RoadReady.Accounts
         public static readonly Color Error = new Color32(229, 72, 77, 255);       // --rr-unsafe
 
         const float k_CanvasWidth = 1000f;
-        const float k_CanvasHeight = 820f;
+        const float k_CanvasHeight = 1100f;
 
         /// <summary>
-        /// On a monitor (no headset): a normal screen-space canvas, so it can never drift or leave the view. On a
-        /// headset: a world-space canvas about 1.6 m in front of the learner at eye height, with the raycaster the VR
-        /// controller rays need. Returns the content area (a vertical layout) to add widgets to.
+        /// Always a world-space canvas (1000 canvas units = 1 metre), so it shows in a headset (Quest, PC-VR over Link
+        /// or Air Link) and in the editor's Game view alike. It is placed in front of the head once the headset is
+        /// tracking. Mouse clicks and the VR controller rays both work: it has both raycasters. Returns the content
+        /// area (a vertical layout) to add widgets to.
         /// </summary>
         public static RectTransform CreateScreen(string title)
         {
             EnsureEventSystem();
-            var vr = XRSettings.isDeviceActive;
 
             // The camera only has to show a plain background behind the screen.
-            var camera = Camera.main;
+            var camera = Camera.main != null ? Camera.main : UnityEngine.Object.FindFirstObjectByType<Camera>();
             if (camera != null)
             {
                 camera.clearFlags = CameraClearFlags.SolidColor;
@@ -49,30 +49,16 @@ namespace RoadReady.Accounts
             var canvas = canvasGo.GetComponent<Canvas>();
             var rect = canvasGo.GetComponent<RectTransform>();
             var scaler = canvasGo.GetComponent<CanvasScaler>();
-            RectTransform panel;
-            if (vr)
-            {
-                canvas.renderMode = RenderMode.WorldSpace;
-                canvas.worldCamera = camera;
-                canvasGo.AddComponent<TrackedDeviceGraphicRaycaster>();
-                rect.sizeDelta = new Vector2(k_CanvasWidth, k_CanvasHeight);
-                rect.localScale = Vector3.one * 0.001f; // 1000 canvas units = 1 metre
-                scaler.dynamicPixelsPerUnit = 3f;
-                canvasGo.AddComponent<ScreenPlacer>(); // puts it in front of the head once the headset is tracking
-                panel = NewPanel(rect);
-                Stretch(panel, 0f);
-            }
-            else
-            {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(k_CanvasWidth + 200f, k_CanvasHeight + 100f);
-                scaler.matchWidthOrHeight = 0.5f;
-                panel = NewPanel(rect);
-                panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0.5f);
-                panel.sizeDelta = new Vector2(k_CanvasWidth, k_CanvasHeight);
-                panel.anchoredPosition = Vector2.zero;
-            }
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = camera;
+            canvasGo.AddComponent<TrackedDeviceGraphicRaycaster>(); // the VR controller rays (GraphicRaycaster above is the mouse)
+            rect.sizeDelta = new Vector2(k_CanvasWidth, k_CanvasHeight);
+            rect.localScale = Vector3.one * 0.001f;
+            rect.position = new Vector3(0f, 1.4f, 1.4f); // a sensible spot until the placer below runs
+            scaler.dynamicPixelsPerUnit = 3f;
+            canvasGo.AddComponent<ScreenPlacer>(); // moves it in front of the head once the headset is tracking
+            var panel = NewPanel(rect);
+            Stretch(panel, 0f);
 
             // The three flag colours along the top, as on the other RoadReady screens.
             var bar = new GameObject("Flag Bar", typeof(RectTransform), typeof(HorizontalLayoutGroup));
@@ -117,21 +103,46 @@ namespace RoadReady.Accounts
             return go.GetComponent<RectTransform>();
         }
 
-        /// <summary>Puts a world-space screen in front of the head a moment after the scene starts (the headset needs a few frames to track), then leaves it still.</summary>
+        /// <summary>
+        /// Puts the screen in front of the head once the headset is tracking (PC-VR can take a couple of seconds to
+        /// start), then leaves it still. Without a headset it sits a little closer so it fills the Game view.
+        /// </summary>
         class ScreenPlacer : MonoBehaviour
         {
             System.Collections.IEnumerator Start()
             {
                 for (var i = 0; i < 5; i++)
                     yield return null;
-                var head = Camera.main;
+                for (var i = 0; i < 240 && !XRSettings.isDeviceActive; i++)
+                    yield return null;
+                // Let the rig finish its own height adjustment (floor offset) before reading where the head points.
+                var settle = Time.unscaledTime + 1f;
+                while (Time.unscaledTime < settle)
+                    yield return null;
+
+                var head = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
                 if (head == null)
                     yield break;
-                var forward = head.transform.forward;
+
+                // Fix the screen to the rig (the XR Origin root) at a set height, not to the head and not to the
+                // world: it can then neither follow the head nor drift when the head height or the rig moves.
+                var root = head.transform.root;
+                if (root == head.transform) // a bare camera with no rig: a fixed place in the world is just as steady
+                {
+                    var flat = Vector3.ProjectOnPlane(head.transform.forward, Vector3.up).normalized;
+                    flat = flat == Vector3.zero ? Vector3.forward : flat;
+                    transform.SetPositionAndRotation(head.transform.position + flat * 1.4f, Quaternion.LookRotation(flat, Vector3.up));
+                    yield break;
+                }
+
+                var forward = root.InverseTransformDirection(head.transform.forward);
                 forward.y = 0f;
                 forward = forward.sqrMagnitude < 1e-4f ? Vector3.forward : forward.normalized;
-                transform.position = head.transform.position + forward * 1.6f;
-                transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+                var distance = XRSettings.isDeviceActive ? 1.6f : 1.4f;
+                transform.SetParent(root, false);
+                transform.localScale = Vector3.one * 0.001f;
+                transform.localPosition = new Vector3(0f, 1.4f, 0f) + forward * distance;
+                transform.localRotation = Quaternion.LookRotation(forward, Vector3.up);
             }
         }
 
@@ -182,17 +193,24 @@ namespace RoadReady.Accounts
             Stretch(label.rectTransform, 0f);
             label.alignment = TextAlignmentOptions.Center;
 
-            go.AddComponent<LayoutElement>().minHeight = height;
+            var element = go.AddComponent<LayoutElement>();
+            element.minHeight = height;
+            element.preferredHeight = height;
             return button;
         }
 
-        /// <summary>A one-line text box. On the Quest, selecting it opens the system keyboard.</summary>
+        /// <summary>A one-line text box. Click it (mouse or controller ray), then type on a keyboard or use <see cref="Keyboard"/>.</summary>
         public static TMP_InputField MakeInput(RectTransform parent, string placeholder, bool password = false)
         {
-            var go = new GameObject("Input", typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
+            // Built switched off and switched on at the end: a TMP_InputField that wakes up before its text and viewport
+            // are assigned never sets itself up, and then nothing typed into it is shown.
+            var go = new GameObject("Input", typeof(RectTransform), typeof(Image));
+            go.SetActive(false);
             go.transform.SetParent(parent, false);
             go.GetComponent<Image>().color = Field;
-            go.AddComponent<LayoutElement>().minHeight = 64f;
+            var element = go.AddComponent<LayoutElement>();
+            element.minHeight = 64f;
+            element.preferredHeight = 64f;
 
             var viewport = new GameObject("Text Area", typeof(RectTransform), typeof(RectMask2D));
             viewport.transform.SetParent(go.transform, false);
@@ -202,13 +220,18 @@ namespace RoadReady.Accounts
             var hint = NewInputText(viewport.transform, "Placeholder", Muted, FontStyles.Italic);
             hint.text = placeholder;
 
-            var input = go.GetComponent<TMP_InputField>();
+            var input = go.AddComponent<TMP_InputField>();
+            input.targetGraphic = go.GetComponent<Image>();
             input.textViewport = viewport.GetComponent<RectTransform>();
             input.textComponent = text;
             input.placeholder = hint;
             input.lineType = TMP_InputField.LineType.SingleLine;
             input.contentType = password ? TMP_InputField.ContentType.Password : TMP_InputField.ContentType.Standard;
             input.characterLimit = 80;
+            input.shouldHideSoftKeyboard = true; // the on-screen keyboard is used instead of the system one
+            input.shouldHideMobileInput = true;
+            go.AddComponent<InputFocus>().Init(input);
+            go.SetActive(true);
             return input;
         }
 
@@ -236,7 +259,9 @@ namespace RoadReady.Accounts
             layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = true;
-            go.AddComponent<LayoutElement>().minHeight = height;
+            var element = go.AddComponent<LayoutElement>();
+            element.minHeight = height;
+            element.preferredHeight = height;
             return go.GetComponent<RectTransform>();
         }
 
@@ -259,6 +284,122 @@ namespace RoadReady.Accounts
         {
             label.text = message ?? "";
             label.color = isError ? Error : Muted;
+        }
+
+        // ---------------------------------------------------------------- on-screen keyboard
+
+        /// <summary>Remembers which text box was clicked last, so the on-screen keyboard knows where to type.</summary>
+        class InputFocus : MonoBehaviour, IPointerClickHandler, ISelectHandler
+        {
+            public static TMP_InputField Current;
+            TMP_InputField m_Input;
+
+            public void Init(TMP_InputField input)
+            {
+                m_Input = input;
+                if (Current == null)
+                    Current = input;
+            }
+
+            public void OnPointerClick(PointerEventData eventData) => Current = m_Input;
+            public void OnSelect(BaseEventData eventData) => Current = m_Input;
+        }
+
+        /// <summary>Makes the on-screen keyboard type into this text box (used when a form is shown).</summary>
+        public static void Focus(TMP_InputField input) => InputFocus.Current = input;
+
+        /// <summary>
+        /// A small QWERTY keyboard that types into the text box clicked last. PC-VR has no system keyboard and a
+        /// controller ray cannot type, so every screen with text boxes adds one of these.
+        /// </summary>
+        public static void Keyboard(RectTransform parent)
+        {
+            // Two pages: letters, and symbols (the "#+=" key switches, "ABC" switches back). Same key count per row.
+            var pages = new[]
+            {
+                new[] { "1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm" },
+                new[] { "1234567890", "!@#$%^&*()", "-_=+[]{}/", "?:;,.'\"" },
+            };
+
+            var root = Group(parent);
+            root.name = "Keyboard";
+            root.GetComponent<VerticalLayoutGroup>().spacing = 8f;
+            var shift = false;
+            var symbols = false;
+            var keyLabels = new System.Collections.Generic.List<TMP_Text>[pages[0].Length];
+            Button shiftButton = null;
+            TMP_Text symbolsLabel = null;
+
+            void Type(string key)
+            {
+                var field = InputFocus.Current;
+                if (field == null || field.text.Length >= field.characterLimit)
+                    return;
+                field.text += key;
+                field.caretPosition = field.text.Length;
+                if (shift)
+                {
+                    shift = false;
+                    Refresh();
+                }
+            }
+
+            // Writes the right characters on the keys for the current page and shift state.
+            void Refresh()
+            {
+                for (var r = 0; r < keyLabels.Length; r++)
+                    for (var c = 0; c < keyLabels[r].Count; c++)
+                    {
+                        var ch = pages[symbols ? 1 : 0][r][c].ToString();
+                        keyLabels[r][c].text = shift && !symbols ? ch.ToUpperInvariant() : ch;
+                    }
+
+                symbolsLabel.text = symbols ? "ABC" : "#+=";
+                shiftButton.interactable = !symbols;
+                shiftButton.GetComponent<Image>().color = shift ? Yellow : Field;
+            }
+
+            RectTransform KeyRow()
+            {
+                var row = Row(root, 56f);
+                row.GetComponent<HorizontalLayoutGroup>().spacing = 8f;
+                return row;
+            }
+
+            for (var r = 0; r < pages[0].Length; r++)
+            {
+                var row = KeyRow();
+                keyLabels[r] = new System.Collections.Generic.List<TMP_Text>();
+                for (var c = 0; c < pages[0][r].Length; c++)
+                {
+                    TMP_Text label = null;
+                    var button = MakeButton(row, pages[0][r][c].ToString(), () => Type(label.text), primary: false, height: 56f);
+                    label = button.GetComponentInChildren<TMP_Text>();
+                    label.fontSize = 28f;
+                    keyLabels[r].Add(label);
+                }
+            }
+
+            var last = KeyRow();
+            shiftButton = MakeButton(last, "Shift", () => { shift = !shift; Refresh(); }, primary: false, height: 56f);
+            var symbolsButton = MakeButton(last, "#+=", () => { symbols = !symbols; shift = false; Refresh(); }, primary: false, height: 56f);
+            symbolsLabel = symbolsButton.GetComponentInChildren<TMP_Text>();
+            foreach (var symbol in new[] { "@", ".", "-", "_" })
+            {
+                var k = symbol;
+                MakeButton(last, k, () => Type(k), primary: false, height: 56f);
+            }
+
+            MakeButton(last, "Space", () => Type(" "), primary: false, height: 56f);
+            MakeButton(last, "Delete", () =>
+            {
+                var field = InputFocus.Current;
+                if (field != null && field.text.Length > 0)
+                {
+                    field.text = field.text.Substring(0, field.text.Length - 1);
+                    field.caretPosition = field.text.Length;
+                }
+            }, primary: false, height: 56f);
         }
 
         static void Stretch(RectTransform rect, float margin)

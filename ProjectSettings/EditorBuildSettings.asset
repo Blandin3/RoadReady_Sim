@@ -29,6 +29,15 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/RoadReady/Accounts/Scenes/Home.unity
     guid: 2ed6f8ed9f7e0584f8ff2719310ee3c6
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/MemberRegister.unity
+    guid: 74d2d340220741dab7c0da7fe072ffb0
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/StartTraining.unity
+    guid: e5b58a05d1ae4af295dab1ec4a2ca74d
+  - enabled: 1
+    path: Assets/RoadReady/Accounts/Scenes/Dashboard.unity
+    guid: d512f5e835ac4277998d32b191796b72
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: bfa1182bd221b4ca89619141f66f1260, type: 2}
     Unity.XR.WindowsMR.Settings: {fileID: 11400000, guid: dc5a169419fa04987b057f65238cf3ba, type: 2}

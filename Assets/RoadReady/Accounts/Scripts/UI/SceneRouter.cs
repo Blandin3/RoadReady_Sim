@@ -12,6 +12,9 @@ namespace RoadReady.Accounts
         public const string StartTraining = "StartTraining";
         public const string Dashboard = "Dashboard";
 
+        /// <summary>The driving / pedestrian simulator itself (the first scene of the game).</summary>
+        public const string Game = "RR_Bootstrap";
+
         /// <summary>
         /// Loads a scene. Returns false (and loads nothing) when the scene is missing from Build Settings, so a button
         /// for a screen that is not built yet shows a message instead of an error.

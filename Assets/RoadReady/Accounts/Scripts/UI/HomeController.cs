@@ -45,7 +45,7 @@ namespace RoadReady.Accounts
         void Open(string scene)
         {
             if (!SceneRouter.Go(scene))
-                UiKit.ShowMessage(m_Message, "That screen is not available yet.");
+                UiKit.ShowMessage(m_Message, "That screen is missing from Build Settings. Run RoadReady > Accounts > Build Account Scenes, then Add Account Scenes To Build Settings.");
         }
 
         void LogOut()
