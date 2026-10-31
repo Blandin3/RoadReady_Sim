@@ -225,23 +225,28 @@ namespace RoadReady.UI
     /// </summary>
     public class ScenarioPickerScreen : UIScreen
     {
+        readonly bool m_AfterAttempt;
+
+        /// <param name="afterAttempt">Opened from the feedback report (close returns to the report, a card starts that scenario) rather than to skip the tutorial.</param>
+        public ScenarioPickerScreen(bool afterAttempt = false) => m_AfterAttempt = afterAttempt;
+
         public override string TreeName => "";
 
         protected override void Bind()
         {
-            var perspective = App.Scenarios.Request.perspective;
+            var perspective = m_AfterAttempt ? App.LastRequest.perspective : App.Scenarios.Request.perspective;
 
             var header = new VisualElement();
             header.AddToClassList("row");
             var heading = new VisualElement();
             heading.AddToClassList("col");
             heading.AddToClassList("grow");
-            heading.Add(UIX.MakeLabel("SKIP TUTORIAL", "eyebrow"));
+            heading.Add(UIX.MakeLabel(m_AfterAttempt ? "CHOOSE A SCENARIO" : "SKIP TUTORIAL", "eyebrow"));
             heading.Add(UIX.MakeLabel(perspective == Perspective.Driver ? "Driving Lessons" : "Road Crossing Lessons", "title"));
             header.Add(heading);
-            header.Add(UIX.MakeButton("Close", App.Resume, "btn--ghost", "btn--small"));
+            header.Add(UIX.MakeButton("Close", m_AfterAttempt ? App.ShowLastFeedback : App.Resume, "btn--ghost", "btn--small"));
             Root.Add(header);
-            Root.Add(UIX.MakeLabel("Choose a scenario to go to now, or close this and carry on with the tutorial.", "subtitle"));
+            Root.Add(UIX.MakeLabel(m_AfterAttempt ? "Choose the next scenario to practise, or close this to go back to your results." : "Choose a scenario to go to now, or close this and carry on with the tutorial.", "subtitle"));
 
             var cards = new VisualElement();
             cards.AddToClassList("picker__cards");
@@ -256,7 +261,7 @@ namespace RoadReady.UI
             var footer = new VisualElement();
             footer.AddToClassList("row");
             footer.AddToClassList("row--end");
-            footer.Add(UIX.MakeButton("Continue tutorial", App.Resume, "btn--primary"));
+            footer.Add(m_AfterAttempt ? UIX.MakeButton("Back to results", App.ShowLastFeedback, "btn--primary") : UIX.MakeButton("Continue tutorial", App.Resume, "btn--primary"));
             Root.Add(footer);
         }
 
@@ -277,7 +282,13 @@ namespace RoadReady.UI
 
             if (App.CanAttempt(scenario, perspective, out var reason))
             {
-                card.AddManipulator(new Clickable(() => App.PickScenario(scenario)));
+                card.AddManipulator(new Clickable(() =>
+                {
+                    if (m_AfterAttempt)
+                        App.StartScenario(scenario, perspective, App.GetUnlockedLevel(scenario, perspective));
+                    else
+                        App.PickScenario(scenario);
+                }));
             }
             else
             {

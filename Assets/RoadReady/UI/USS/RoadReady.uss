@@ -1233,3 +1233,11 @@ Button.pill:hover {
     background-color: var(--rr-yellow);
     color: rgb(15, 20, 26);
 }
+
+/* Feedback report: Close in the top right corner (opens the scenario list). */
+.feedback__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin: 0;
+}

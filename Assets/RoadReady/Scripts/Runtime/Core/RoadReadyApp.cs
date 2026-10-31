@@ -619,6 +619,32 @@ namespace RoadReady
             m_UI.Show(new ScenarioPickerScreen());
         }
 
+        /// <summary>From the feedback report's close button: the list of scenarios, to choose a different one.</summary>
+        public void OpenScenarioListAfterAttempt()
+        {
+            if (m_LastReport == null)
+            {
+                BackToMenu();
+                return;
+            }
+
+            SetState(AppState.Feedback);
+            m_UI.Show(new ScenarioPickerScreen(afterAttempt: true));
+        }
+
+        /// <summary>Back from that list to the last feedback report.</summary>
+        public void ShowLastFeedback()
+        {
+            if (m_LastReport == null)
+            {
+                BackToMenu();
+                return;
+            }
+
+            SetState(AppState.Feedback);
+            m_UI.Show(new FeedbackScreen(m_LastReport));
+        }
+
         public void PickScenario(ScenarioDefinition scenario)
         {
             m_PickedScenario = scenario;

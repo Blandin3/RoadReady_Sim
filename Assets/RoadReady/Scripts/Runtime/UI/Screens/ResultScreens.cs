@@ -15,7 +15,7 @@ namespace RoadReady.UI
         public FeedbackScreen(FeedbackReport report) => m_Report = report;
 
         public override string TreeName => "Feedback";
-        public override float ViewDistance => 1.5f;
+        public override float ViewDistance => 1.8f; // held a little further back so the whole report is in view
 
         protected override void Bind()
         {
@@ -44,6 +44,9 @@ namespace RoadReady.UI
 
             BuildHistory();
             BuildDetails();
+
+            // Close (top right): back to the list of scenarios, to choose a different one.
+            Btn("close", App.OpenScenarioListAfterAttempt);
 
             var menu = Btn("menu", App.BackToMenu);
             if (App.Participant != null && !r.isTutorial)
