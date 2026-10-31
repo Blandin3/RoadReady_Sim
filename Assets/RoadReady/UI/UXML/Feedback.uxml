@@ -1,7 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="../USS/RoadReady.uss" />
     <ui:VisualElement class="screen">
-        <ui:Button name="close" text="Close" class="btn btn--ghost btn--small feedback__close" />
         <ui:VisualElement class="row">
             <ui:VisualElement name="score-ring" class="score-ring">
                 <ui:Label name="score-value" text="0" class="score-ring__value" />
@@ -26,5 +25,6 @@
             <ui:Button name="next-level" text="Next level" class="btn" />
             <ui:Button name="retry" text="Try again" class="btn btn--primary" />
         </ui:VisualElement>
+        <ui:Button name="close" text="Close" class="btn btn--ghost btn--small feedback__close" />
     </ui:VisualElement>
 </ui:UXML>
