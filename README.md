@@ -6,6 +6,8 @@
 
 **📄 Technical report:** [Read on Google Drive](https://drive.google.com/file/d/1CuddSjThyYtb0ow4eihqtu_YsMYnh_Ae/view?usp=sharing)
 
+**📦 Meta Quest APK download:** [Download page (Google Doc)](https://docs.google.com/document/d/1q_H5WB0voI-eR653iemiXECi_DvbHto_dNNohFID3qA/edit?tab=t.0). Install steps are in [§7](#7-building-and-running-on-meta-quest).
+
 **Designs:** [VR walkthrough visuals](https://www.figma.com/design/6hhA6hbnkPZrWiG0gf0sWY/RoadReady-VR-%E2%80%93-UI-Walkthrough--Driver---Pedestrian-?node-id=9-175&t=kusLrvXvi8BtziO3-1) · [Activity diagram](https://www.figma.com/design/6hhA6hbnkPZrWiG0gf0sWY/RoadReady-VR-%E2%80%93-UI-Walkthrough--Driver---Pedestrian-?node-id=32-7&t=kusLrvXvi8BtziO3-1) · [Interaction flowchart](https://www.figma.com/design/6hhA6hbnkPZrWiG0gf0sWY/RoadReady-VR-%E2%80%93-UI-Walkthrough--Driver---Pedestrian-?node-id=20-1950&t=kusLrvXvi8BtziO3-1) (details in [§13](#13-designs))
 
 ## Description
@@ -249,7 +251,7 @@ With a **G29**: the wheel is purely an input device; the game handles the transm
 5. Connect the Quest over USB with Developer Mode on. It should appear under **Run Device**.
 6. Click **Build And Run**. The APK is installed and launched on the headset.
 
-To install an APK you already built:
+A ready-made APK is linked from the [APK download page](https://docs.google.com/document/d/1q_H5WB0voI-eR653iemiXECi_DvbHto_dNNohFID3qA/edit?tab=t.0). To install that APK, or one you built yourself:
 
 ```bash
 adb devices                      # the headset must be listed as "device"
