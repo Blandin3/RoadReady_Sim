@@ -2,6 +2,10 @@
 
 **GitHub repository:** <https://github.com/Blandin3/RoadReady_Sim>
 
+**🎬 Demo video:** [Watch on Google Drive](https://drive.google.com/file/d/1O6I6YymtZKBzn1oJbceCeHNuc3ViXTPJ/view?usp=sharing)
+
+**📄 Technical report:** [Read on Google Drive](https://drive.google.com/file/d/1CuddSjThyYtb0ow4eihqtu_YsMYnh_Ae/view?usp=sharing)
+
 **Designs:** [VR walkthrough visuals](https://www.figma.com/design/6hhA6hbnkPZrWiG0gf0sWY/RoadReady-VR-%E2%80%93-UI-Walkthrough--Driver---Pedestrian-?node-id=9-175&t=kusLrvXvi8BtziO3-1) · [Activity diagram](https://www.figma.com/design/6hhA6hbnkPZrWiG0gf0sWY/RoadReady-VR-%E2%80%93-UI-Walkthrough--Driver---Pedestrian-?node-id=32-7&t=kusLrvXvi8BtziO3-1) · [Interaction flowchart](https://www.figma.com/design/6hhA6hbnkPZrWiG0gf0sWY/RoadReady-VR-%E2%80%93-UI-Walkthrough--Driver---Pedestrian-?node-id=20-1950&t=kusLrvXvi8BtziO3-1) (details in [§13](#13-designs))
 
 ## Description
@@ -31,7 +35,9 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 11. [How the simulation works](#11-how-the-simulation-works)
 12. [Project structure](#12-project-structure)
 13. [Designs](#13-designs)
-14. [Troubleshooting](#14-troubleshooting)
+14. [Testing](#14-testing)
+15. [Performance](#15-performance)
+16. [Troubleshooting](#16-troubleshooting)
 
 ---
 
@@ -55,6 +61,7 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 | **Comfort** | Comfort vignette, snap or smooth turning, seated mode, assisted crossing, text size, volume and voice instructions. |
 | **Data** | Crash-safe local JSON storage, per-attempt telemetry (NDJSON), CSV export and optional sync to Firebase or a REST endpoint. |
 | **Admin panel** | Opened with a PIN. Lets the researcher tune scenario parameters, export CSV or delete all data. |
+| **Automated tests** | 52 EditMode unit tests (Unity Test Framework) for the safety score, parking pass mark, SSQ / SUS scoring, reaction-time normalisation, time-to-collision and data save / reload. See [§14](#14-testing). |
 
 ---
 
@@ -67,7 +74,7 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 | **Unity Hub** | latest | <https://unity.com/download> |
 | **Unity Editor** | **6000.3.21f1** (Unity 6.3) | Must match `ProjectSettings/ProjectVersion.txt`. |
 | Unity module: **Android Build Support** | with **OpenJDK** and **Android SDK & NDK Tools** | Only needed to build for Meta Quest. |
-| Unity module: **Windows Build Support (IL2CPP)** | optional | For a PC VR standalone build. |
+| Unity module: **Windows Build Support (IL2CPP)** | optional | For a PC VR standalone build. An IL2CPP Windows build also needs **Visual Studio 2022 with the "Desktop development with C++" workload** (includes the Windows SDK); otherwise set the Standalone scripting backend to **Mono**. See [§16](#16-troubleshooting). |
 | **Git** (+ Git LFS recommended) | any recent | To clone the repository. |
 | **Firebase project** | free Spark plan | For school accounts only (Authentication + Firestore). See [§8](#school-accounts-firebase). |
 | **Meta Quest Link** app | latest | Optional. Lets you play in the Editor on a Quest headset over USB or Air Link. |
@@ -182,8 +189,8 @@ Press **Play**. The game always starts from `RR_Bootstrap`, even if another scen
 | Left / right indicator | `Q` / `E` | — |
 | Horn | `H` | — |
 | Engine ON / handbrake | `O` / `B` | — |
-| Clutch (hold) | Left `Shift` | — |
-| Gear (cycles R, N, 1–6) | `G` | — |
+| Gear lever (cycles D → N → R → P) | `G` | — |
+| Move the seat | Numpad `8` `2` `4` `6` | — |
 | Cross now (assisted crossing) | — | `Space` |
 | Stop / step back | — | `C` |
 | "I see a hazard" | `F` | `F` |
@@ -209,9 +216,11 @@ The project includes the XRI *Starter Assets* and XR simulation settings. Turn o
 |---|---|---|
 | Accelerate | Right trigger | — |
 | Brake | Left trigger | — |
-| Steer / walk | Left thumbstick | Left thumbstick |
+| Steer / walk | Grab the steering wheel with the grips, or left thumbstick | Left thumbstick |
 | Turn | — | Right thumbstick |
-| Indicators | Left / right grip | — |
+| Gear lever | Grab it with a grip and move it to P / R / N / D | — |
+| Move the seat | Right thumbstick | — |
+| Indicators | Y (left) / A (right) | — |
 | Horn | B | — |
 | Cross now | — | A |
 | Stop / step back | — | B |
@@ -373,6 +382,7 @@ RoadReady_Sim/
 │   │   ├── UI/
 │   │   │   ├── UXML/              # one layout per screen (MainMenu, Briefing, HUD, Feedback, Pause, ...)
 │   │   │   └── USS/RoadReady.uss  # design tokens and styles
+│   │   ├── Tests/EditMode/        # unit tests (Unity Test Framework, Editor only, never in a build)
 │   │   ├── Accounts/              # school login, members, dashboard (Scripts, Editor builder, Scenes)
 │   │   └── Generated/             # created by "Build Everything": Config, Scenes, Prefabs, Materials
 │   ├── Firebase/, Plugins/        # Firebase Unity SDK (Auth, Firestore) and its native plugins
@@ -409,10 +419,57 @@ Supporting design files:
 
 ---
 
-## 14. Troubleshooting
+## 14. Testing
+
+The scoring, questionnaire and data logic is covered by **52 EditMode unit tests** in `Assets/RoadReady/Tests/EditMode/` (assembly `RoadReady.Tests.EditMode`, Editor only). Each data test uses its own temporary folder, so real study data is never touched.
+
+| Test class | Tests | What it checks |
+|---|---|---|
+| `ScoreCalculatorTests` | 21 | Composite score weights (and that scaling them changes nothing), minor / major / critical penalties, rule component floored at 0, collision cap (40), time-out cap (50), grade bands (85 / 70 / 50), reaction-time normalisation (0.75 s = 100 %, 3.0 s = 0 %, clamped) |
+| `ParkingScoreTests` | 9 | Points off 100, pass mark 80 (exactly 80 passes, 75 does not), late or missing brake for the pedestrian (−20), hitting the pedestrian scores 0, time-out capped and failed |
+| `QuestionnaireTests` | 9 | SSQ subscales and total (Kennedy et al., 1993; all "Severe" = 235.62) and SUS (Brooke, 1996; neutral = 50, best = 100, worst = 0) |
+| `DataServiceTests` | 8 | Participants and attempts survive a reload, anonymous `RR-XXXXXX` IDs, no duplicate attempts, tutorial and aborted runs excluded from progress, no temp files left behind, withdrawal deletes all data |
+| `KinematicsTests` | 5 | Time-to-collision (head-on, near miss, moving apart) and signed head yaw |
+
+**Latest result:** 52 / 52 passed, 0 failed (Unity 6000.3.21f1).
+
+**Run them in the Editor:** **Window → General → Test Runner → EditMode → Run All**.
+
+**Run them from the command line** (close the Editor first):
+
+```powershell
+& "C:\Program Files\Unity\Hub\Editor\6000.3.21f1\Editor\Unity.exe" -batchmode -projectPath . `
+  -runTests -testPlatform EditMode -assemblyNames RoadReady.Tests.EditMode `
+  -testResults TestResults\editmode.xml -logFile TestResults\editmode.log
+```
+
+Exit code `0` means every test passed; the results are in the NUnit XML file.
+
+---
+
+## 15. Performance
+
+The target is **90 fps on the headset** (a frame budget of about 11.1 ms).
+
+The CPU load is designed to stay modest. The car is a kinematic model rather than a physics simulation, the rule engine, gaze tracker and hazard checks do small calculations each frame, and traffic and pedestrians follow fixed waypoint paths without pathfinding. The rendering is set up with standalone VR in mind: HDR is off, and the *Performance* URP setting turns off additional lights and keeps the shadow distance short. Over Quest Link on a PC, the drive is expected to hold 90 fps comfortably. On a standalone Quest, the main risk is GPU time: the city scenes contain many imported models, and 4× MSAA, full render scale and a 4096 shadow map all cost time on a mobile chip. If measurements fall short, the first things to try are a lower render scale, foveated rendering, a smaller shadow map, static batching / GPU instancing for repeated props, and capping the number of active traffic agents.
+
+**How to measure** (drive the same zebra-crossing route for about 60 s in each configuration):
+
+| Configuration | Tools | Read off |
+|---|---|---|
+| **Unity Editor** (no headset) | **Window → Analysis → Profiler** (CPU, GPU, Memory modules) and the Game view **Stats** | Average FPS, CPU and GPU frame time, *Total Used Memory* |
+| **Quest via Link** (PC) | A **Development Build** with *Autoconnect Profiler* (Unity Profiler) plus the **Oculus Debug Tool** (`C:\Program Files\Oculus\Support\oculus-diagnostics\OculusDebugTool.exe` → *Performance HUD → Performance Summary*) | App FPS, app GPU time, dropped frames, CPU and memory from the Profiler |
+| **Quest standalone** | An Android **Development Build** and the **OVR Metrics Tool** (Meta Horizon Store) with its overlay and CSV recording | FPS, CPU and GPU frame time, memory |
+
+The G29 wheel is a USB device read through Windows, so it works in the Editor and over Link but not on a standalone Quest.
+
+---
+
+## 16. Troubleshooting
 
 | Problem | Fix |
 |---|---|
+| Windows build fails with **"Could not set up a toolchain for Architecture x64 … IL2CPP"** | IL2CPP needs a C++ compiler. Either set **Edit → Project Settings → Player → Windows tab → Other Settings → Scripting Backend** to **Mono**, or install Visual Studio 2022 with the **Desktop development with C++** workload (it includes the Windows SDK), then restart Unity. |
 | **"Scenario could not start"** message in the app | The scenario scenes are missing from Build Settings. Run **RoadReady → Build Everything**. |
 | UI does not react to the controllers / mouse | Keep the `PanelInputConfiguration` that `RoadReadyApp` creates (input redirection = *Never*). Do not add a second uGUI EventSystem. |
 | Package errors on first open | Make sure you use Unity **6000.3.21f1**. Close Unity, delete `Library/`, then reopen. |
