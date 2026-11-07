@@ -108,3 +108,11 @@ InitTestScene*.unity*
 
 # Unity Test Runner command-line output
 /TestResults/
+
+# Report settings hold the email relay secret: never commit them
+/Assets/RoadReady/Reports/Resources/ReportSettings.asset
+/Assets/RoadReady/Reports/Resources/ReportSettings.asset.meta
+
+# Secrets (never commit)
+.env
+.env.*

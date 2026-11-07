@@ -1,0 +1,20 @@
+{
+    "name": "RoadReady.Reports",
+    "rootNamespace": "RoadReady.Reports",
+    "references": [
+        "RoadReady.Runtime",
+        "RoadReady.Accounts",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "ROADREADY_FIREBASE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

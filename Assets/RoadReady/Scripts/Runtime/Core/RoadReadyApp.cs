@@ -560,6 +560,8 @@ namespace RoadReady
                 return; // leaving the scenario - no report
             Time.timeScale = 1f;
             m_Scenarios.SetPaused(false);
+            if (attempt.phase != AttemptPhase.Tutorial && attempt.endReason != AttemptEndReason.Aborted)
+                SessionHooks.RaiseScoredAttempt(attempt);
             if (attempt.phase != AttemptPhase.Tutorial)
                 WriteReport(attempt.participantId);
 
@@ -800,7 +802,9 @@ namespace RoadReady
             m_UI.Show(new DebriefScreen());
         }
 
-        public void EndSession()
+        public void EndSession() => SessionHooks.RunBeforeLeaving(CompleteEndSession);
+
+        void CompleteEndSession()
         {
             Data.EndSession();
             LastSsq = null;

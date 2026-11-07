@@ -39,7 +39,8 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 13. [Designs](#13-designs)
 14. [Testing](#14-testing)
 15. [Performance](#15-performance)
-16. [Troubleshooting](#16-troubleshooting)
+16. [End-of-session email report](#16-end-of-session-email-report)
+17. [Troubleshooting](#17-troubleshooting)
 
 ---
 
@@ -76,7 +77,7 @@ After each attempt the learner sees a safety score, an analysis of their hazard 
 | **Unity Hub** | latest | <https://unity.com/download> |
 | **Unity Editor** | **6000.3.21f1** (Unity 6.3) | Must match `ProjectSettings/ProjectVersion.txt`. |
 | Unity module: **Android Build Support** | with **OpenJDK** and **Android SDK & NDK Tools** | Only needed to build for Meta Quest. |
-| Unity module: **Windows Build Support (IL2CPP)** | optional | For a PC VR standalone build. An IL2CPP Windows build also needs **Visual Studio 2022 with the "Desktop development with C++" workload** (includes the Windows SDK); otherwise set the Standalone scripting backend to **Mono**. See [§16](#16-troubleshooting). |
+| Unity module: **Windows Build Support (IL2CPP)** | optional | For a PC VR standalone build. An IL2CPP Windows build also needs **Visual Studio 2022 with the "Desktop development with C++" workload** (includes the Windows SDK); otherwise set the Standalone scripting backend to **Mono**. See [§17](#17-troubleshooting). |
 | **Git** (+ Git LFS recommended) | any recent | To clone the repository. |
 | **Firebase project** | free Spark plan | For school accounts only (Authentication + Firestore). See [§8](#school-accounts-firebase). |
 | **Meta Quest Link** app | latest | Optional. Lets you play in the Editor on a Quest headset over USB or Air Link. |
@@ -467,7 +468,55 @@ The G29 wheel is a USB device read through Windows, so it works in the Editor an
 
 ---
 
-## 16. Troubleshooting
+## 16. End-of-session email report
+
+When a learner presses **Done** on the debrief screen, the driving school (the school that is logged in) gets an email with the learner's name and total marks. Nothing is sent for a session with no scored attempts (the screen says "No scores to report").
+
+**What the email contains:** school name, learner name, date and time, session length, **total marks**, a table of every scored attempt (scenario and score) and the line "Simulated training result sent by RoadReady." Total marks = *the average of the best score per scenario and role, rounded* ("Overall score: average of best attempt per scenario"). No participant code or other personal data is sent. Every typed value is cleaned and HTML-escaped.
+
+**How it works:** the game announces finished attempts and the end of the session (`SessionHooks`). The code in `Assets/RoadReady/Reports/` listens (the game never references it), builds the report, shows "Sending report..." and then either "Report sent to your driving school" or "No internet. The report will be sent later.". The learner never waits more than 5 seconds. Each session has a unique id, so tapping Done twice or retrying never sends two emails. The email always goes to the school's own login email, never to an address typed in the app.
+
+**Known limits:** a headset taken off in the middle of a session is not reported; a learner who goes back to Home without pressing Done (or whose session is replaced by the next learner) is not reported; sending needs internet.
+
+### Option B: free Google Apps Script relay (default)
+
+Needs only a Gmail account. No Firebase billing, and no email password in the project or the build.
+
+1. Open <https://script.google.com> signed in to the Gmail account the emails should come **from** (a separate address such as `roadready.reports@gmail.com` is best), and click **New project**.
+2. Delete the sample code and paste in the whole of [`docs/email-relay/Code.gs`](docs/email-relay/Code.gs).
+3. At the top of the script, change the three settings:
+   - `SHARED_SECRET`: a long random string (24+ characters). Keep a copy.
+   - `ALLOWED_RECIPIENTS`: the login email of every driving school that may receive reports, for example `['school@example.com']`. **A school not in this list gets nothing.**
+   - `SENDER_NAME`: the name people see.
+4. Click **Deploy > New deployment > Web app**. Set *Execute as*: **Me**, *Who has access*: **Anyone**. Click **Deploy**, accept the Google permission prompts (it needs to send mail as you), and copy the **Web app URL** (it ends in `/exec`).
+5. Test the deployment: open that URL in a browser. You should see `{"ok":true,"message":"RoadReady email relay is running."}`.
+6. In Unity: **Assets > Create > RoadReady > Report Settings**. Name it exactly `ReportSettings` and move it into `Assets/RoadReady/Reports/Resources/` (create the `Resources` folder if needed). Select it and fill in **Email Relay Url** (the `/exec` URL) and **Email Relay Secret** (the same secret as in step 3). Leave *Delivery* on `AppsScript`.
+7. This file is listed in `.gitignore` on purpose. **Never commit it**, because it holds the secret.
+
+If you change `Code.gs` later, use **Deploy > Manage deployments > Edit > New version**; the URL stays the same.
+
+**Security note:** the secret is stored inside the build, so someone determined could extract it from the APK. That is why the script also checks the recipient allowlist, builds the email itself from plain fields (it never sends HTML supplied by the app) and refuses a session id it has already sent. The worst case is a fake report to a school that is already on your list. A normal Gmail account can send about 100 emails a day.
+
+### Option A: Firebase "Trigger Email" extension (needs the Blaze plan)
+
+Not needed if you use Option B. In `ReportSettings` set *Delivery* to `FirestoreMail`; the app then writes the report to the `mail` collection and the extension sends it.
+
+1. Upgrade the Firebase project to the **Blaze** plan and add a **budget alert** (Billing > Budgets).
+2. Install the extension **Trigger Email from Firestore** (Extensions): collection `mail`, your SMTP connection URI (for Gmail, an App Password) and a default From address. The SMTP password stays in Firebase, never in the app.
+3. Publish [`firestore.rules`](firestore.rules) (it includes a `/mail` rule: a school may only create a document addressed to its own login email, with only the keys `to` and `message`, within size limits, and nobody can read, change or delete it from the app).
+
+### Testing it
+
+1. **Relay on its own:** open the Web app URL in a browser (step 5 above).
+2. **Whole flow:** in Unity press Play, log in as a school whose email is in `ALLOWED_RECIPIENTS`, start training for a member, finish one scored scenario, press **Finish session**, answer the questionnaire and press **Done**. You should see "Sending report..." and then "Report sent to your driving school". Check the school's inbox (and the spam folder) for **"RoadReady session report: {Name} - {marks}"**.
+3. **No double email:** press Done twice quickly. Only one email should arrive.
+4. **No scores:** start a session and press Finish session without finishing any scenario. You should see "No scores to report" and no email.
+5. **No internet:** turn the internet off and press Done. You should see "No internet. The report will be sent later." and the Unity Console shows why.
+6. If nothing arrives, open the script in Apps Script and check **Executions** for errors.
+
+---
+
+## 17. Troubleshooting
 
 | Problem | Fix |
 |---|---|
