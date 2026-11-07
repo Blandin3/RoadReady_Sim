@@ -1234,10 +1234,14 @@ Button.pill:hover {
     color: rgb(15, 20, 26);
 }
 
-/* Feedback report: Close in the top right corner (opens the scenario list). */
-.feedback__close {
+/* Feedback report: Restart and Close in the top right corner (Close opens the scenario list). */
+.feedback__corner {
     position: absolute;
     top: 12px;
     right: 12px;
-    margin: 0;
+    flex-direction: row;
+}
+
+.feedback__corner-btn {
+    margin: 0 0 0 8px;
 }

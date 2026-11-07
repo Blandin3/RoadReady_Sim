@@ -14,5 +14,33 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == schoolId;
       }
     }
+
+    // OPTION A ONLY (needs the Firebase Blaze plan; the free Apps Script relay does not use this).
+    // End-of-session report emails. The app writes one document here and the "Trigger Email from Firestore"
+    // extension sends it. A signed-in school may CREATE a document only if:
+    //   - "to" is a list holding exactly one address: the signed-in school's own login email,
+    //   - the document has only the keys "to" and "message",
+    //   - "message" has only the keys "subject", "text" and "html", all text, within the size limits below.
+    // Nobody can read, change or delete these documents from the app (the extension runs with admin rights).
+    // Because the app uses the session id as the document id, a second send of the same report is refused.
+    match /mail/{mailId} {
+      allow create: if request.auth != null
+                    && request.auth.token.email != null
+                    && request.resource.data.keys().hasOnly(['to', 'message'])
+                    && request.resource.data.keys().hasAll(['to', 'message'])
+                    && request.resource.data.to is list
+                    && request.resource.data.to.size() == 1
+                    && request.resource.data.to[0] == request.auth.token.email
+                    && request.resource.data.message is map
+                    && request.resource.data.message.keys().hasOnly(['subject', 'text', 'html'])
+                    && request.resource.data.message.keys().hasAll(['subject', 'text', 'html'])
+                    && request.resource.data.message.subject is string
+                    && request.resource.data.message.text is string
+                    && request.resource.data.message.html is string
+                    && request.resource.data.message.subject.size() <= 200
+                    && request.resource.data.message.text.size() <= 20000
+                    && request.resource.data.message.html.size() <= 50000;
+      allow read, update, delete: if false;
+    }
   }
 }

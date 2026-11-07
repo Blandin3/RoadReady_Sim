@@ -48,6 +48,11 @@ namespace RoadReady.UI
             // Close (top right): back to the list of scenarios, to choose a different one.
             Btn("close", App.OpenScenarioListAfterAttempt);
 
+            // Restart (next to Close): run the same scenario again from the start, same as Try again.
+            var restart = Btn("restart", App.Retry);
+            if (request.scenario != null && !request.scenario.isTutorial && !App.CanAttempt(request.scenario, request.perspective, out _))
+                restart.SetEnabled(false);
+
             var menu = Btn("menu", App.BackToMenu);
             if (App.Participant != null && !r.isTutorial)
             {

@@ -25,6 +25,9 @@
             <ui:Button name="next-level" text="Next level" class="btn" />
             <ui:Button name="retry" text="Try again" class="btn btn--primary" />
         </ui:VisualElement>
-        <ui:Button name="close" text="Close" class="btn btn--ghost btn--small feedback__close" />
+        <ui:VisualElement class="feedback__corner">
+            <ui:Button name="restart" text="Restart" class="btn btn--small feedback__corner-btn" />
+            <ui:Button name="close" text="Close" class="btn btn--ghost btn--small feedback__corner-btn" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
