@@ -76,6 +76,15 @@ namespace RoadReady.UI
 
         void OnInstruction(string key)
         {
+            // Voice instructions on and a clip exists for this cue: it is spoken, so nothing is drawn on the windshield.
+            // (Without a clip, or with voice off, the caption stays so the message is never lost.)
+            if (m_App.Comfort != null && m_App.Comfort.voiceInstructions && m_App.Config != null && m_App.Config.FindVoice(key) != null)
+            {
+                m_Caption.SetVisible(false);
+                m_CaptionUntil = 0f;
+                return;
+            }
+
             var text = InstructionLibrary.Get(key);
             m_Caption.text = text;
             m_Caption.SetVisible(true);
