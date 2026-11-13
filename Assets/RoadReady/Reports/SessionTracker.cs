@@ -46,12 +46,13 @@ namespace RoadReady.Reports
         }
 
         /// <summary>Adds one finished, scored attempt. Does nothing if no session is running.</summary>
-        public void RecordAttempt(string scenarioId, string scenarioName, string perspective, float score, float durationSeconds)
+        public void RecordAttempt(string scenarioId, string scenarioName, string perspective, float score, float durationSeconds, System.Collections.Generic.List<ReportMistake> mistakes = null)
         {
             if (m_Report == null)
                 return;
             m_Report.attempts.Add(new ReportAttempt
             {
+                mistakes = mistakes ?? new System.Collections.Generic.List<ReportMistake>(),
                 scenarioId = scenarioId,
                 scenarioName = scenarioName,
                 perspective = perspective ?? "",

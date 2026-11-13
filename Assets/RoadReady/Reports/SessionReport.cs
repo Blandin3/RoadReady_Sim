@@ -3,6 +3,18 @@ using System.Collections.Generic;
 
 namespace RoadReady.Reports
 {
+    /// <summary>One mistake made during an attempt (a broken rule or an unsafe response to a hazard). Plain data.</summary>
+    [Serializable]
+    public class ReportMistake
+    {
+        public string title;
+        /// <summary>"Minor", "Major", "Critical" or "" when not rated.</summary>
+        public string severity;
+        /// <summary>Seconds since the attempt started.</summary>
+        public int timeSeconds;
+        public int speedKmh;
+    }
+
     /// <summary>
     /// One scored attempt in the end-of-session report. Plain data (no Unity types) so it can be saved as JSON
     /// for the offline queue and tested without the game running.
@@ -18,6 +30,8 @@ namespace RoadReady.Reports
         public int score;
         public string finishedUtc;
         public float durationSeconds;
+        /// <summary>Every mistake the learner made in this attempt (empty when the attempt was clean).</summary>
+        public List<ReportMistake> mistakes = new List<ReportMistake>();
 
         /// <summary>What the learner sees in the table, e.g. "Market zebra crossing (driver)".</summary>
         public string Label => string.IsNullOrEmpty(perspective) ? scenarioName : $"{scenarioName} ({perspective})";

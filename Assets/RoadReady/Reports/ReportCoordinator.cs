@@ -132,7 +132,18 @@ namespace RoadReady.Reports
             // Parking and the open road have only one role (driver), so they show their name alone.
             var oneRole = attempt.scenarioType == ScenarioType.ParkingBay || attempt.scenarioType == ScenarioType.OpenRoad;
             var role = oneRole ? "" : attempt.perspective == Perspective.Driver ? "driver" : "pedestrian";
-            m_Tracker.RecordAttempt(attempt.scenarioId, attempt.scenarioName, role, attempt.score.total, attempt.durationSeconds);
+            var mistakes = new List<ReportMistake>();
+            if (attempt.decisions != null)
+                foreach (var d in attempt.decisions)
+                    if (d != null && d.decision != DecisionClass.Safe && !string.IsNullOrWhiteSpace(d.title))
+                        mistakes.Add(new ReportMistake
+                        {
+                            title = d.title,
+                            severity = d.severity == ViolationSeverity.None ? "" : d.severity.ToString(),
+                            timeSeconds = Mathf.RoundToInt(d.time),
+                            speedKmh = Mathf.RoundToInt(d.speedKmh),
+                        });
+            m_Tracker.RecordAttempt(attempt.scenarioId, attempt.scenarioName, role, attempt.score.total, attempt.durationSeconds, mistakes);
         }
 
         // ------------------------------------------------------------------ end of session
