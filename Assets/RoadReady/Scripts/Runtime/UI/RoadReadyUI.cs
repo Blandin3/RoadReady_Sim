@@ -34,6 +34,30 @@ namespace RoadReady.UI
         UIScreen m_Current;
         MenuGrabHandle m_Grip;
 
+        const float k_StickSpeed = 1100f; // pixels per second at full tilt
+        const float k_StickDeadzone = 0.25f;
+
+        void Update()
+        {
+            if (m_Current == null || !MenuVisible)
+                return;
+
+            // Either controller's thumbstick scrolls the screen (push up = scroll up).
+            var y = 0f;
+            foreach (var node in new[] { UnityEngine.XR.XRNode.RightHand, UnityEngine.XR.XRNode.LeftHand })
+            {
+                var device = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(node);
+                if (device.isValid && device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.primary2DAxis, out var stick) && Mathf.Abs(stick.y) > Mathf.Abs(y))
+                    y = stick.y;
+            }
+
+            if (Mathf.Abs(y) < k_StickDeadzone)
+                return;
+            var delta = -Mathf.Sign(y) * (Mathf.Abs(y) - k_StickDeadzone) / (1f - k_StickDeadzone) * k_StickSpeed * Time.unscaledDeltaTime;
+            if (!m_Current.ScrollBy(delta))
+                m_Pane?.ScrollBy(delta);
+        }
+
         public UIScreen Current => m_Current;
         public bool MenuVisible => m_MenuPanel != null && m_MenuPanel.Visible;
         public WorldSpacePanel MenuPanel => m_MenuPanel;
