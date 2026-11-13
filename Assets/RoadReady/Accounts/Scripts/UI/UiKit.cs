@@ -368,6 +368,76 @@ namespace RoadReady.Accounts
             return input;
         }
 
+        /// <summary>
+        /// A search box: a text box with a magnifying-glass icon inside its left end and a blinking cursor that stays
+        /// visible while the on-screen keyboard is used (the keyboard's buttons take the focus from the box, which
+        /// would hide the box's own caret, so the cursor is drawn here).
+        /// </summary>
+        public static TMP_InputField MakeSearch(RectTransform parent, string placeholder)
+        {
+            var input = MakeInput(parent, placeholder);
+            input.characterLimit = 40;
+            input.customCaretColor = true;
+            input.caretColor = Color.clear; // the box's own caret is replaced by the always-on cursor below
+
+            var viewport = input.textViewport;
+            viewport.offsetMin = new Vector2(96f, 14f);
+
+            var layoutElement = input.GetComponent<LayoutElement>();
+            layoutElement.minHeight = layoutElement.preferredHeight = 84f;
+            input.textComponent.fontSize = 36f;
+            if (input.placeholder is TMP_Text hint)
+                hint.fontSize = 36f;
+
+            var iconGo = new GameObject("Search Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(input.transform, false);
+            var iconRect = iconGo.GetComponent<RectTransform>();
+            iconRect.anchorMin = iconRect.anchorMax = new Vector2(0f, 0.5f);
+            iconRect.pivot = new Vector2(0.5f, 0.5f);
+            iconRect.anchoredPosition = new Vector2(52f, 0f);
+            iconRect.sizeDelta = new Vector2(60f, 60f);
+            var icon = iconGo.GetComponent<Image>();
+            icon.sprite = Resources.Load<Sprite>("search_icon");
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            icon.enabled = icon.sprite != null;
+
+            var cursorGo = new GameObject("Cursor", typeof(RectTransform), typeof(Image), typeof(SearchCursor));
+            cursorGo.transform.SetParent(viewport, false);
+            cursorGo.GetComponent<Image>().raycastTarget = false;
+            cursorGo.GetComponent<SearchCursor>().Init(input);
+            return input;
+        }
+
+        /// <summary>A thin blinking bar at the end of the typed text.</summary>
+        class SearchCursor : MonoBehaviour
+        {
+            TMP_InputField m_Input;
+            RectTransform m_Rect;
+            Image m_Image;
+
+            public void Init(TMP_InputField input)
+            {
+                m_Input = input;
+                m_Rect = (RectTransform)transform;
+                m_Image = GetComponent<Image>();
+                m_Image.color = Accent;
+                m_Rect.anchorMin = m_Rect.anchorMax = new Vector2(0f, 0.5f);
+                m_Rect.pivot = new Vector2(0f, 0.5f);
+                m_Rect.sizeDelta = new Vector2(4f, 52f);
+            }
+
+            void LateUpdate()
+            {
+                if (m_Input == null)
+                    return;
+                var width = m_Input.textViewport.rect.width;
+                var x = Mathf.Min(m_Input.textComponent.preferredWidth, Mathf.Max(0f, width - 4f));
+                m_Rect.anchoredPosition = new Vector2(x + 1f, 0f);
+                m_Image.enabled = Mathf.Repeat(Time.unscaledTime, 1f) < 0.6f;
+            }
+        }
+
         static TextMeshProUGUI NewInputText(Transform parent, string name, Color colour, FontStyles style)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -395,6 +465,8 @@ namespace RoadReady.Accounts
             var element = go.AddComponent<LayoutElement>();
             element.minHeight = height;
             element.preferredHeight = height;
+            element.flexibleHeight = 0f;
+            element.layoutPriority = 2; // the row is exactly this tall: a child (e.g. a wrapping label) cannot stretch it
             return go.GetComponent<RectTransform>();
         }
 
