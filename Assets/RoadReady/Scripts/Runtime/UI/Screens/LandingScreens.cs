@@ -209,11 +209,47 @@ namespace RoadReady.UI
             card.Add(UIX.MakeLabel($"Learners today - {today:dddd d MMMM}", "contact__title"));
             card.Add(UIX.MakeLabel(learners.Count == 0 ? "Nobody has used RoadReady yet today." : $"{learners.Count} learner(s) used RoadReady today.", "contact__hint"));
 
-            // A plain list (not a ScrollView, which swallows VR controller presses): the latest entries.
-            for (var i = Math.Max(0, learners.Count - k_MaxRows); i < learners.Count; i++)
-                card.Add(UIX.MakeLabel($"{i + 1}.  {learners[i].name}   -   {learners[i].Local:HH:mm}", "contact__label"));
-            if (learners.Count > k_MaxRows)
-                card.Add(UIX.MakeLabel($"+ {learners.Count - k_MaxRows} earlier today", "contact__hint"));
+            // Search: magnifying-glass icon and a box; the keyboard opens when the box is pointed at.
+            var searchRow = new VisualElement();
+            searchRow.AddToClassList("row");
+            searchRow.style.alignItems = Align.Center;
+            searchRow.Add(ParticipantSetupScreen.BuildSearchIcon());
+            var search = new TypingBox("Search by name");
+            search.style.flexGrow = 1;
+            search.style.marginLeft = 10;
+            searchRow.Add(search);
+            card.Add(searchRow);
+            var keyboard = new OnScreenKeyboard(false) { AutoCapitalise = false };
+            keyboard.SetVisible(false);
+            keyboard.Target = search;
+            card.Add(keyboard);
+            search.Clicked += () =>
+            {
+                search.Active = true;
+                keyboard.SetVisible(true);
+            };
+
+            // A plain list (not a ScrollView, which swallows VR controller presses): the latest matching entries.
+            var list = new VisualElement();
+            card.Add(list);
+            void Render()
+            {
+                list.Clear();
+                var query = search.Value.Trim();
+                var numbered = new System.Collections.Generic.List<(int number, RoadReady.Data.AttendanceEntry entry)>();
+                for (var i = 0; i < learners.Count; i++)
+                    if (query.Length == 0 || (learners[i].name ?? "").IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+                        numbered.Add((i + 1, learners[i]));
+                if (numbered.Count == 0 && learners.Count > 0)
+                    list.Add(UIX.MakeLabel("No learner matches that search.", "contact__hint"));
+                for (var i = Math.Max(0, numbered.Count - k_MaxRows); i < numbered.Count; i++)
+                    list.Add(UIX.MakeLabel($"{numbered[i].number}.  {numbered[i].entry.name}   -   {numbered[i].entry.Local:HH:mm}", "contact__label"));
+                if (numbered.Count > k_MaxRows)
+                    list.Add(UIX.MakeLabel($"+ {numbered.Count - k_MaxRows} more - type to narrow the search", "contact__hint"));
+            }
+
+            search.Changed += Render;
+            Render();
 
             var buttons = new VisualElement();
             buttons.AddToClassList("row");
