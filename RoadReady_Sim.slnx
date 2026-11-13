@@ -8,7 +8,9 @@
   <Project Path="RoadReady.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.XR.Hands.Samples.VisualizerSample.csproj" />
+  <Project Path="RoadReady.Reports.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.InteractionSimulator.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.InteractionSimulator.Editor.csproj" />
+  <Project Path="RoadReady.Reports.Tests.csproj" />
   <Project Path="RoadReady.Accounts.Editor.csproj" />
 </Solution>
