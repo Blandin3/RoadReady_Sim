@@ -16,6 +16,7 @@ namespace RoadReady.UI
 
         public override string TreeName => "Feedback";
         public override float ViewDistance => 1.8f; // held a little further back so the whole report is in view
+        public override bool ScrollsAsWhole => true; // the whole report scrolls, so the buttons at the bottom are always reachable
 
         protected override void Bind()
         {
@@ -216,6 +217,14 @@ namespace RoadReady.UI
             Text("summary", $"Today you completed {attempts.Count} scenario attempt(s): {driver} as a driver and {pedestrian} as a pedestrian. Please take the headset off slowly and sit for a moment.");
 
             var results = Q<ScrollView>("results");
+            // Only this list gives way when it is long: it takes the space left between the summary and the End session
+            // button (basis 0, may shrink to nothing), so the button is always on screen and the list scrolls inside its card.
+            results.style.flexGrow = 1f;
+            results.style.flexShrink = 1f;
+            results.style.flexBasis = 0f;
+            results.style.minHeight = 0f;
+            results.mode = ScrollViewMode.Vertical;
+            results.verticalScrollerVisibility = ScrollerVisibility.Auto;
             foreach (var group in attempts.GroupBy(a => (a.scenarioName, a.perspective)))
             {
                 var list = group.OrderBy(a => a.startUtc, System.StringComparer.Ordinal).ToList();
