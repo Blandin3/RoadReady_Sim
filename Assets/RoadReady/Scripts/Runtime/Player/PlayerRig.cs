@@ -100,6 +100,7 @@ namespace RoadReady.Player
                 else
                     m_PointerObjects.Add(interactor.gameObject);
             }
+            ConfigureSingleSharpRay();
             Vignette = m_Origin.GetComponentInChildren<TunnelingVignetteController>(true);
             m_DefaultCameraYOffset = m_Origin.CameraYOffset;
             m_DefaultTrackingMode = m_Origin.RequestedTrackingOriginMode;
@@ -113,6 +114,82 @@ namespace RoadReady.Player
 
             ApplyComfort(comfort);
             SetLocomotion(false);
+        }
+
+        const float k_RayReach = 60f; // metres: a panel placed far away can still be pointed at
+        float m_NextRayCheck;
+
+        /// <summary>
+        /// One ray per controller, thin and exact. The Near-Far interactor's far ray becomes a straight single-line cast
+        /// (the starter rig uses a 3 degree cone that snaps to whatever is near the line) that reaches k_RayReach metres
+        /// instead of 10. Any other ray (the teleport ray that the thumbstick input turns back on, a stray line) is kept off.
+        /// </summary>
+        void ConfigureSingleSharpRay()
+        {
+            foreach (var interactor in m_NearFar)
+            {
+                if (interactor == null)
+                    continue;
+                if (interactor.farInteractionCaster is UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster caster)
+                {
+                    caster.hitDetectionType = UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster.HitDetectionType.Raycast;
+                    caster.castDistance = k_RayReach;
+                }
+            }
+
+            // Make the ray easy to see: a thicker, solid, bright straight line (the starter look is a thin, fading, curved one).
+            var valid = SolidGradient(new Color(0.15f, 0.8f, 1f, 1f));   // pointing at something you can press
+            var invalid = SolidGradient(new Color(1f, 1f, 1f, 0.9f));     // pointing at nothing
+            var blocked = SolidGradient(new Color(1f, 0.35f, 0.3f, 1f));
+            foreach (var interactor in m_NearFar)
+            {
+                if (interactor == null)
+                    continue;
+                foreach (var visual in interactor.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals.XRInteractorLineVisual>(true))
+                {
+                    visual.lineWidth = k_RayWidth;
+                    visual.widthCurve = AnimationCurve.Constant(0f, 1f, 1f);
+                    visual.lineBendRatio = 1f;        // straight
+                    visual.smoothMovement = false;    // no lag or wobble behind the hand
+                    visual.setLineColorGradient = true;
+                    visual.validColorGradient = valid;
+                    visual.invalidColorGradient = invalid;
+                    visual.blockedColorGradient = blocked;
+                }
+            }
+
+            KeepOnlyNearFarRays();
+        }
+
+        const float k_RayWidth = 0.012f; // metres
+
+        static Gradient SolidGradient(Color colour)
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(colour, 0f), new GradientColorKey(colour, 1f) },
+                new[] { new GradientAlphaKey(colour.a, 0f), new GradientAlphaKey(colour.a, 1f) });
+            return gradient;
+        }
+
+        void KeepOnlyNearFarRays()
+        {
+            if (m_Origin == null || m_NearFar.Count == 0)
+                return;
+            foreach (var teleport in m_Origin.GetComponentsInChildren<XRRayInteractor>(true))
+                if (teleport.gameObject.activeSelf)
+                    teleport.gameObject.SetActive(false);
+            foreach (var line in m_Origin.GetComponentsInChildren<LineRenderer>(true))
+            {
+                if (!line.enabled)
+                    continue;
+                var ours = false;
+                foreach (var interactor in m_NearFar)
+                    if (interactor != null && line.transform.IsChildOf(interactor.transform))
+                        ours = true;
+                if (!ours)
+                    line.enabled = false;
+            }
         }
 
         void OnEnable()
@@ -140,6 +217,12 @@ namespace RoadReady.Player
         void Update()
         {
             var head = InputDevices.GetDeviceAtXRNode(XRNode.Head);
+            if (Time.unscaledTime >= m_NextRayCheck)
+            {
+                m_NextRayCheck = Time.unscaledTime + 0.5f;
+                KeepOnlyNearFarRays();
+            }
+
             var worn = !head.isValid || !head.TryGetFeatureValue(CommonUsages.userPresence, out var present) || present;
             if (worn && !m_HeadsetWorn)
                 m_RecenterFrames = 30;
