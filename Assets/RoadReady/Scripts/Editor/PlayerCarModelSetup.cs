@@ -147,7 +147,7 @@ namespace RoadReady.EditorTools
             var mirrorReport = MirrorsFromModel(mirrors, m, rootT, eye);
 
             // The Bentley's own dials are a flat texture (no needles to turn), so the PolyDrive cluster goes in front of it.
-            var dashboard = PolyDriveDashboard.Build(root, hub);
+            var dashboard = PolyDriveDashboard.Build(root, hub) + " " + PhoneDisplayKit.Build(root, hub);
 
             var controls = BuildControls(root, steering, axis, hub);
             if (hub.x > 0f)
