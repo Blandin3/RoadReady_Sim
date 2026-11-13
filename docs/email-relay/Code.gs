@@ -89,6 +89,7 @@ function buildEmail_(data) {
   var total = clampInt_(data.totalMarks, 0, 100);
   var duration = clampInt_(data.durationSeconds, 0, 86400);
   var when = formatDate_(data.endUtc);
+  var mistakes = clampInt_(data.mistakeCount, 0, 100000);
   var explanation = 'Overall score: average of best attempt per scenario';
   var footer = 'Simulated training result sent by RoadReady.';
 
@@ -106,7 +107,7 @@ function buildEmail_(data) {
     'Date: ' + when + '\n' +
     'Session length: ' + durationText_(duration) + '\n' +
     'Total marks: ' + total + ' / 100\n' +
-    explanation + '\n\nAttempts:\n';
+    explanation + '\nMistakes made: ' + mistakes + '\nThe full report (every scenario, all marks, every mistake) is attached as a PDF.\n\nAttempts:\n';
   for (var t = 0; t < rows.length; t++) {
     text += '- ' + rows[t].label + ': ' + rows[t].score + ' / 100\n';
   }
@@ -134,6 +135,7 @@ function buildEmail_(data) {
         '<tr><td style="color:#6b7280;padding:3px 0">Date</td><td style="padding:3px 0">' + esc_(when) + '</td></tr>' +
         '<tr><td style="color:#6b7280;padding:3px 0">Session length</td><td style="padding:3px 0">' + esc_(durationText_(duration)) + '</td></tr>' +
         '<tr><td style="color:#6b7280;padding:3px 0">Attempts</td><td style="padding:3px 0">' + rows.length + '</td></tr>' +
+        '<tr><td style="color:#6b7280;padding:3px 0">Mistakes</td><td style="padding:3px 0">' + mistakes + ' (full list in the attached PDF)</td></tr>' +
       '</table>' +
     '</td></tr>' +
     // The big result
@@ -164,7 +166,27 @@ function buildEmail_(data) {
       esc_(footer) + '</div></td></tr>' +
     '</table></div>';
 
-  return { subject: subject, text: text, html: html };
+  return { subject: subject, text: text, html: html, pdf: pdfFrom_(data) };
+}
+
+/**
+ * The PDF report the app attached (base64). Checked before use: it must be a real PDF and not too big, and the file
+ * name is cleaned. Returns null when there is no valid PDF; the email is then sent without an attachment.
+ */
+function pdfFrom_(data) {
+  var b64 = String(data.pdfBase64 || '');
+  if (b64.length === 0 || b64.length > 3000000) return null;
+  try {
+    var bytes = Utilities.base64Decode(b64);
+    if (bytes.length < 8 || bytes.length > 2200000) return null;
+    // "%PDF" = 37 80 68 70
+    if (bytes[0] !== 37 || bytes[1] !== 80 || bytes[2] !== 68 || bytes[3] !== 70) return null;
+    var name = String(data.pdfName || 'RoadReady_report.pdf').replace(/[^A-Za-z0-9_.-]/g, '_').substring(0, 60);
+    if (!/\.pdf$/i.test(name)) name += '.pdf';
+    return { name: name, base64: b64, blob: Utilities.newBlob(bytes, 'application/pdf', name) };
+  } catch (err) {
+    return null;
+  }
 }
 
 /** Grade name and colours for a score. Same bands as the game: 85, 70, 50. */
@@ -186,18 +208,20 @@ function sendEmail_(to, email, props) {
   var apiKey = props.getProperty('BREVO_API_KEY');
   var senderEmail = props.getProperty('BREVO_SENDER_EMAIL');
   if (apiKey && senderEmail) {
+    var message = {
+      sender: { name: SENDER_NAME, email: senderEmail },
+      to: [{ email: to }],
+      subject: email.subject,
+      htmlContent: email.html,
+      textContent: email.text
+    };
+    if (email.pdf) message.attachment = [{ name: email.pdf.name, content: email.pdf.base64 }];
     var response = UrlFetchApp.fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'post',
       contentType: 'application/json',
       headers: { 'api-key': apiKey, accept: 'application/json' },
       muteHttpExceptions: true,
-      payload: JSON.stringify({
-        sender: { name: SENDER_NAME, email: senderEmail },
-        to: [{ email: to }],
-        subject: email.subject,
-        htmlContent: email.html,
-        textContent: email.text
-      })
+      payload: JSON.stringify(message)
     });
     var code = response.getResponseCode();
     if (code < 200 || code >= 300) {
@@ -206,7 +230,9 @@ function sendEmail_(to, email, props) {
     }
     return true;
   }
-  GmailApp.sendEmail(to, email.subject, email.text, { htmlBody: email.html, name: SENDER_NAME });
+  var options = { htmlBody: email.html, name: SENDER_NAME };
+  if (email.pdf) options.attachments = [email.pdf.blob];
+  GmailApp.sendEmail(to, email.subject, email.text, options);
   return true;
 }
 
@@ -238,7 +264,7 @@ function clampInt_(value, min, max) {
 function formatDate_(iso) {
   var d = new Date(String(iso || ''));
   if (isNaN(d.getTime())) return 'unknown';
-  return Utilities.formatDate(d, 'UTC', 'yyyy-MM-dd HH:mm') + ' UTC';
+  return Utilities.formatDate(d, 'Africa/Kigali', 'yyyy-MM-dd HH:mm') + ' CAT (Rwanda time)';
 }
 
 function durationText_(seconds) {
