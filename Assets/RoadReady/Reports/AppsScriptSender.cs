@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Firebase.Auth;
@@ -42,6 +43,10 @@ namespace RoadReady.Reports
             public string endUtc;
             public int durationSeconds;
             public int totalMarks;
+            public int averageMarks;
+            public int mistakeCount;
+            public string pdfName;
+            public string pdfBase64;
             public List<PayloadAttempt> attempts = new List<PayloadAttempt>();
         }
 
@@ -75,6 +80,10 @@ namespace RoadReady.Reports
                 endUtc = report.endUtc,
                 durationSeconds = (int)Math.Round(report.DurationSeconds),
                 totalMarks = report.TotalMarks,
+                averageMarks = SessionPdf.AverageOfBest(report),
+                mistakeCount = report.attempts.Sum(a => a.mistakes?.Count ?? 0),
+                pdfName = SessionPdf.FileName(report),
+                pdfBase64 = Convert.ToBase64String(SessionPdf.Build(report)),
             };
             foreach (var a in report.attempts)
                 payload.attempts.Add(new PayloadAttempt { label = ReportBuilder.Clean(a.Label), score = a.score });
