@@ -58,6 +58,9 @@ namespace RoadReady.Core
         public static event Action<string, float> ToastRequested;
         public static event Action<bool> PauseRequested;
         public static event Action HazardSpottedPressed;
+        /// <summary>A driver rule violation, with the scenario's location; shown as a fine on the in-car phone.</summary>
+        public static event Action<RoadReady.Data.DecisionRecord, string> TrafficFineIssued;
+        public static void RaiseTrafficFine(RoadReady.Data.DecisionRecord decision, string location) => TrafficFineIssued?.Invoke(decision, location);
 
         public static void RaiseAppStateChanged(AppState from, AppState to) => AppStateChanged?.Invoke(from, to);
         public static void RequestInstruction(string key) => InstructionRequested?.Invoke(key);

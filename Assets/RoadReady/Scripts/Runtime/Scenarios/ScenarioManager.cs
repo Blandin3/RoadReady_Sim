@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using RoadReady.Config;
 using RoadReady.Core;
 using RoadReady.Data;
+using RoadReady.Guidance;
 using RoadReady.Hazards;
 using RoadReady.Player;
 using RoadReady.Rules;
@@ -54,6 +55,7 @@ namespace RoadReady.Scenarios
 
         readonly HazardMonitor m_Hazards = new HazardMonitor();
         readonly RuleEngine m_Rules = new RuleEngine();
+        GuidanceEngine m_Guidance; // the real-time driving guide (cues only; it never touches scoring)
         readonly List<DecisionRecord> m_Decisions = new List<DecisionRecord>();
         /// <summary>Metres driven this attempt (the open road has no finish line, so distance shows the drive was done).</summary>
         float m_Odometer;
@@ -308,6 +310,11 @@ namespace RoadReady.Scenarios
                 onDecision = AddDecision,
             }, IsParking ? ParkingRule.CreateRules() : null);
 
+            // Driving guide: driver perspective only, and not in the parking bay (it has its own rules and a 10 km/h yard).
+            m_Guidance ??= new GuidanceEngine(m_Config.guidance, m_Config.scoring, (kind, detail) => m_Telemetry?.WriteEvent(kind, SimClock.Now, null, detail));
+            var guided = m_Request.perspective == Perspective.Driver && m_Driver != null && !IsParking;
+            m_Guidance.Begin(guided ? (m_Config.guidance ?? new GuidanceSettings()).ModeFor(m_Request.phase) : GuidanceMode.Off, guided ? m_Player : null, m_Parameters.speedLimitKmh, m_Attempt.attemptId);
+
             if (m_Request.phase == AttemptPhase.Tutorial && m_Context.Tutorial != null)
             {
                 m_Context.Tutorial.Completed += OnTutorialCompleted;
@@ -351,6 +358,7 @@ namespace RoadReady.Scenarios
             var dt = Time.deltaTime;
             m_Hazards.Tick(dt);
             m_Rules.Tick(dt);
+            m_Guidance?.Tick(dt, SimClock.Now);
             SampleTelemetry(dt);
             if (m_Driver != null && m_Request.perspective == Perspective.Driver)
                 m_Odometer += m_Driver.Speed * dt;
@@ -385,6 +393,8 @@ namespace RoadReady.Scenarios
         {
             decision.decisionId = $"D{++m_DecisionCounter:000}";
             m_Decisions.Add(decision);
+            if (decision.IsViolation && m_Request.perspective == Perspective.Driver)
+                RoadReadyEvents.RaiseTrafficFine(decision, m_Request.scenario != null ? m_Request.scenario.location : null);
             m_Telemetry?.WriteEvent("decision", decision.time, decision.ruleId, $"{decision.decision}|{decision.severity}|{decision.title}");
         }
 
@@ -450,6 +460,7 @@ namespace RoadReady.Scenarios
 
             m_Hazards.End();
             m_Rules.End();
+            m_Guidance?.End(); // writes the guide's timing into the attempt's telemetry log
             var duration = SimClock.Now;
             SimClock.Stop();
 
