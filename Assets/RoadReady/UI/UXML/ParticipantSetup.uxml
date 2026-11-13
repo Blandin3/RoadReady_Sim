@@ -20,7 +20,9 @@
                 <ui:VisualElement class="spacer" />
                 <ui:Button name="create" text="Confirm and continue" class="btn btn--primary" />
             </ui:VisualElement>
-            <ui:VisualElement class="card" style="width: 620px;">
+            <ui:VisualElement name="returning-card" class="card" style="width: 620px;">
+                <ui:VisualElement name="search-row" class="row" style="align-items: center;" />
+                <ui:VisualElement name="search-keyboard" />
                 <ui:Label text="Returning participant" class="card__title" />
                 <ui:Toggle name="post-test" text="This visit is the POST-TEST session" />
                 <ui:Label name="empty-list" text="No participants registered on this headset yet." class="muted small" />
@@ -30,6 +32,7 @@
         <ui:VisualElement class="row">
             <ui:Button name="back" text="Back" class="btn btn--ghost btn--small" />
             <ui:Button name="comfort" text="Comfort settings" class="btn btn--ghost btn--small" />
+            <ui:Button name="admin" text="Admin" class="btn btn--ghost btn--small" />
             <ui:VisualElement class="spacer" />
             <ui:Label name="version" class="muted small" />
         </ui:VisualElement>
