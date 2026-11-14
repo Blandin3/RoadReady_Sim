@@ -264,7 +264,7 @@ function clampInt_(value, min, max) {
 function formatDate_(iso) {
   var d = new Date(String(iso || ''));
   if (isNaN(d.getTime())) return 'unknown';
-  return Utilities.formatDate(d, 'Africa/Kigali', 'yyyy-MM-dd HH:mm') + ' CAT (Rwanda time)';
+  return Utilities.formatDate(d, 'Africa/Kigali', 'yyyy-MM-dd HH:mm') + ' UTC+2 (Rwanda time)';
 }
 
 function durationText_(seconds) {

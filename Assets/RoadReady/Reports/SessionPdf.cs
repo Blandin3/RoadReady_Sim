@@ -170,7 +170,7 @@ namespace RoadReady.Reports
 
         static string FormatDate(string iso) =>
             DateTime.TryParse(iso, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var d)
-                ? d.ToUniversalTime().AddHours(2).ToString("d MMMM yyyy HH:mm", CultureInfo.InvariantCulture) + " CAT (Rwanda time)" // Rwanda is UTC+2 all year
+                ? d.ToUniversalTime().AddHours(2).ToString("d MMMM yyyy HH:mm", CultureInfo.InvariantCulture) + " UTC+2 (Rwanda time)" // Rwanda is UTC+2 all year
                 : "date unknown";
     }
 }

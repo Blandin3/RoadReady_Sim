@@ -109,7 +109,7 @@ namespace RoadReady.Reports
         static string DateText(string utc)
         {
             if (DateTime.TryParse(utc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var when))
-                return when.ToUniversalTime().AddHours(2).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " CAT (Rwanda time)"; // Rwanda is UTC+2 all year
+                return when.ToUniversalTime().AddHours(2).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC+2 (Rwanda time)"; // Rwanda is UTC+2 all year
             return "unknown";
         }
 
