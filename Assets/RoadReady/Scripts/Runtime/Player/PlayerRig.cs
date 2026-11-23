@@ -322,6 +322,12 @@ namespace RoadReady.Player
                 return;
             SetDriving(false);
             m_Seat = null;
+            if (m_Collapse != null)
+            {
+                StopCoroutine(m_Collapse);
+                m_Collapse = null;
+            }
+
             SetCharacterController(false);
             Detach();
             SetStandingMode(m_Comfort != null && m_Comfort.seatedMode);
@@ -402,6 +408,50 @@ namespace RoadReady.Player
             m_SeatOffset.z = Mathf.Clamp(m_SeatOffset.z + stick.y * k_SeatSpeed * dt, -0.50f, 0.40f);
             m_SeatDirty = true;
             m_Origin.MoveCameraToWorldLocation(m_Seat.TransformPoint(m_SeatOffset));
+        }
+
+        public const float CollapseSeconds = 0.9f;
+        Coroutine m_Collapse;
+
+        /// <summary>
+        /// A pedestrian hit by a vehicle: the view is thrown a little way along the vehicle's direction, tips over to the
+        /// side and ends up low, near the road. Short and one-way, so it is not a comfort risk (the learner never drives it).
+        /// PlaceStanding puts the rig upright again at the next attempt.
+        /// </summary>
+        public void Collapse(Vector3 pushDirection, float vehicleSpeed)
+        {
+            if (m_Origin == null || m_Collapse != null)
+                return;
+            pushDirection.y = 0f;
+            if (pushDirection.sqrMagnitude < 1e-4f)
+                pushDirection = HeadTransform.forward;
+            m_Collapse = StartCoroutine(CollapseRoutine(pushDirection.normalized, Mathf.Clamp(vehicleSpeed, 2f, 14f)));
+        }
+
+        System.Collections.IEnumerator CollapseRoutine(Vector3 push, float speed)
+        {
+            SetCharacterController(false);
+            var origin = m_Origin.transform;
+            var head = HeadTransform;
+            var pivot = new Vector3(head.position.x, origin.position.y, head.position.z);
+            var sink = Mathf.Max(0f, head.position.y - origin.position.y - 0.35f); // head ends about 35 cm above the road
+            var slide = Mathf.Clamp(speed * 0.18f, 0.4f, 2.2f);
+            var tiltAxis = Vector3.Cross(Vector3.up, push); // tips over in the direction of the push
+            const float tiltDegrees = 70f;
+
+            var lastT = 0f;
+            for (var t = 0f; t < 1f; t += Time.unscaledDeltaTime / CollapseSeconds)
+            {
+                var e = 1f - (1f - t) * (1f - t); // fast at first, then settles on the ground
+                var step = e - lastT;
+                lastT = e;
+                origin.position += push * (slide * step) + Vector3.down * (sink * step);
+                pivot += push * (slide * step);
+                origin.RotateAround(pivot, tiltAxis, -tiltDegrees * step);
+                yield return null;
+            }
+
+            m_Collapse = null;
         }
 
         /// <summary>Moves the standing rig horizontally (assisted crossing / desktop walking).</summary>

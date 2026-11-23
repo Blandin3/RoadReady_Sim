@@ -401,8 +401,11 @@ namespace RoadReady.Player
             float m_Timer;
             AxisControl m_Candidate;
 
+            bool m_WaitingForWheel;
+
             public string Prompt => m_Step switch
             {
+                0 when m_WaitingForWheel => "Turn the wheel a little and tap each pedal once, then let go of everything...",
                 0 => "Let go of the wheel and both pedals...",
                 1 => "Turn the wheel all the way to the RIGHT and hold it.",
                 2 => "Let the wheel go, then press the ACCELERATOR (right pedal) all the way down and hold it.",
@@ -427,6 +430,19 @@ namespace RoadReady.Player
             {
                 if (m_Step == 0)
                 {
+                    // A wheel reads exactly 0 on every axis until it sends its first report. Taking those zeros as the resting
+                    // positions made every later step pick the wrong axis, so wait until the wheel has reported (a touch on
+                    // the wheel or a pedal makes it do so), then count the "hands off" time.
+                    m_WaitingForWheel = true;
+                    foreach (var axis in m_Axes)
+                        if (axis.ReadValue() != 0f)
+                            m_WaitingForWheel = false;
+                    if (m_WaitingForWheel)
+                    {
+                        m_Timer = 0f;
+                        return false;
+                    }
+
                     m_Timer += Time.unscaledDeltaTime / 2f;
                     if (m_Timer >= 1f)
                     {

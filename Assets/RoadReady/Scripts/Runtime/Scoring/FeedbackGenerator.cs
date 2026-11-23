@@ -10,6 +10,8 @@ namespace RoadReady.Scoring
     {
         public string title;
         public string detail;
+        /// <summary>What to do instead, and why it matters (the reason shown next to a pedestrian's mistake).</summary>
+        public string tip;
         public DecisionClass decision;
         public bool isHazard;
         public string situationAwareness;
@@ -62,11 +64,11 @@ namespace RoadReady.Scoring
             var timedDrive = scenario != null && scenario.type == ScenarioType.OpenRoad;
             report.headline = attempt.endReason switch
             {
-                AttemptEndReason.Collision => "Collision - this would have hurt someone",
+                AttemptEndReason.Collision => attempt.perspective == Perspective.Pedestrian ? "You were hit by a vehicle" : "Collision",
                 AttemptEndReason.TimeLimit when !timedDrive => "Time ran out",
                 AttemptEndReason.TutorialComplete => "Tutorial complete",
                 AttemptEndReason.Aborted => "Attempt stopped",
-                _ => s.total >= 85 ? "Excellent, safe decisions" : s.total >= 70 ? "Good - a few things to tighten up" : "Let's practise this again",
+                _ => s.total >= 85 ? "Well done" : s.total >= 70 ? "Good" : "Needs practice",
             };
 
             foreach (var h in attempt.hazardRecords)
@@ -75,6 +77,7 @@ namespace RoadReady.Scoring
                 {
                     title = h.hazardName,
                     detail = h.feedback,
+                    tip = h.feedback,
                     decision = h.decision,
                     isHazard = true,
                     situationAwareness = h.saOutcome switch
@@ -88,7 +91,7 @@ namespace RoadReady.Scoring
             }
 
             foreach (var d in attempt.decisions.Where(d => d.source == DecisionSource.Rule))
-                report.ruleLines.Add(new FeedbackLine { title = d.title, detail = d.detail, decision = d.decision });
+                report.ruleLines.Add(new FeedbackLine { title = d.title, detail = d.detail, tip = d.tip, decision = d.decision });
 
             // Up to three distinct tips, worst decisions first.
             var tips = attempt.decisions

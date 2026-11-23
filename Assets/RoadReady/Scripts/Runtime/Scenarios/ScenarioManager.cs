@@ -57,6 +57,7 @@ namespace RoadReady.Scenarios
         readonly RuleEngine m_Rules = new RuleEngine();
         GuidanceEngine m_Guidance; // the real-time driving guide (cues only; it never touches scoring)
         readonly List<DecisionRecord> m_Decisions = new List<DecisionRecord>();
+        readonly List<DecisionRecord> m_PedestrianFeedback = new List<DecisionRecord>();
         /// <summary>Metres driven this attempt (the open road has no finish line, so distance shows the drive was done).</summary>
         float m_Odometer;
         const float k_OpenRoadMinimumMetres = 800f;
@@ -75,6 +76,7 @@ namespace RoadReady.Scenarios
         DriverController m_Driver;
         IRoadAgent m_Player;
         AttemptEndReason? m_PendingEnd;
+        float m_CollapseHold;
         float m_SampleTimer;
         int m_DecisionCounter;
         bool m_Paused;
@@ -266,9 +268,11 @@ namespace RoadReady.Scenarios
             var previous = participant != null ? m_Data.GetScoredAttempts(participant.participantId, m_Request.scenario.scenarioId, m_Request.perspective) : new List<AttemptRecord>();
 
             m_Decisions.Clear();
+            m_PedestrianFeedback.Clear();
             m_Odometer = 0f;
             m_DecisionCounter = 0;
             m_PendingEnd = null;
+            m_CollapseHold = 0f;
             m_SampleTimer = 0f;
             SimClock.Begin();
 
@@ -359,6 +363,7 @@ namespace RoadReady.Scenarios
             m_Hazards.Tick(dt);
             m_Rules.Tick(dt);
             m_Guidance?.Tick(dt, SimClock.Now);
+            ShowPedestrianFeedback();
             SampleTelemetry(dt);
             if (m_Driver != null && m_Request.perspective == Perspective.Driver)
                 m_Odometer += m_Driver.Speed * dt;
@@ -371,8 +376,38 @@ namespace RoadReady.Scenarios
                     m_PendingEnd = AttemptEndReason.TimeLimit;
             }
 
+            // A pedestrian who is hit is given a moment to fall before the feedback panel appears.
+            if (m_PendingEnd == AttemptEndReason.Collision && m_CollapseHold > 0f)
+            {
+                m_CollapseHold -= dt;
+                return;
+            }
+
             if (m_PendingEnd != null)
                 FinishAttempt(m_PendingEnd.Value);
+        }
+
+        /// <summary>
+        /// Walking learners get feedback as it happens, like the driver's fine and voice warnings: what went wrong and
+        /// what to do instead. Several mistakes found at the same moment (a crossing is judged on location, signal, gap
+        /// and looking) are joined into one message, the worst first, so none is lost behind another.
+        /// </summary>
+        void ShowPedestrianFeedback()
+        {
+            if (m_PedestrianFeedback.Count == 0)
+                return;
+            m_PedestrianFeedback.Sort((a, b) => b.decision != a.decision ? b.decision.CompareTo(a.decision) : b.severity.CompareTo(a.severity));
+            var lines = new List<string>();
+            foreach (var d in m_PedestrianFeedback)
+            {
+                if (lines.Count >= 2)
+                    break;
+                var title = d.source == DecisionSource.Hazard ? "Not handled: " + d.title : d.title;
+                lines.Add(string.IsNullOrWhiteSpace(d.tip) || lines.Count > 0 ? title : title + "\n" + d.tip);
+            }
+
+            m_PedestrianFeedback.Clear();
+            RoadReadyEvents.Toast(string.Join("\n", lines), 5f);
         }
 
         void OnCollision(IRoadAgent other, string what)
@@ -380,9 +415,23 @@ namespace RoadReady.Scenarios
             m_Hazards.NotifyCollision(other);
             CollisionOccurred?.Invoke(what);
             m_Telemetry?.WriteEvent("collision", SimClock.Now, what);
-            if (m_Parameters.endAttemptOnCollision && m_Request.phase != AttemptPhase.Tutorial)
+            // A pedestrian who is hit always ends the attempt (and gets the feedback panel), whatever the researcher set.
+            if ((m_Parameters.endAttemptOnCollision || m_Request.perspective == Perspective.Pedestrian) && m_Request.phase != AttemptPhase.Tutorial)
             {
                 m_Driver?.Stop();
+                if (m_Request.perspective == Perspective.Pedestrian && other != null && m_Rig != null)
+                {
+                    // The learner is knocked down: fall away from the vehicle, then the feedback panel opens.
+                    if (m_Pedestrian != null)
+                        m_Pedestrian.InputEnabled = false;
+                    var push = other.Velocity;
+                    push.y = 0f;
+                    if (push.sqrMagnitude < 0.01f)
+                        push = other.Forward;
+                    m_Rig.Collapse(push, other.Speed);
+                    m_CollapseHold = PlayerRig.CollapseSeconds + 0.6f;
+                }
+
                 m_PendingEnd = AttemptEndReason.Collision; // deferred: we may be inside a registry iteration
             }
         }
@@ -395,6 +444,8 @@ namespace RoadReady.Scenarios
             m_Decisions.Add(decision);
             if (decision.IsViolation && m_Request.perspective == Perspective.Driver)
                 RoadReadyEvents.RaiseTrafficFine(decision, m_Request.scenario != null ? m_Request.scenario.location : null);
+            if (m_Request.perspective == Perspective.Pedestrian && decision.decision != DecisionClass.Safe)
+                m_PedestrianFeedback.Add(decision); // shown as one short message at the end of this frame (see ShowPedestrianFeedback)
             m_Telemetry?.WriteEvent("decision", decision.time, decision.ruleId, $"{decision.decision}|{decision.severity}|{decision.title}");
         }
 

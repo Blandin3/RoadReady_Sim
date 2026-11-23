@@ -86,6 +86,7 @@ namespace RoadReady.Rules
             // Pedestrian
             new CrossingDecisionRule(),
             new RoadwayDwellRule(),
+            new WalkAlongRoadRule(),
         };
 
         public void Begin(RuleContext context, IEnumerable<RoadRule> rules = null)
