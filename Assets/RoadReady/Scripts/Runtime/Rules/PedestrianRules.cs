@@ -18,6 +18,7 @@ namespace RoadReady.Rules
     /// </summary>
     public class CrossingDecisionRule : PedestrianRule
     {
+        const float k_KerbPauseSpeed = 0.9f; // m/s at the moment of stepping off: faster than a slow shuffle means no pause
         RuleContext m_Ctx;
 
         public override string Id => "crossing";
@@ -90,6 +91,18 @@ namespace RoadReady.Rules
                     $"{CollisionRule.Describe(threat.Kind)} was only {tta:0.0}s away; crossing takes about {required:0.0}s.",
                     "Judge the gap by time, not distance: a moto-taxi at 40 km/h covers 11 m every second.");
 
+            // 3b. Stop at the kerb. Walking straight off the pavement gives no time to see, and no time for a driver to see you.
+            // (Skipped when the game walks the learner across: that starts from standing.)
+            var ped = ctx.pedestrian;
+            if (ped != null && !ped.IsAutoWalking)
+            {
+                if (ped.Speed >= k_KerbPauseSpeed)
+                    ctx.Report("kerb_pause", "Stepped off the kerb without stopping", DecisionClass.Borderline, ViolationSeverity.Minor,
+                        null, "Stop at the kerb edge, look, and only then step out. A driver cannot react to someone who appears at walking pace.");
+                else
+                    ctx.Report("kerb_pause", "Stopped at the kerb before crossing", DecisionClass.Safe, ViolationSeverity.None);
+            }
+
             // 4. Look both ways (Rwanda drives on the right: the near lane's traffic comes from the left).
             if (ctx.gaze != null)
             {
@@ -100,6 +113,52 @@ namespace RoadReady.Rules
                     ctx.Report("look_both_ways", left ? "Did not look right before crossing" : right ? "Did not look left before crossing" : "Did not look before crossing",
                         DecisionClass.Borderline, ViolationSeverity.Minor, null,
                         "Look left, right, then left again. In Rwanda the first lane's traffic comes from your left.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Walking along the road (or diagonally) instead of straight across: every extra second in the roadway is a second
+    /// in the path of traffic, and drivers expect you to take the shortest way.
+    /// </summary>
+    public class WalkAlongRoadRule : PedestrianRule
+    {
+        const float k_MinSpeed = 0.6f;       // m/s: only count real walking
+        const float k_MaxAlignment = 0.6f;   // |cos| of the angle to the crossing direction below which the walk is "sideways"
+        const float k_SecondsSideways = 2.5f;
+
+        float m_Sideways;
+        bool m_Reported;
+
+        public override string Id => "walk_along_road";
+
+        public override void Begin(RuleContext ctx)
+        {
+            m_Sideways = 0f;
+            m_Reported = false;
+        }
+
+        public override void Tick(RuleContext ctx, float dt)
+        {
+            var ped = ctx.pedestrian;
+            if (ped == null || !ped.IsOnRoadway)
+            {
+                m_Sideways = 0f;
+                m_Reported = false;
+                return;
+            }
+
+            var velocity = ped.Velocity;
+            velocity.y = 0f;
+            if (velocity.magnitude < k_MinSpeed)
+                return;
+            var alignment = Mathf.Abs(Vector3.Dot(velocity.normalized, ped.CurrentCrossing.direction));
+            m_Sideways = alignment < k_MaxAlignment ? m_Sideways + dt : Mathf.Max(0f, m_Sideways - dt);
+            if (!m_Reported && m_Sideways >= k_SecondsSideways)
+            {
+                m_Reported = true;
+                ctx.Report(Id, "Walked along the road instead of straight across", DecisionClass.Borderline, ViolationSeverity.Minor,
+                    null, "Cross by the shortest way, straight to the other kerb. Walking along the road keeps you in the path of traffic for longer.");
             }
         }
     }

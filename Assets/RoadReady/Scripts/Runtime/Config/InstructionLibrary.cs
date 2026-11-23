@@ -30,6 +30,17 @@ namespace RoadReady.Config
         public const string TutDone = "tut_done";
         public const string SessionEnd = "session_end";
 
+        // Driving guide cues (RoadReady.Guidance). "_coach" = Coaching mode (with advice), plain = Warnings only.
+        // A voice clip can be assigned to each key in RoadReadyConfig.voiceLines; without one the caption is still shown.
+        public const string GuideSlowDown = "guide_slow_down";
+        public const string GuideSlowDownCoach = "guide_slow_down_coach";
+        public const string GuideCrossingAhead = "guide_crossing_ahead";
+        public const string GuideCrossingAheadCoach = "guide_crossing_ahead_coach";
+        public const string GuideStopAhead = "guide_stop_ahead";
+        public const string GuideStopAheadCoach = "guide_stop_ahead_coach";
+        public const string GuideLaneDeparture = "guide_lane_departure";
+        public const string GuideLaneDepartureCoach = "guide_lane_departure_coach";
+
         static readonly Dictionary<string, string> s_Text = new Dictionary<string, string>
         {
             { Welcome, "Welcome to RoadReady. You will practise road-safety decisions as a driver and as a pedestrian in streets modelled on Kigali. Nothing here can hurt you - mistakes are how you learn." },
@@ -53,6 +64,14 @@ namespace RoadReady.Config
             { TutSpotHazard, "Whenever you notice something dangerous developing, press X. It helps you train your hazard awareness." },
             { TutDone, "Tutorial complete. You are ready for your first scenario." },
             { SessionEnd, "Thank you. Please take the headset off carefully and answer a few quick questions." },
+            { GuideSlowDown, "Slow down." },
+            { GuideSlowDownCoach, "Slow down. You are going faster than is safe here - a lower speed gives you time to react to pedestrians and moto-taxis." },
+            { GuideCrossingAhead, "Crossing ahead." },
+            { GuideCrossingAheadCoach, "Crossing ahead. Ease off the accelerator and be ready to stop for pedestrians." },
+            { GuideStopAhead, "Stop ahead." },
+            { GuideStopAheadCoach, "Stop ahead. Brake smoothly now and stop behind the line." },
+            { GuideLaneDeparture, "Road edge close." },
+            { GuideLaneDepartureCoach, "You are drifting toward the road edge. Steer back toward the middle of your lane." },
         };
 
         public static string Get(string key) => key != null && s_Text.TryGetValue(key, out var text) ? text : key;

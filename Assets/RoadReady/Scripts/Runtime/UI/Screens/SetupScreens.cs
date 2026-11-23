@@ -67,19 +67,92 @@ namespace RoadReady.UI
             Btn("create", () => OnConfirm(guardian.value, postTest.value));
             Btn("back", App.ShowWelcome);
             Btn("comfort", () => App.OpenComfort(App.GoToSetup));
+            Btn("admin", App.OpenAdmin); // researcher panel (asks for the PIN)
 
             // A plain list (not a ScrollView, which swallows VR controller presses): the six most recent participants.
             var list = Q<VisualElement>("participant-list");
             var participants = App.Data.LoadAllParticipants().Where(p => p.consentGiven).ToList();
-            Q<Label>("empty-list").SetVisible(participants.Count == 0);
-            foreach (var p in participants.Skip(Mathf.Max(0, participants.Count - 6)))
+            var empty = Q<Label>("empty-list");
+            var card = Q<VisualElement>("returning-card");
+
+            // Search (top-left of the card): matches the participant code or the name left for the report.
+            // Typed with the on-screen keyboard, which opens when the box is pointed at.
+            var searchRow = Q<VisualElement>("search-row");
+            searchRow.Insert(0, BuildSearchIcon());
+            var search = new TypingBox("Search by code or name");
+            search.style.flexGrow = 1;
+            search.style.marginLeft = 10;
+            searchRow.Add(search);
+            var keyboard = new OnScreenKeyboard(false) { AutoCapitalise = false };
+            keyboard.SetVisible(false);
+            keyboard.Target = search;
+            Q<VisualElement>("search-keyboard").Add(keyboard);
+            search.Clicked += () =>
             {
-                var id = p.participantId;
-                var button = UIX.MakeButton($"{id}   {p.group.Pretty()} | {(p.condition == StudyCondition.BriefingOnly ? "Briefing" : "Training")} | {p.sessionCount} session(s)",
-                    () => App.SelectReturningParticipant(id, postTest.value), "btn--ghost", "btn--small");
-                button.style.unityTextAlign = TextAnchor.MiddleLeft;
-                list.Add(button);
+                search.Active = true;
+                keyboard.SetVisible(true);
+                if (card != null) card.style.width = 880; // wide enough for the keyboard
+            };
+
+            void Render()
+            {
+                list.Clear();
+                var query = search.Value.Trim();
+                var matches = participants.Where(p => query.Length == 0 || Matches(p.participantId, query)).ToList();
+                empty.text = participants.Count == 0 ? "No participants registered on this headset yet." : "No participant matches that search.";
+                empty.SetVisible(matches.Count == 0);
+                // The six most recent (or the six most recent matches).
+                foreach (var p in matches.Skip(Mathf.Max(0, matches.Count - 6)))
+                {
+                    var id = p.participantId;
+                    var button = UIX.MakeButton($"{id}   {p.group.Pretty()} | {(p.condition == StudyCondition.BriefingOnly ? "Briefing" : "Training")} | {p.sessionCount} session(s)",
+                        () => App.SelectReturningParticipant(id, postTest.value), "btn--ghost", "btn--small");
+                    button.style.unityTextAlign = TextAnchor.MiddleLeft;
+                    list.Add(button);
+                }
             }
+
+            search.Changed += Render;
+            Render();
+        }
+
+        bool Matches(string participantId, string query)
+        {
+            if (participantId.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+            var contact = App.Data.Contacts.Get(participantId);
+            return contact != null && !string.IsNullOrEmpty(contact.name) && contact.name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>A magnifying-glass icon drawn from two shapes (no font or image needed).</summary>
+        internal static VisualElement BuildSearchIcon()
+        {
+            var icon = new VisualElement();
+            icon.pickingMode = PickingMode.Ignore;
+            icon.style.width = 44;
+            icon.style.height = 44;
+            var lens = new VisualElement();
+            lens.pickingMode = PickingMode.Ignore;
+            lens.style.position = Position.Absolute;
+            lens.style.left = 4;
+            lens.style.top = 4;
+            lens.style.width = 26;
+            lens.style.height = 26;
+            lens.style.borderTopLeftRadius = lens.style.borderTopRightRadius = lens.style.borderBottomLeftRadius = lens.style.borderBottomRightRadius = 13;
+            lens.style.borderTopWidth = lens.style.borderRightWidth = lens.style.borderBottomWidth = lens.style.borderLeftWidth = 4;
+            lens.style.borderTopColor = lens.style.borderRightColor = lens.style.borderBottomColor = lens.style.borderLeftColor = Color.white;
+            var handle = new VisualElement();
+            handle.pickingMode = PickingMode.Ignore;
+            handle.style.position = Position.Absolute;
+            handle.style.left = 26;
+            handle.style.top = 33;
+            handle.style.width = 16;
+            handle.style.height = 5;
+            handle.style.backgroundColor = Color.white;
+            handle.style.rotate = new Rotate(new Angle(45f, AngleUnit.Degree));
+            icon.Add(lens);
+            icon.Add(handle);
+            return icon;
         }
 
         void OnConfirm(bool guardian, bool postTest)
@@ -104,11 +177,10 @@ namespace RoadReady.UI
     public class ConsentScreen : UIScreen
     {
         const string k_Text =
-            "RoadReady is a research project at the African Leadership University. It studies whether practising road-safety decisions in virtual reality helps people make safer decisions as drivers and pedestrians.\n\n" +
-            "What you will do: wear a VR headset for about 20-30 minutes, complete a short tutorial, then drive and/or walk through three street scenarios modelled on Kigali. You may repeat scenarios and see your results.\n\n" +
-            "Risks: some people feel dizzy or sick in VR. Tell the researcher immediately if you feel unwell - you can stop at any time. Nothing in the simulation can physically harm you.\n\n" +
-            "Your data: RoadReady records your reactions, decisions and scores against an anonymous code (for example RR-7KQ2TX). Your name is never stored with it. If you choose to leave a name and email so we can send you your results report, they are kept in a separate file, never with your study data, and used only to send you that report. Data is kept in line with Rwanda's Law on the Protection of Personal Data and Privacy and is used only for this study.\n\n" +
-            "Your rights: taking part is voluntary. You can withdraw at any time from the menu and all of your data will be deleted.";
+            "About: RoadReady is a virtual-reality app from the African Leadership University for practising road safety. You will drive or walk through street scenes modelled on Kigali.\n\n" +
+            "Risks: VR can make some people dizzy. Tell the instructor if you feel unwell and stop at once. Nothing in the simulation can hurt you.\n\n" +
+            "Your data: we save your decisions and scores to give you feedback. If you give an email, it is used only to send you your report. Your data is not shared with anyone else.\n\n" +
+            "Your choice: taking part is voluntary. You can stop or withdraw at any time and your data will be deleted.";
 
         public override string TreeName => "Consent";
 

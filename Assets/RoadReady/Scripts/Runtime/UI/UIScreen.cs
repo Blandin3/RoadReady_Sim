@@ -32,11 +32,28 @@ namespace RoadReady.UI
             Bind();
             UIX.AddGlassSheen(Root);
             foreach (var view in Root.Query<ScrollView>().ToList())
-                ScrollArrows.Attach(view);
+                ScrollBars.Attach(view);
+        }
+
+        /// <summary>Scrolls the first list on this screen that has something to scroll (positive = down). False when none does.</summary>
+        public bool ScrollBy(float delta)
+        {
+            if (Root == null)
+                return false;
+            foreach (var view in Root.Query<ScrollView>().ToList())
+                if (ScrollBars.ScrollBy(view, delta))
+                    return true;
+            return false;
         }
 
         /// <summary>True when the screen has a ScrollView of its own (so the panel does not scroll it as well).</summary>
-        public bool HasOwnScroll => Root != null && Root.Q<ScrollView>() != null;
+        public bool HasOwnScroll => !ScrollsAsWhole && Root != null && Root.Q<ScrollView>() != null;
+
+        /// <summary>
+        /// True for long screens that should scroll as one page (with the panel's arrows and scroll bar) instead of being
+        /// fitted to the panel with only an inner list scrolling. The inner list then simply grows to its full length.
+        /// </summary>
+        public virtual bool ScrollsAsWhole => false;
 
         protected abstract void Bind();
 

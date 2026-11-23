@@ -94,6 +94,10 @@ namespace RoadReady.Traffic
         public void ResetToStart()
         {
             m_Distance = m_StartDistance;
+            m_Down = false;
+            m_NoHitUntil = Time.time + k_SpawnGraceSeconds;
+            if (m_Animator != null)
+                m_Animator.enabled = true;
             m_State = State.Walking;
             m_ForceCross = false;
             m_SpeedMultiplier = 1f;
@@ -120,6 +124,15 @@ namespace RoadReady.Traffic
             if (m_Path == null)
                 return;
             var dt = Time.deltaTime;
+
+            if (m_Down)
+            {
+                UpdateFall(dt);
+                return;
+            }
+
+            if (!m_Dormant)
+                CheckHitByTraffic();
 
             if (m_Dormant || m_State == State.Stopped)
             {
@@ -237,11 +250,69 @@ namespace RoadReady.Traffic
                 m_Animator.SetFloat("Speed", m_Speed);
         }
 
-        /// <summary>Called by the collision rule when a vehicle hits this pedestrian.</summary>
-        public void OnHitByVehicle()
+        // Knocked down by a vehicle: tips over in the direction of the impact and slides a little along the road.
+        bool m_Down;
+        float m_FallTime;
+        Vector3 m_FallPush;
+        float m_FallSlide;
+        Quaternion m_FallStartRotation;
+        const float k_FallSeconds = 0.55f;
+        const float k_FallDegrees = 85f;
+        const float k_MinHitSpeed = 1.5f; // m/s: a vehicle creeping past does not knock anyone over
+
+        public bool IsDown => m_Down;
+
+        /// <summary>Called when a vehicle hits this pedestrian: it stops and falls where the vehicle was heading.</summary>
+        public void OnHitByVehicle(Vector3 vehicleVelocity)
         {
+            if (m_Down)
+                return;
+            vehicleVelocity.y = 0f;
+            m_FallPush = vehicleVelocity.sqrMagnitude > 0.01f ? vehicleVelocity.normalized : transform.forward;
+            m_FallSlide = Mathf.Clamp(vehicleVelocity.magnitude * 0.12f, 0.3f, 1.8f);
+            m_FallStartRotation = transform.rotation;
+            m_FallSlideDone = 0f;
+            m_FallTime = 0f;
+            m_Down = true;
             m_State = State.Stopped;
+            m_Speed = 0f;
+            m_Velocity = Vector3.zero;
+            if (m_Animator != null)
+                m_Animator.enabled = false; // freeze the walk cycle so the body falls as one piece
             m_OnHit?.Invoke();
+        }
+
+        void UpdateFall(float dt)
+        {
+            m_FallTime = Mathf.Min(k_FallSeconds, m_FallTime + dt);
+            var t = m_FallTime / k_FallSeconds;
+            var eased = 1f - (1f - t) * (1f - t);
+            var axis = Vector3.Cross(Vector3.up, m_FallPush);
+            transform.rotation = Quaternion.AngleAxis(k_FallDegrees * eased, axis) * m_FallStartRotation;
+            transform.position += m_FallPush * (m_FallSlide * (eased - m_FallSlideDone));
+            m_FallSlideDone = eased;
+        }
+
+        float m_FallSlideDone;
+        float m_NoHitUntil;
+        const float k_SpawnGraceSeconds = 3f;
+
+        /// <summary>Any moving vehicle that overlaps a walking pedestrian knocks them down (not only the player's car).</summary>
+        void CheckHitByTraffic()
+        {
+            // Right after (re)spawning, a pedestrian may overlap a passing vehicle; never start a scenario already knocked down.
+            if (Time.time < m_NoHitUntil)
+                return;
+            foreach (var other in RoadAgentRegistry.All)
+            {
+                if (other == (IRoadAgent)this || other.Kind == RoadUserKind.Pedestrian || other.Speed < k_MinHitSpeed)
+                    continue;
+                if (RoadAgentRegistry.Overlaps(this, other, 0.05f))
+                {
+                    OnHitByVehicle(other.Velocity);
+                    return;
+                }
+            }
         }
 
         public void PerformHazard(HazardActorMode mode, float value)

@@ -61,6 +61,8 @@ namespace RoadReady.UI
             m_Restart = root.Q<Button>("restart-scenario");
             if (m_Restart != null)
                 m_Restart.clicked += () => m_App.RestartAttempt(); // run the same scenario again from the start
+            if (m_Skip != null) m_Skip.focusable = false;
+            if (m_Restart != null) m_Restart.focusable = false;
 
             RoadReadyEvents.InstructionRequested += OnInstruction;
             RoadReadyEvents.ToastRequested += OnToast;
@@ -76,6 +78,15 @@ namespace RoadReady.UI
 
         void OnInstruction(string key)
         {
+            // Voice instructions on and a clip exists for this cue: it is spoken, so nothing is drawn on the windshield.
+            // (Without a clip, or with voice off, the caption stays so the message is never lost.)
+            if (m_App.Comfort != null && m_App.Comfort.voiceInstructions && m_App.Config != null && m_App.Config.FindVoice(key) != null)
+            {
+                m_Caption.SetVisible(false);
+                m_CaptionUntil = 0f;
+                return;
+            }
+
             var text = InstructionLibrary.Get(key);
             m_Caption.text = text;
             m_Caption.SetVisible(true);
@@ -227,6 +238,9 @@ namespace RoadReady.UI
             var show = state == AttemptState.Running && m_App.State == AppState.InScenario && !m_App.UI.MenuVisible;
             m_Skip?.SetVisible(show && m_Scenarios.Request.phase == AttemptPhase.Tutorial);
             m_Restart?.SetVisible(show);
+            // Not pressable while a menu (the pause panel) is open in the same spot.
+            m_Skip?.SetEnabled(show);
+            m_Restart?.SetEnabled(show);
             if (show != m_SkipShown)
                 m_Panel.SetInteractive(show);
             if (show && !m_App.Rig.PointersVisible)

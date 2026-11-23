@@ -343,8 +343,55 @@ ScrollView {
     flex-grow: 1;
 }
 
+/* A normal, easy-to-see scroll bar: a track with a draggable thumb. The big up / down arrows replace the small end buttons. */
 .unity-scroller--vertical {
+    width: 22px;
+    margin: 4px 0 4px 6px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 11px;
+}
+
+.unity-scroller--vertical .unity-scroller__low-button,
+.unity-scroller--vertical .unity-scroller__high-button {
+    display: none;
+}
+
+.unity-scroller--vertical .unity-base-slider__tracker {
+    width: 22px;
+    background-color: rgba(255, 255, 255, 0.10);
+    border-width: 0;
+    border-radius: 11px;
+}
+
+.unity-scroller--vertical .unity-base-slider__dragger {
+    width: 22px;
+    min-height: 64px;
+    background-color: rgba(0, 161, 222, 0.9);
+    border-width: 0;
+    border-radius: 11px;
+}
+
+/* The scroll bar of a whole panel (the ScrollPane in code) */
+.scroll-track {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
     width: 18px;
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+.scroll-thumb {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-radius: 9px;
+    background-color: rgba(0, 161, 222, 0.9);
+}
+
+.scroll-thumb:hover {
+    background-color: rgb(0, 161, 222);
 }
 
 /* ------------------------------------------------------------------ cards */
@@ -1053,7 +1100,8 @@ Button.pill:hover {
     top: 0;
     bottom: 0;
     width: 64px;
-    justify-content: center;
+    /* Up arrow at the very top of the panel, down arrow at the very bottom, like a normal scroll bar. */
+    justify-content: space-between;
 }
 
 .scroll-arrow {
@@ -1234,10 +1282,23 @@ Button.pill:hover {
     color: rgb(15, 20, 26);
 }
 
-/* Feedback report: Close in the top right corner (opens the scenario list). */
-.feedback__close {
+/* Feedback report: Restart and Close in the top right corner (Close opens the scenario list). */
+.feedback__corner {
     position: absolute;
     top: 12px;
     right: 12px;
-    margin: 0;
+    flex-direction: row;
+}
+
+.feedback__corner-btn {
+    margin: 0 0 0 8px;
+}
+
+/* Pause panel: compact buttons so all seven fit in the panel (the tutorial adds Skip tutorial) and nothing needs scrolling. */
+.pause__btn {
+    min-height: 70px;
+    margin: 5px 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 30px;
 }

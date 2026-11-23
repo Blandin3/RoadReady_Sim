@@ -16,6 +16,7 @@ namespace RoadReady.UI
 
         public override string TreeName => "Feedback";
         public override float ViewDistance => 1.8f; // held a little further back so the whole report is in view
+        public override bool ScrollsAsWhole => true; // the whole report scrolls, so the buttons at the bottom are always reachable
 
         protected override void Bind()
         {
@@ -26,27 +27,31 @@ namespace RoadReady.UI
             Text("score-value", r.isTutorial ? "-" : $"{s.total:0}");
             var ring = Q<VisualElement>("score-ring");
             ring.AddToClassList(r.isTutorial ? "score-ring" : s.total >= 85 ? "score-ring--safe" : s.total >= 50 ? "score-ring--borderline" : "score-ring--unsafe");
-            Text("eyebrow", $"{r.scenarioName.ToUpperInvariant()}  |  {r.perspective.Pretty().ToUpperInvariant()}  |  {r.phase.Pretty()}{(r.level > 1 ? $"  |  LEVEL {r.level}" : "")}");
+            Text("eyebrow", $"{r.scenarioName}  |  {r.perspective.Pretty()}{(r.level > 1 ? $"  |  Level {r.level}" : "")}");
             Text("headline", r.headline);
-            Text("grade", r.isTutorial ? "Tutorials are not scored." : $"{r.grade}  -  attempt {r.attemptNumber}");
+            Text("grade", r.isTutorial ? "Not scored" : r.grade);
 
             var metrics = Q<VisualElement>("metrics");
             if (!r.isTutorial)
             {
                 if (s.hazardsTotal > 0)
                 {
-                    metrics.Add(UIX.Metric("Hazards handled safely", $"{s.hazardsDetected} of {s.hazardsTotal}", s.detectionRate));
-                    metrics.Add(UIX.Metric("Reaction time", s.meanReactionTime >= 0f ? $"{s.meanReactionTime:0.0} s average" : "no responses", s.reactionComponent / 100f));
+                    metrics.Add(UIX.Metric("Hazards", $"{s.hazardsDetected} of {s.hazardsTotal}", s.detectionRate));
+                    metrics.Add(UIX.Metric("Reaction", s.meanReactionTime >= 0f ? $"{s.meanReactionTime:0.0} s" : "-", s.reactionComponent / 100f));
                 }
 
-                metrics.Add(UIX.Metric("Rule compliance", s.violationCount == 0 ? "no violations" : $"{s.violationCount} violation(s)", s.ruleComponent / 100f));
+                metrics.Add(UIX.Metric("Rules", s.violationCount == 0 ? "no mistakes" : $"{s.violationCount} mistake(s)", s.ruleComponent / 100f));
             }
 
-            BuildHistory();
             BuildDetails();
 
             // Close (top right): back to the list of scenarios, to choose a different one.
             Btn("close", App.OpenScenarioListAfterAttempt);
+
+            // Restart (next to Close): run the same scenario again from the start, same as Try again.
+            var restart = Btn("restart", App.Retry);
+            if (request.scenario != null && !request.scenario.isTutorial && !App.CanAttempt(request.scenario, request.perspective, out _))
+                restart.SetEnabled(false);
 
             var menu = Btn("menu", App.BackToMenu);
             if (App.Participant != null && !r.isTutorial)
@@ -73,59 +78,44 @@ namespace RoadReady.UI
             next.text = $"Level {request.level + 1}";
         }
 
-        void BuildHistory()
-        {
-            var history = Q<VisualElement>("history");
-            var values = m_Report.history;
-            Q<Label>("history-title").SetVisible(values.Count > 1 && !m_Report.isTutorial);
-            if (values.Count <= 1 || m_Report.isTutorial)
-                return;
-            for (var i = 0; i < values.Count; i++)
-            {
-                var bar = new VisualElement();
-                bar.AddToClassList("history__bar");
-                if (i == values.Count - 1)
-                    bar.AddToClassList("history__bar--current");
-                bar.style.height = Length.Percent(Mathf.Max(6f, values[i]));
-                bar.Add(UIX.MakeLabel($"{values[i]:0}", "history__value"));
-                history.Add(bar);
-            }
-        }
+        const int k_MaxMistakes = 5;
 
+        /// <summary>Kept short on purpose: the full list of mistakes is in the report sent at the end of the session.</summary>
         void BuildDetails()
         {
             var details = Q<ScrollView>("details");
             var r = m_Report;
+            if (r.isTutorial)
+                return;
 
             if (r.unlockedNextLevel)
-                details.Add(UIX.MakeLabel("New difficulty level unlocked - more traffic and less time to react.", "insight", "insight--swap"));
+                details.Add(UIX.MakeLabel("Next level unlocked", "h2"));
 
-            if (r.hazardLines.Count > 0)
+            var mistakes = r.hazardLines.Concat(r.ruleLines)
+                .Where(l => l.decision != DecisionClass.Safe)
+                .OrderByDescending(l => l.decision)
+                .ToList();
+            if (mistakes.Count == 0)
             {
-                details.Add(UIX.MakeLabel("Hazards", "h2"));
-                foreach (var line in r.hazardLines)
-                    details.Add(UIX.DecisionRow(line.title, line.detail, line.decision, line.situationAwareness));
+                details.Add(UIX.MakeLabel("No mistakes", "h2"));
+                return;
             }
 
-            if (!string.IsNullOrEmpty(r.awarenessInsight))
-                details.Add(UIX.MakeLabel(r.awarenessInsight, "insight"));
-
-            if (!string.IsNullOrEmpty(r.otherPerspectiveInsight))
-                details.Add(UIX.MakeLabel($"Seen from the other side: {r.otherPerspectiveInsight}", "insight", "insight--swap"));
-
-            if (r.ruleLines.Count > 0)
+            // A pedestrian sees every mistake with the reason it can get them hurt (every one of them is a way to be hit);
+            // a driver sees a short list, with the rest in the emailed report.
+            if (r.perspective == Perspective.Pedestrian)
             {
-                details.Add(UIX.MakeLabel("Your decisions", "h2"));
-                foreach (var line in r.ruleLines.OrderByDescending(l => l.decision))
-                    details.Add(UIX.DecisionRow(line.title, line.detail, line.decision));
+                details.Add(UIX.MakeLabel("What could have got you hurt", "h2"));
+                foreach (var line in mistakes)
+                    details.Add(UIX.DecisionRow(line.title, !string.IsNullOrWhiteSpace(line.tip) ? line.tip : line.detail, line.decision, line.isHazard ? line.situationAwareness : null));
+                return;
             }
 
-            if (r.tips.Count > 0)
-            {
-                details.Add(UIX.MakeLabel("Next time", "h2"));
-                foreach (var tip in r.tips)
-                    details.Add(UIX.MakeLabel("-  " + tip, "body"));
-            }
+            details.Add(UIX.MakeLabel("Mistakes", "h2"));
+            foreach (var line in mistakes.Take(k_MaxMistakes))
+                details.Add(UIX.DecisionRow(line.title, null, line.decision));
+            if (mistakes.Count > k_MaxMistakes)
+                details.Add(UIX.MakeLabel($"+ {mistakes.Count - k_MaxMistakes} more in your report", "muted", "small"));
         }
     }
 
@@ -211,6 +201,14 @@ namespace RoadReady.UI
             Text("summary", $"Today you completed {attempts.Count} scenario attempt(s): {driver} as a driver and {pedestrian} as a pedestrian. Please take the headset off slowly and sit for a moment.");
 
             var results = Q<ScrollView>("results");
+            // Only this list gives way when it is long: it takes the space left between the summary and the End session
+            // button (basis 0, may shrink to nothing), so the button is always on screen and the list scrolls inside its card.
+            results.style.flexGrow = 1f;
+            results.style.flexShrink = 1f;
+            results.style.flexBasis = 0f;
+            results.style.minHeight = 0f;
+            results.mode = ScrollViewMode.Vertical;
+            results.verticalScrollerVisibility = ScrollerVisibility.Auto;
             foreach (var group in attempts.GroupBy(a => (a.scenarioName, a.perspective)))
             {
                 var list = group.OrderBy(a => a.startUtc, System.StringComparer.Ordinal).ToList();

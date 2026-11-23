@@ -17,6 +17,7 @@
             <ui:VisualElement class="row">
                 <ui:Button name="tab-scenarios" text="Scenario parameters" class="chip" />
                 <ui:Button name="tab-data" text="Data and export" class="chip" />
+                <ui:Button name="tab-guidance" text="Driving guidance" class="chip" />
             </ui:VisualElement>
             <ui:VisualElement name="scenarios-panel" class="grow">
                 <ui:VisualElement name="scenario-chips" class="row row--wrap" />
@@ -26,6 +27,17 @@
                     <ui:Label name="override-state" class="muted small grow" />
                     <ui:Button name="reset" text="Reset to defaults" class="btn btn--ghost" />
                     <ui:Button name="save" text="Save parameters" class="btn btn--primary" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="guidance-panel" class="grow hidden">
+                <ui:VisualElement class="card">
+                    <ui:Label text="Driving guidance" class="h2" />
+                    <ui:Label text="Coaching: warnings with advice.  Warnings only: short warnings.  Off: no cues. Driver scenarios only (not parking)." class="body muted" />
+                    <ui:Label text="Tutorial and training" class="body" />
+                    <ui:VisualElement name="guidance-training" class="row" />
+                    <ui:Label text="Baseline (pre-test) and post-test" class="body" />
+                    <ui:VisualElement name="guidance-test" class="row" />
+                    <ui:Label name="guidance-state" class="body small muted" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="data-panel" class="grow hidden">

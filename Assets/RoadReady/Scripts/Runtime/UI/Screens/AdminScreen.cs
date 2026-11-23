@@ -14,12 +14,14 @@ namespace RoadReady.UI
     /// </summary>
     public class AdminScreen : UIScreen
     {
+        const float k_KeyRepeatGuard = 0.25f; // seconds
         string m_Pin = "";
         ScenarioDefinition m_Scenario;
         int m_Level = 1;
         ScenarioParameters m_Editing;
 
         public override string TreeName => "Admin";
+        public override bool ScrollsAsWhole => true; // the whole panel scrolls: PIN pad, parameters, data and guidance tabs
 
         protected override void Bind()
         {
@@ -27,6 +29,7 @@ namespace RoadReady.UI
             BuildKeypad();
             Btn("tab-scenarios", () => ShowTab(true));
             Btn("tab-data", () => ShowTab(false));
+            Btn("tab-guidance", ShowGuidanceTab);
             Btn("save", SaveParameters);
             Btn("reset", ResetParameters);
             Btn("export", Export);
@@ -41,7 +44,17 @@ namespace RoadReady.UI
             foreach (var key in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "OK" })
             {
                 var k = key;
-                keypad.Add(UIX.MakeButton(k, () => OnKey(k), k == "OK" ? "btn--primary" : "btn--ghost"));
+                var lastPress = -1f;
+                keypad.Add(UIX.MakeButton(k, () =>
+                {
+                    // On PC one click reaches the button twice (mouse and simulated controller), so a number was typed
+                    // twice. Ignore the same key pressed again within a moment; VR only sends one press.
+                    var now = Time.unscaledTime;
+                    if (lastPress >= 0f && now - lastPress < k_KeyRepeatGuard)
+                        return;
+                    lastPress = now;
+                    OnKey(k);
+                }, k == "OK" ? "btn--primary" : "btn--ghost"));
             }
 
             RenderPin();
@@ -80,12 +93,43 @@ namespace RoadReady.UI
         {
             Q<VisualElement>("scenarios-panel").SetVisible(scenarios);
             Q<VisualElement>("data-panel").SetVisible(!scenarios);
+            Q<VisualElement>("guidance-panel").SetVisible(false);
             Q<Button>("tab-scenarios").EnableInClassList("chip--selected", scenarios);
             Q<Button>("tab-data").EnableInClassList("chip--selected", !scenarios);
+            Q<Button>("tab-guidance").EnableInClassList("chip--selected", false);
             if (scenarios)
                 BuildScenarioChips();
             else
                 RefreshData();
+        }
+
+        // ------------------------------------------------------------ driving guidance
+
+        void ShowGuidanceTab()
+        {
+            Q<VisualElement>("scenarios-panel").SetVisible(false);
+            Q<VisualElement>("data-panel").SetVisible(false);
+            Q<VisualElement>("guidance-panel").SetVisible(true);
+            Q<Button>("tab-scenarios").EnableInClassList("chip--selected", false);
+            Q<Button>("tab-data").EnableInClassList("chip--selected", false);
+            Q<Button>("tab-guidance").EnableInClassList("chip--selected", true);
+            BuildGuidanceChips();
+        }
+
+        void BuildGuidanceChips()
+        {
+            var settings = App.Config.guidance;
+            UIX.BuildEnumChips(Q<VisualElement>("guidance-training"), settings.ModeFor(Core.AttemptPhase.Training), m => m.ToString(), m =>
+            {
+                Guidance.GuidanceSettings.SaveModeOverride(false, m);
+                BuildGuidanceChips();
+            });
+            UIX.BuildEnumChips(Q<VisualElement>("guidance-test"), settings.ModeFor(Core.AttemptPhase.PostTest), m => m.ToString(), m =>
+            {
+                Guidance.GuidanceSettings.SaveModeOverride(true, m);
+                BuildGuidanceChips();
+            });
+            Text("guidance-state", "Saved on this headset. It applies from the next attempt.");
         }
 
         // ------------------------------------------------------------ scenario parameters (FR11)

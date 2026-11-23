@@ -1,105 +1,54 @@
-using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace RoadReady.UI
 {
     /// <summary>
-    /// A pair of up / down arrow buttons for scrolling with a controller ray: hold one to keep scrolling. They only
-    /// show while there is something to scroll to. Used by <see cref="ScrollPane"/> and by every ScrollView a screen
-    /// builds (a drag on a ScrollView is not dependable in VR).
+    /// Settings shared by every ScrollView a screen builds: a normal vertical scroll bar that shows when the list is longer
+    /// than its box. (There are no extra up / down buttons any more; the controller thumbstick scrolls too, see
+    /// <see cref="RoadReadyUI"/>.)
     /// </summary>
-    public class ScrollArrows : VisualElement
+    public static class ScrollBars
     {
-        const float k_Step = 70f;
-        const float k_FirstDelay = 250f;
-        const float k_Interval = 60f;
+        public const float WheelStep = 60f;
 
-        readonly Func<float> m_Offset;
-        readonly Func<float> m_Max;
-        readonly Action<float> m_SetOffset;
-        readonly VisualElement m_Up, m_Down;
-
-        public ScrollArrows(Func<float> offset, Func<float> max, Action<float> setOffset)
-        {
-            m_Offset = offset;
-            m_Max = max;
-            m_SetOffset = setOffset;
-            pickingMode = PickingMode.Ignore;
-            AddToClassList("scroll-arrows");
-            m_Up = MakeArrow(true);
-            m_Down = MakeArrow(false);
-            Add(m_Up);
-            Add(m_Down);
-            this.SetVisible(false);
-        }
-
-        RepeatButton MakeArrow(bool up)
-        {
-            var button = new RepeatButton(() => Move(up ? -k_Step : k_Step), (long)k_FirstDelay, (long)k_Interval);
-            button.AddToClassList("scroll-arrow");
-            button.generateVisualContent += context => DrawTriangle(context, up);
-            return button;
-        }
-
-        void Move(float delta) => m_SetOffset(Mathf.Clamp(m_Offset() + delta, 0f, m_Max()));
-
-        /// <summary>Call after the offset or the size of the content changed.</summary>
-        public void Refresh()
-        {
-            var max = m_Max();
-            var scrollable = max > (this.ClassListContains("hidden") ? 8f : 2f);
-            this.SetVisible(scrollable);
-            m_Up.EnableInClassList("scroll-arrow--off", m_Offset() <= 1f);
-            m_Down.EnableInClassList("scroll-arrow--off", m_Offset() >= max - 1f);
-            m_Up.MarkDirtyRepaint();
-            m_Down.MarkDirtyRepaint();
-        }
-
-        static void DrawTriangle(MeshGenerationContext context, bool up)
-        {
-            var size = context.visualElement.contentRect.size;
-            if (size.x < 8f || size.y < 8f)
-                return;
-            var c = new Vector2(size.x * 0.5f, size.y * 0.5f);
-            var half = Mathf.Min(size.x, size.y) * 0.24f;
-            var dir = up ? -1f : 1f; // screen y grows downwards
-            var p = context.painter2D;
-            p.fillColor = new Color(0.98f, 0.82f, 0f, 1f);
-            p.BeginPath();
-            p.MoveTo(new Vector2(c.x, c.y + dir * half));
-            p.LineTo(new Vector2(c.x - half * 1.25f, c.y - dir * half * 0.7f));
-            p.LineTo(new Vector2(c.x + half * 1.25f, c.y - dir * half * 0.7f));
-            p.ClosePath();
-            p.Fill();
-        }
-
-        /// <summary>Gives a ScrollView the arrow buttons on its right edge (it keeps its own scroller).</summary>
         public static void Attach(ScrollView view)
         {
-            if (view == null || view.Q<ScrollArrows>() != null)
+            if (view == null)
                 return;
-            var arrows = new ScrollArrows(
-                () => view.scrollOffset.y,
-                () => Mathf.Max(0f, view.verticalScroller.highValue),
-                y => view.scrollOffset = new Vector2(view.scrollOffset.x, y));
-            view.hierarchy.Add(arrows);
-            view.schedule.Execute(arrows.Refresh).Every(150);
+            view.mode = ScrollViewMode.Vertical;
+            view.verticalScrollerVisibility = ScrollerVisibility.Auto;
+            view.mouseWheelScrollSize = WheelStep;
+        }
+
+        /// <summary>How far this ScrollView can still scroll (0 when everything fits).</summary>
+        public static float MaxOffset(ScrollView view) => view == null ? 0f : Mathf.Max(0f, view.verticalScroller.highValue);
+
+        /// <summary>Scrolls a ScrollView by delta pixels (positive = down). Returns false when it has nothing to scroll.</summary>
+        public static bool ScrollBy(ScrollView view, float delta)
+        {
+            if (view == null || !(view.layout.height > 0f) || MaxOffset(view) <= 2f) // not shown (or inside a hidden tab) or nothing to scroll
+                return false;
+            view.scrollOffset = new Vector2(view.scrollOffset.x, Mathf.Clamp(view.scrollOffset.y + delta, 0f, MaxOffset(view)));
+            return true;
         }
     }
 
     /// <summary>
-    /// Holds a menu screen and scrolls it when it is taller than the panel. A plain clipped box that is moved by the
-    /// arrow buttons (a ScrollView would swallow the controller's press, so buttons and sliders inside would not
+    /// Holds a menu screen and scrolls it when it is taller than the panel, with a normal scroll bar (drag the thumb, tap
+    /// the track to move a page) and the mouse wheel or controller thumbstick. A plain clipped box that is moved by
+    /// the scroll bar (a ScrollView would swallow the controller's press, so buttons and sliders inside would not
     /// respond). Screens that bring their own ScrollView are fitted to the panel instead, so their buttons stay put.
     /// </summary>
     public class ScrollPane : VisualElement
     {
         readonly VisualElement m_Viewport;
         readonly VisualElement m_Content;
-        readonly ScrollArrows m_Arrows;
+        readonly VisualElement m_Track, m_Thumb;
         float m_Offset;
         bool m_Fit;
+        bool m_Dragging;
+        float m_DragStartY, m_DragStartOffset;
 
         public VisualElement Content => m_Content;
 
@@ -121,8 +70,44 @@ namespace RoadReady.UI
             m_Content.style.flexShrink = 0f;
             m_Viewport.Add(m_Content);
 
-            m_Arrows = new ScrollArrows(() => m_Offset, () => MaxOffset, SetOffset);
-            Add(m_Arrows);
+            // A normal scroll bar: a track with a thumb you can drag; tap the track to move a page.
+            m_Track = new VisualElement { name = "scroll-track" };
+            m_Track.AddToClassList("scroll-track");
+            m_Thumb = new VisualElement { name = "scroll-thumb" };
+            m_Thumb.AddToClassList("scroll-thumb");
+            m_Track.Add(m_Thumb);
+            Add(m_Track);
+            m_Track.SetVisible(false);
+            m_Track.RegisterCallback<GeometryChangedEvent>(_ => UpdateThumb());
+            m_Track.RegisterCallback<PointerDownEvent>(e =>
+            {
+                if (e.target != m_Track)
+                    return;
+                var page = m_Viewport.layout.height * 0.9f;
+                SetOffset(m_Offset + (e.localPosition.y < m_Thumb.layout.y ? -page : page));
+                e.StopPropagation();
+            });
+            m_Thumb.RegisterCallback<PointerDownEvent>(e =>
+            {
+                m_Dragging = true;
+                m_DragStartY = e.position.y;
+                m_DragStartOffset = m_Offset;
+                m_Thumb.CapturePointer(e.pointerId);
+                e.StopPropagation();
+            });
+            m_Thumb.RegisterCallback<PointerMoveEvent>(e =>
+            {
+                if (!m_Dragging)
+                    return;
+                var travel = Mathf.Max(1f, m_Track.layout.height - m_Thumb.layout.height);
+                SetOffset(m_DragStartOffset + (e.position.y - m_DragStartY) * (MaxOffset / travel));
+            });
+            m_Thumb.RegisterCallback<PointerUpEvent>(e =>
+            {
+                m_Dragging = false;
+                m_Thumb.ReleasePointer(e.pointerId);
+            });
+            m_Thumb.RegisterCallback<PointerCaptureOutEvent>(_ => m_Dragging = false);
 
             m_Viewport.RegisterCallback<GeometryChangedEvent>(_ => Layout());
             m_Content.RegisterCallback<GeometryChangedEvent>(_ => Layout());
@@ -134,6 +119,15 @@ namespace RoadReady.UI
         }
 
         float MaxOffset => Mathf.Max(0f, m_Content.layout.height - m_Viewport.layout.height);
+
+        /// <summary>Scrolls by delta pixels (positive = down); used by the controller thumbstick. False when nothing can scroll.</summary>
+        public bool ScrollBy(float delta)
+        {
+            if (MaxOffset <= 2f)
+                return false;
+            SetOffset(m_Offset + delta);
+            return true;
+        }
 
         /// <summary>Called when a new screen is shown: back to the top, and fitted or free-height.</summary>
         public void Reset(bool fit)
@@ -166,7 +160,21 @@ namespace RoadReady.UI
         {
             m_Offset = Mathf.Clamp(value, 0f, MaxOffset);
             m_Content.style.translate = new Translate(0f, -m_Offset);
-            m_Arrows.Refresh();
+            UpdateThumb();
+        }
+
+        void UpdateThumb()
+        {
+            var max = MaxOffset;
+            m_Track.SetVisible(max > 2f);
+            var viewport = m_Viewport.layout.height;
+            var content = m_Content.layout.height;
+            var track = m_Track.layout.height;
+            if (max <= 2f || float.IsNaN(track) || track <= 0f || content <= 0f)
+                return;
+            var thumb = Mathf.Clamp(track * viewport / content, 64f, track);
+            m_Thumb.style.height = thumb;
+            m_Thumb.style.top = (track - thumb) * Mathf.Clamp01(m_Offset / max);
         }
     }
 }

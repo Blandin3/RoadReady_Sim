@@ -7,9 +7,9 @@
             <ui:Label name="consent-text" class="body" />
         </ui:ScrollView>
         <ui:VisualElement class="consent__checks">
-            <ui:Toggle name="age-ok" text="I am 16 or older. If I am under 18, my parent or guardian has signed the consent form." />
-            <ui:Toggle name="health-ok" text="I do not have a seizure disorder, severe motion sickness, or uncorrected vision problems." />
-            <ui:Toggle name="understand" text="I understand my data is anonymous and I can stop or withdraw at any time." />
+            <ui:Toggle name="age-ok" text="I am 16 or older (if under 18, my parent or guardian agrees)." />
+            <ui:Toggle name="health-ok" text="I have no seizure disorder or severe motion sickness." />
+            <ui:Toggle name="understand" text="I understand I can stop or withdraw at any time." />
         </ui:VisualElement>
         <ui:VisualElement class="spacer" />
         <ui:VisualElement class="row row--end consent__actions">

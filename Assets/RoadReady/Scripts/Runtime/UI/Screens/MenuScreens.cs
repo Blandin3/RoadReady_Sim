@@ -207,14 +207,27 @@ namespace RoadReady.UI
         {
             var request = App.Scenarios.Request;
             Text("context", request.scenario != null ? $"{request.scenario.displayName}  |  {request.perspective.Pretty()}  |  {request.phase.Pretty()}" : "");
-            Btn("resume", App.Resume);
-            Btn("recenter", App.RecenterView);
-            Btn("restart", App.RestartAttempt);
-            var skip = Btn("skip-tutorial", App.SkipTutorial);
+            // Each button runs only its own action. (The log line says which one fired, in the Player log / Console.)
+            PauseBtn("resume", App.Resume);
+            PauseBtn("recenter", App.RecenterView);
+            PauseBtn("restart", App.RestartAttempt);
+            var skip = PauseBtn("skip-tutorial", App.SkipTutorial);
             skip.SetVisible(request.phase == AttemptPhase.Tutorial);
-            Btn("comfort", () => App.OpenComfort(() => UI.Show(new PauseScreen(), reposition: false)));
-            Btn("quit", App.BackToMenu);
-            Btn("withdraw", App.RequestWithdraw);
+            PauseBtn("comfort", () => App.OpenComfort(() => UI.Show(new PauseScreen(), reposition: false)));
+            PauseBtn("quit", App.BackToMenu);
+            PauseBtn("withdraw", App.RequestWithdraw);
+        }
+
+        Button PauseBtn(string name, System.Action action)
+        {
+            var button = Btn(name, () =>
+            {
+                Debug.Log($"[RoadReady] Pause panel: '{name}' pressed");
+                action();
+            });
+            if (button != null)
+                button.focusable = false; // a Submit press must never go to a button that was not the one pointed at
+            return button;
         }
     }
 

@@ -28,6 +28,9 @@ namespace RoadReady.Config
         [Header("Comfort defaults")]
         public ComfortSettings defaultComfort = new ComfortSettings();
 
+        [Header("Driving guidance (spoken and on-screen cues while driving)")]
+        public RoadReady.Guidance.GuidanceSettings guidance = new RoadReady.Guidance.GuidanceSettings();
+
         [Header("Branding")]
         [Tooltip("RoadReady logo shown on the splash and welcome screens. Leave empty to show the 'RR' badge instead.")]
         public Texture2D logo;
@@ -76,7 +79,10 @@ namespace RoadReady.Config
         public AudioClip FindVoice(string key)
         {
             var line = voiceLines.Find(v => v.key == key);
-            return line.clip;
+            if (line.clip != null || string.IsNullOrEmpty(key))
+                return line.clip;
+            // No clip assigned in the list: use Assets/RoadReady/Resources/Voice/<key>.wav when it exists (the driving-guide cues ship this way).
+            return Resources.Load<AudioClip>("Voice/" + key);
         }
     }
 

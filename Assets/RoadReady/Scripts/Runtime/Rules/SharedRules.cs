@@ -61,7 +61,7 @@ namespace RoadReady.Rules
                     DecisionClass.Unsafe, ViolationSeverity.Critical, $"Impact at {ctx.player.Speed * Units.MsToKmh:0} km/h.", tip);
 
                 if (other is PedestrianAI pedestrian)
-                    pedestrian.OnHitByVehicle();
+                    pedestrian.OnHitByVehicle(ctx.player.Velocity);
                 ctx.onCollision?.Invoke(other, what);
             }
         }
