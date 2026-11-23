@@ -4,17 +4,13 @@
         <ui:VisualElement class="row">
             <ui:VisualElement name="score-ring" class="score-ring">
                 <ui:Label name="score-value" text="0" class="score-ring__value" />
-                <ui:Label text="SAFETY SCORE" class="score-ring__label" />
+                <ui:Label text="SCORE" class="score-ring__label" />
             </ui:VisualElement>
             <ui:VisualElement class="col grow">
                 <ui:Label name="eyebrow" class="eyebrow" />
                 <ui:Label name="headline" class="title" />
                 <ui:Label name="grade" class="subtitle" />
                 <ui:VisualElement name="metrics" />
-            </ui:VisualElement>
-            <ui:VisualElement class="col" style="width: 420px; margin-left: 32px;">
-                <ui:Label name="history-title" text="Your attempts" class="field-label" />
-                <ui:VisualElement name="history" class="history" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:ScrollView name="details" class="grow" />

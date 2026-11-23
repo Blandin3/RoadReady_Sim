@@ -1293,3 +1293,12 @@ Button.pill:hover {
 .feedback__corner-btn {
     margin: 0 0 0 8px;
 }
+
+/* Pause panel: compact buttons so all seven fit in the panel (the tutorial adds Skip tutorial) and nothing needs scrolling. */
+.pause__btn {
+    min-height: 70px;
+    margin: 5px 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 30px;
+}
